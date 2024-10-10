@@ -1,7 +1,6 @@
 package fi.bizhop.finanssi2.web.security;
 
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseToken;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
@@ -28,11 +27,13 @@ public class FirebaseTokenFilter extends AbstractPreAuthenticatedProcessingFilte
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         var httpRequest = (HttpServletRequest)request;
-        String token = httpRequest.getHeader("Authorization");
+        var token = httpRequest.getHeader("Authorization");
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7);
             try {
-                FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(token);
+                var decodedToken = FirebaseAuth.getInstance().verifyIdToken(token);
+                var user = new User(decodedToken.getUid(), decodedToken.getEmail());
+                request.setAttribute("user", user);
                 SecurityContextHolder.getContext().setAuthentication(new FirebaseAuthenticationToken(decodedToken));
             } catch (Exception e) {
                 SecurityContextHolder.clearContext();
