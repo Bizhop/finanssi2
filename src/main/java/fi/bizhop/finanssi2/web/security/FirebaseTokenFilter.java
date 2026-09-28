@@ -32,7 +32,7 @@ public class FirebaseTokenFilter extends AbstractPreAuthenticatedProcessingFilte
             token = token.substring(7);
             try {
                 var decodedToken = FirebaseAuth.getInstance().verifyIdToken(token);
-                var user = new User(decodedToken.getUid(), decodedToken.getEmail());
+                var user = new User(decodedToken.getUid(), decodedToken.getEmail(), decodedToken.getPicture());
                 request.setAttribute("user", user);
                 SecurityContextHolder.getContext().setAuthentication(new FirebaseAuthenticationToken(decodedToken));
             } catch (Exception e) {

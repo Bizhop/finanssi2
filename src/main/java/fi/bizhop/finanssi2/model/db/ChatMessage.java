@@ -9,4 +9,5 @@ public class ChatMessage {
     String username;
     String message;
     long timestamp;
+    String photoUrl;
 }

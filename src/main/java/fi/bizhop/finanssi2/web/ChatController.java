@@ -27,14 +27,14 @@ public class ChatController {
 
     @RequestMapping(value = "/api/chat", method = RequestMethod.GET, produces = "application/json")
     @ResponseBody List<ChatMessage> getMessages() {
-        var messages = new ArrayList<>(chatRepository.findAll(PageRequest.of(0, 20, Sort.by("timestamp").descending())).getContent());
+        var messages = new ArrayList<>(chatRepository.findAll(PageRequest.of(0, 10, Sort.by("timestamp").descending())).getContent());
         Collections.reverse(messages);
         return messages;
     }
 
     @RequestMapping(value = "/api/chat", method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
     void postMessage(@RequestBody ChatMessageInput message, @RequestAttribute("user") User user) {
-        var newMessage = new ChatMessage(user.email(), message.message(), System.currentTimeMillis());
+        var newMessage = new ChatMessage(user.email(), message.message(), System.currentTimeMillis(), user.photoUrl());
         chatRepository.save(newMessage);
 
         messagingService.sendChatMessage("/topic/chat", newMessage);
