@@ -18,7 +18,7 @@
         "@hookform/resolvers": "npm:@hookform/resolvers@^5.9.1",
         "@mui/icons-material": "npm:@mui/icons-material@^9.4.0",
         "@mui/material": "npm:@mui/material@^9.4.0",
-        "@types/node": "npm:@types/node@^24",
+        "@types/node": "npm:@types/node@^26.6.3",
         "@types/react": "npm:@types/react@^19.3.0",
         "@types/react-dom": "npm:@types/react-dom@^19.3.0",
         "@vitejs/plugin-react": "npm:@vitejs/plugin-react@^6.1.1",
