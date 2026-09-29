@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react"
-import { Avatar, Box, Divider, IconButton, List, ListItem, ListItemAvatar, ListItemText, Paper, Stack, Tooltip } from "@mui/material"
+import { Avatar, Box, Divider, IconButton, List, ListItem, ListItemAvatar, ListItemText, Paper, Stack, Tooltip, Typography } from "@mui/material"
 import { User } from "firebase/auth"
-import { useSubscription } from "react-stomp-hooks"
 import { z } from "zod/mini"
 import { SubmitHandler, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import SendIcon from "@mui/icons-material/Send"
 
 import { InputField } from "./FormInput.tsx"
+import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
 
 const ChatMessageSchema = z.object({
     id: z.string(),
@@ -37,41 +37,54 @@ const apiUrl = import.meta.env.VITE_FINANSSI_API_URL
 
 const PAGE_SIZE = 20
 
+// Union by id, newest first. Ids grow with creation time (MongoDB ObjectIds), and as equal-length hex strings they compare in the same order.
+const mergeMessages = (messages: TChatMessage[], moreMessages: TChatMessage[]) =>
+    [...new Map([...messages, ...moreMessages].map((message) => [message.id, message])).values()]
+        .sort((a, b) => a.id < b.id ? 1 : a.id > b.id ? -1 : 0)
+
 const Chat = ({ user }: TChatProps) => {
     // Newest first, like the backend returns them. The list is rendered with column-reverse, which shows them oldest at the top
     // and keeps the view anchored to the bottom (newest message) without any scrolling code.
     const [messages, setMessages] = useState<TChatMessage[]>([])
     const [hasOlderMessages, setHasOlderMessages] = useState(true)
     const loadingOlderMessages = useRef(false)
+    // For async callbacks that need the messages at the time they complete
+    const messagesRef = useRef(messages)
+    messagesRef.current = messages
     const { control, handleSubmit, formState: { errors, isDirty, isSubmitting, isValid }, reset } = useForm<TNewChatMessage>({
         resolver: zodResolver(NewChatMessageSchema),
         mode: "all",
         defaultValues: { message: "" },
     })
 
+    // The newest messages, or with a message id, the ones before it
+    const fetchPage = (before?: string) => {
+        const params = new URLSearchParams({ size: String(PAGE_SIZE) })
+        if (before) params.set("before", before)
+        return user.getIdToken()
+            .then((token) =>
+                fetch(`${apiUrl}/api/chat?${params}`, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                    },
+                })
+            )
+            .then((response) => response.json())
+            .then((response) => ChatMessageSchemaArray.parse(response))
+    }
+
     // Loads the page before the oldest loaded message; with nothing loaded yet, the newest page
     const loadOlderMessages = () => {
         if (loadingOlderMessages.current || !hasOlderMessages) return
         loadingOlderMessages.current = true
 
-        const params = new URLSearchParams({ size: String(PAGE_SIZE) })
-        const oldestMessage = messages.at(-1)
-        if (oldestMessage) params.set("before", oldestMessage.id)
-
-        user.getIdToken().then((token) =>
-            fetch(`${apiUrl}/api/chat?${params}`, {
-                method: "GET",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                },
-            })
-                .then((response) => response.json())
-        )
-            .then((response) => {
-                const page = ChatMessageSchemaArray.parse(response)
+        fetchPage(messages.at(-1)?.id)
+            .then((page) => {
                 // Cleared before the state updates, so the re-render can already trigger the next load
                 loadingOlderMessages.current = false
-                setMessages((prevMessages) => [...prevMessages, ...page])
+                // Merged, as the same messages can also come from the websocket or from refreshNewestMessages
+                setMessages((prevMessages) => mergeMessages(prevMessages, page))
                 setHasOlderMessages(page.length === PAGE_SIZE)
             })
             .catch((error) => {
@@ -101,13 +114,34 @@ const Chat = ({ user }: TChatProps) => {
         const safeParsed = ChatMessageSchema.safeParse(parsedObject)
 
         if (safeParsed.success) {
-            const newMessage = safeParsed.data
-            // A message posted while the first page was loading can arrive both in the page and over the websocket
-            setMessages((prevMessages) => prevMessages.some((message) => message.id === newMessage.id) ? prevMessages : [newMessage, ...prevMessages])
+            // A message posted while a page was loading can arrive both in the page and over the websocket
+            setMessages((prevMessages) => mergeMessages(prevMessages, [safeParsed.data]))
         }
     }
 
-    useSubscription("/topic/chat", (message) => receiveMessage(message.body))
+    useStompSubscription("/topic/chat", receiveMessage)
+
+    // Messages sent while the websocket was down (or before it first connected) never arrive over it, so fetch the newest page after every connect
+    const refreshNewestMessages = () =>
+        fetchPage()
+            .then((page) => {
+                const newestKnown = messagesRef.current[0]
+                // Nothing in common with the loaded messages: more were missed than fit a page, so continue loading older ones from this page instead
+                const missedMoreThanPage = newestKnown !== undefined && page.length === PAGE_SIZE && page.at(-1)!.id > newestKnown.id
+                if (missedMoreThanPage) {
+                    const oldestInPage = page.at(-1)!.id
+                    setMessages((prevMessages) => mergeMessages(page, prevMessages.filter((message) => message.id > oldestInPage)))
+                    setHasOlderMessages(true)
+                } else {
+                    setMessages((prevMessages) => mergeMessages(prevMessages, page))
+                }
+            })
+            .catch(console.error)
+
+    const connected = useStompConnected()
+    useEffect(() => {
+        if (connected) refreshNewestMessages()
+    }, [connected])
 
     // Load older messages whenever the top of the list is in view: on mount (the first page), when the user scrolls up, and again after a page that didn't fill
     // the list. Re-created on every change so the callback sees the current messages; observe() reports the current state right away.
@@ -146,6 +180,11 @@ const Chat = ({ user }: TChatProps) => {
                     <li ref={loadMoreTriggerRef} aria-hidden />
                 </List>
             </Box>
+            {!connected && (
+                <Typography variant="caption" color="warning" sx={{ mt: 1 }}>
+                    Connecting to chat… New messages appear once connected.
+                </Typography>
+            )}
             <form onSubmit={handleSubmit(sendChatMessage)}>
                 {/* useFlexGap: with margin-based spacing, Stack would reset the send button's top margin */}
                 <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: "flex-start", mt: 2 }}>

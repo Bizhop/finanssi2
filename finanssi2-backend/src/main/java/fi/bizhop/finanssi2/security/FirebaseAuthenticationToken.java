@@ -22,4 +22,10 @@ public class FirebaseAuthenticationToken extends AbstractAuthenticationToken {
     public Object getPrincipal() {
         return firebaseToken;
     }
+
+    /** Firebase user id; also the user name of the websocket session */
+    @Override
+    public String getName() {
+        return firebaseToken.getUid();
+    }
 }

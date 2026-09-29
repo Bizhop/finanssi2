@@ -1,5 +1,6 @@
 package fi.bizhop.finanssi2.security;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,7 +19,10 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 @Profile("!test")
+@RequiredArgsConstructor
 public class SecurityConfig {
+    final FirebaseTokenVerifier tokenVerifier;
+
     @Value("${finanssi2.endpoints.whitelist}")
     String whitelist;
 
@@ -35,7 +39,7 @@ public class SecurityConfig {
                                         .requestMatchers(whitelistArray).permitAll()
                                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(new FirebaseTokenFilter(), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(new FirebaseTokenFilter(tokenVerifier), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

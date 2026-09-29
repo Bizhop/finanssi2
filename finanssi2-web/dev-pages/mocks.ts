@@ -1,9 +1,9 @@
 // Shared setup for the test pages: a fake logged-in user and a fake backend, so pages work without a Firebase login or a running backend
 import { z } from "zod/mini"
 import { en } from "zod/locales"
-import { mock } from "react-stomp-hooks"
 
 import { auth } from "../src/components/firebase.ts"
+import type { StompConnection } from "../src/components/StompContext.tsx"
 
 // Same as src/index.tsx
 z.config(en())
@@ -54,11 +54,15 @@ export const fakeLogin = () => {
     fakeAuth.signOut = () => Promise.resolve()
 }
 
+// Messages the fake backend has "saved", oldest first
+let fakeChatHistory: FakeChatMessage[] = []
+
 /**
  * Answers GET /api/chat pages (?before=<id>&size=N, newest first) from the given history, after a delay so lazy loading can be seen,
  * and records POSTed messages instead of sending them
  */
 export const fakeBackend = (chatHistory: FakeChatMessage[], delayMs = 300) => {
+    fakeChatHistory = chatHistory
     const sentMessages: unknown[] = []
     globalThis.fetch = (input, init) => {
         if (init?.method === "POST") {
@@ -69,7 +73,7 @@ export const fakeBackend = (chatHistory: FakeChatMessage[], delayMs = 300) => {
         const params = new URL(String(input)).searchParams
         const before = params.get("before")
         const size = Number(params.get("size") ?? 20)
-        const page = chatHistory
+        const page = fakeChatHistory
             .filter((message) => before === null || message.id < before)
             .reverse()
             .slice(0, size)
@@ -79,7 +83,25 @@ export const fakeBackend = (chatHistory: FakeChatMessage[], delayMs = 300) => {
     return sentMessages
 }
 
-/** Simulates a chat message pushed from the backend over the websocket (needs StompSessionProviderMock) */
-export const receiveFakeChatMessage = (message: FakeChatMessage) =>
-    // deno-lint-ignore no-explicit-any
-    mock.mockReceiveMessage("/topic/chat", { body: JSON.stringify(message) } as any)
+// Subscriptions on the fake websocket: destination -> callbacks
+const fakeSubscriptions = new Map<string, Set<(body: string) => void>>()
+
+/** Value for StompContext.Provider: a fake connected (or disconnected) websocket */
+export const fakeStompConnection = (connected: boolean): StompConnection => ({
+    connected,
+    subscribe: (destination, onMessage) => {
+        if (!connected) return () => {}
+        if (!fakeSubscriptions.has(destination)) fakeSubscriptions.set(destination, new Set())
+        fakeSubscriptions.get(destination)!.add(onMessage)
+        return () => fakeSubscriptions.get(destination)?.delete(onMessage)
+    },
+})
+
+/**
+ * Simulates another user's message: saved by the fake backend, and pushed over the fake websocket to current subscribers.
+ * While disconnected there are none, so it is only in the history, like a message missed during a real disconnect.
+ */
+export const receiveFakeChatMessage = (message: FakeChatMessage) => {
+    fakeChatHistory.push(message)
+    fakeSubscriptions.get("/topic/chat")?.forEach((onMessage) => onMessage(JSON.stringify(message)))
+}
