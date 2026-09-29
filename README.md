@@ -2,12 +2,12 @@
 
 Monorepo for the Finanssi 2 game.
 
-- `finanssi2-backend/` – Spring Boot backend (Java 17, Gradle, MongoDB, Firebase auth)
+- `finanssi2-backend/` – Spring Boot backend (Java 25, Gradle, MongoDB, Firebase auth)
 - `finanssi2-web/` – React frontend (Deno + Vite)
 
 ## Prerequisites
 
-- Java 17
+- Java 25
 - Docker (for MongoDB)
 - [Deno](https://deno.com/)
 
