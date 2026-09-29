@@ -1,6 +1,6 @@
 package fi.bizhop.finanssi2.web;
 
-import fi.bizhop.finanssi2.web.security.User;
+import fi.bizhop.finanssi2.security.User;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;

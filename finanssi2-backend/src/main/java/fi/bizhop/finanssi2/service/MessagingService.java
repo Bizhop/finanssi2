@@ -1,7 +1,7 @@
 package fi.bizhop.finanssi2.service;
 
 import tools.jackson.databind.ObjectMapper;
-import fi.bizhop.finanssi2.model.db.ChatMessage;
+import fi.bizhop.finanssi2.db.ChatMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;

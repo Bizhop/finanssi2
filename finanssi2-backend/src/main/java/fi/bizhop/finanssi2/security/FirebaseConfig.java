@@ -1,4 +1,4 @@
-package fi.bizhop.finanssi2.web.security;
+package fi.bizhop.finanssi2.security;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;

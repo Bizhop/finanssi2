@@ -1,4 +1,4 @@
-package fi.bizhop.finanssi2.web.security;
+package fi.bizhop.finanssi2.security;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

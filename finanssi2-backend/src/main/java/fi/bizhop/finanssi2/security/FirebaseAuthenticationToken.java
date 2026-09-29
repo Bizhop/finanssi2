@@ -1,4 +1,4 @@
-package fi.bizhop.finanssi2.web.security;
+package fi.bizhop.finanssi2.security;
 
 import com.google.firebase.auth.FirebaseToken;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
