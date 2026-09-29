@@ -1,0 +1,8 @@
+{
+    // Use the Deno language server (not VS Code's built-in TypeScript) so that deno.json
+    // (compilerOptions, import map, src/vite-env.d.ts types) is honored in the editor
+    "deno.enable": true,
+    "[typescript][typescriptreact]": {
+        "editor.defaultFormatter": "denoland.vscode-deno"
+    }
+}

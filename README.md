@@ -55,3 +55,13 @@ deno task dev
 ```
 
 The app runs at http://localhost:3000.
+
+Other frontend tasks (run from `finanssi2-web`, defined in `deno.json` like npm scripts):
+
+| Task | Does |
+|---|---|
+| ~~`deno task build`~~ | Production build – **disabled for now**: there is no Firebase production environment yet (see comment in `deno.json`) |
+| `deno task typecheck` | Type-check the sources |
+| `deno task lint` | Lint the sources (unused imports/variables etc.) |
+| `deno task fmt` | Format the code |
+| `deno task fmt:check` | Check formatting without changing files (for CI) |
