@@ -1,21 +1,21 @@
 import React, { useEffect } from "react"
-import { Box, Grid2, IconButton, Tooltip } from "@mui/material"
-import { Navigate, NavLink } from "react-router-dom"
+import { Box, Grid, IconButton, Tooltip } from "@mui/material"
+import { Navigate, NavLink } from "react-router"
 import HomeIcon from "@mui/icons-material/Home"
 import LogoutIcon from "@mui/icons-material/Logout"
 import CasinoIcon from "@mui/icons-material/Casino"
 
-import { auth } from "./firebase"
-import { useCurrentUser } from "./CurrentUserContext"
+import { auth } from "./firebase.ts"
+import { useCurrentUser } from "./CurrentUserContext.tsx"
 
 type TMyNavLinkProps = {
-    to: string,
-    label: string,
-    icon: JSX.Element
+    to: string
+    label: string
+    icon: React.JSX.Element
 }
 
-const MyNavLink = ({ to, label, icon }: TMyNavLinkProps) =>
-    <Grid2 size={1} textAlign="center">
+const MyNavLink = ({ to, label, icon }: TMyNavLinkProps) => (
+    <Grid size={1} sx={{ textAlign: "center" }}>
         <NavLink to={to}>
             <Tooltip title={label}>
                 <IconButton size="small">
@@ -23,37 +23,42 @@ const MyNavLink = ({ to, label, icon }: TMyNavLinkProps) =>
                 </IconButton>
             </Tooltip>
         </NavLink>
-    </Grid2>
+    </Grid>
+)
 
 const Header = () => {
     const { user, setUser } = useCurrentUser()
     const logout = () => auth.signOut()
 
     useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged(user => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
             setUser(user)
         })
 
         return () => unsubscribe()
     }, [])
 
-    return <Box>
-        <Grid2 container spacing={1}>
-            <MyNavLink to="/" label="Front Page" icon={<HomeIcon />} />
-            {user ? <>
-                <MyNavLink to="/games" label="Games" icon={<CasinoIcon />} />
-                <Grid2 size={1} offset="auto">
-                    <Tooltip title="Log out">
-                        <IconButton onClick={logout} color="error">
-                            <LogoutIcon />
-                        </IconButton>
-                    </Tooltip>
-                </Grid2>
-            </> :
-                <Navigate to="/" />
-            }
-        </Grid2>
-    </Box>
+    return (
+        <Box>
+            <Grid container spacing={1}>
+                <MyNavLink to="/" label="Front Page" icon={<HomeIcon />} />
+                {user
+                    ? (
+                        <>
+                            <MyNavLink to="/games" label="Games" icon={<CasinoIcon />} />
+                            <Grid size={1} offset="auto">
+                                <Tooltip title="Log out">
+                                    <IconButton onClick={logout} color="error">
+                                        <LogoutIcon />
+                                    </IconButton>
+                                </Tooltip>
+                            </Grid>
+                        </>
+                    )
+                    : <Navigate to="/" />}
+            </Grid>
+        </Box>
+    )
 }
 
 export default Header

@@ -1,36 +1,50 @@
 {
-  "tasks": {
-    "dev": "deno run -A --env-file=.env.development npm:vite",
-    "build": "deno run -A npm:vite build"
-  },
-  "imports": {
-    "@deno/vite-plugin": "npm:@deno/vite-plugin@^1.0.0",
-    "@emotion/react": "npm:@emotion/react@^11.14.0",
-    "@emotion/styled": "npm:@emotion/styled@^11.14.0",
-    "@hookform/resolvers": "npm:@hookform/resolvers@^3.10.0",
-    "@mui/icons-material": "npm:@mui/icons-material@^6.3.1",
-    "@mui/material": "npm:@mui/material@^6.3.1",
-    "@std/dotenv": "jsr:@std/dotenv@^0.225.3",
-    "@types/node": "npm:@types/node@^22.10.5",
-    "@types/react": "npm:@types/react@^18.3.12",
-    "@types/react-dom": "npm:@types/react-dom@^19.0.2",
-    "@vitejs/plugin-react": "npm:@vitejs/plugin-react@^4.3.3",
-    "firebase": "npm:firebase@^11.1.0",
-    "react": "npm:react@^18.3.1",
-    "react-dom": "npm:react-dom@^18.3.1",
-    "react-firebase-hooks": "npm:react-firebase-hooks@^5.1.1",
-    "react-hook-form": "npm:react-hook-form@^7.54.2",
-    "react-router-dom": "npm:react-router-dom@^6.28.0",
-    "react-stomp-hooks": "npm:react-stomp-hooks@^3.0.1",
-    "react-toastify": "npm:react-toastify@^11.0.2",
-    "vite": "npm:vite@^5.4.11",
-    "zod": "npm:zod@^3.24.1"
-  },
-  "compilerOptions": {
-    "types": ["react", "react-dom", "@types/react"],
-    "lib": ["dom", "dom.iterable", "deno.ns"],
-    "jsx": "react-jsx",
-    "jsxImportSource": "react"
-  },
-  "nodeModulesDir": "auto"
+    "tasks": {
+        "dev": "deno run -A --env-file=.env.development npm:vite",
+        // Disabled: no Firebase environment for production yet (only .env.development exists), so a build
+        // would fail at startup with auth/invalid-api-key. Re-enable once production env config is in place.
+        // "build": "deno run -A npm:vite build",
+        "fmt": "deno fmt",
+        "fmt:check": "deno fmt --check",
+        "typecheck": "deno check src/ vite.config.ts",
+        "lint": "deno lint"
+    },
+    "imports": {
+        "@deno/vite-plugin": "npm:@deno/vite-plugin@^2.0.4",
+        "@emotion/react": "npm:@emotion/react@^11.14.0",
+        "@emotion/styled": "npm:@emotion/styled@^11.14.1",
+        "@hookform/resolvers": "npm:@hookform/resolvers@^5.9.1",
+        "@mui/icons-material": "npm:@mui/icons-material@^9.4.0",
+        "@mui/material": "npm:@mui/material@^9.4.0",
+        "@types/node": "npm:@types/node@^24",
+        "@types/react": "npm:@types/react@^19.3.0",
+        "@types/react-dom": "npm:@types/react-dom@^19.3.0",
+        "@vitejs/plugin-react": "npm:@vitejs/plugin-react@^6.1.1",
+        "firebase": "npm:firebase@^12.19.0",
+        "react": "npm:react@^19.3.0",
+        "react-dom": "npm:react-dom@^19.3.0",
+        "react-firebase-hooks": "npm:react-firebase-hooks@^5.1.1",
+        "react-hook-form": "npm:react-hook-form@^7.89.0",
+        "react-router": "npm:react-router@^8.4.0",
+        "react-stomp-hooks": "npm:react-stomp-hooks@^3.0.1",
+        "react-toastify": "npm:react-toastify@^11.1.0",
+        "vite": "npm:vite@^8.3.1",
+        "zod": "npm:zod@^4.6.5"
+    },
+    "compilerOptions": {
+        "types": ["react", "react-dom", "@types/react", "./src/vite-env.d.ts"],
+        "lib": ["dom", "dom.iterable", "deno.ns"],
+        "jsx": "react-jsx",
+        "jsxImportSource": "react"
+    },
+    "nodeModulesDir": "auto",
+    "fmt": {
+        "semiColons": false,
+        "indentWidth": 4,
+        "lineWidth": 120
+    },
+    "exclude": [
+        "src/.vite/",
+        "src/dist/"
+    ]
 }

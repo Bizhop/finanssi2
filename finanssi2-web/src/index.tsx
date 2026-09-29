@@ -1,11 +1,15 @@
-import React from "react"
 import ReactDOM from "react-dom/client"
-import { BrowserRouter } from "react-router-dom"
+import { BrowserRouter } from "react-router"
 import { StompSessionProvider } from "react-stomp-hooks"
 
-import App from "./components/App"
-import {CurrentUserProvider} from "./components/CurrentUserContext"
+import App from "./components/App.tsx"
+import { CurrentUserProvider } from "./components/CurrentUserContext.tsx"
 import { ToastContainer } from "react-toastify"
+import { z } from "zod/mini"
+import { en } from "zod/locales"
+
+// zod/mini ships without error messages; load the English locale once for the whole app
+z.config(en())
 
 const container = document.getElementById("app")!
 const root = ReactDOM.createRoot(container)
@@ -17,5 +21,5 @@ root.render(
                 <ToastContainer autoClose={1500} position="top-center" />
             </CurrentUserProvider>
         </StompSessionProvider>
-    </BrowserRouter>
+    </BrowserRouter>,
 )

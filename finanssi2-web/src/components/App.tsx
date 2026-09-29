@@ -1,29 +1,32 @@
-import React from "react"
-import { Route, Routes } from "react-router-dom"
+import { Route, Routes } from "react-router"
 import { Box, Container, Divider, Paper, Stack } from "@mui/material"
 
-import FrontPage from "./FrontPage"
-import Header from "./Header"
-import Games from "./Games"
+import FrontPage from "./FrontPage.tsx"
+import Header from "./Header.tsx"
+import Games from "./Games.tsx"
 
-const NotFound = () =>
+const NotFound = () => (
     <Box sx={{ flexGrow: 1 }}>
-      <h1>Page not found!</h1>
+        <h1>Page not found!</h1>
     </Box>
+)
 
-const MyRoutes = () =>
+const MyRoutes = () => (
     <Routes>
         <Route path="/" element={<FrontPage />} />
         <Route path="/games" element={<Games />} />
-        <Route path="*" element={<NotFound />}/>
+        <Route path="*" element={<NotFound />} />
     </Routes>
+)
 
-const App = () => <Container component={Paper}>
-    <Stack direction="column">
-        <Header />
-        <Divider />
-        <MyRoutes />
-    </Stack>
-</Container>
+const App = () => (
+    <Container component={Paper}>
+        <Stack direction="column">
+            <Header />
+            <Divider />
+            <MyRoutes />
+        </Stack>
+    </Container>
+)
 
 export default App

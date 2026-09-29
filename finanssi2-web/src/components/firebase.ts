@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app"
-import { browserLocalPersistence, getAuth } from "firebase/auth"
+import { browserLocalPersistence, browserPopupRedirectResolver, initializeAuth } from "firebase/auth"
 
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -7,8 +7,10 @@ const firebaseConfig = {
     projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
     storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
     messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
 }
 const firebaseApp = initializeApp(firebaseConfig)
-export const auth = getAuth(firebaseApp)
-auth.setPersistence(browserLocalPersistence)
+export const auth = initializeAuth(firebaseApp, {
+    persistence: browserLocalPersistence,
+    popupRedirectResolver: browserPopupRedirectResolver,
+})
