@@ -1,0 +1,385 @@
+﻿[{
+	"type": "FINANSSILEHTI",
+	"chapters": [
+		{
+			"text": "Kiristyneet luottomarkkinat",
+			"type": "header"
+		},
+		{
+			"text": "Pankki ei myönnä uusia lainoja"
+		},
+		{
+			"text": "Jo myönnetyistä lainoista on maksettava kaksinkertainen korko. Koskee myös lainaa joka maksetaan takaisin ruudussa \"Maksa takaisin yksi lainoistasi\"."
+		},
+		{
+			"text": "Voimassa toistaiseksi",
+			"font-style": "italic"
+		},
+		{
+			"text": "Autoveron korotus",
+			"type": "header"
+		},
+		{
+			"text": "Kaikki autonomistajat maksavat pankille 5000€."
+		}
+	]
+},
+{
+	"type": "FINANSSILEHTI",
+	"chapters": [
+		{
+			"text": "Suuri obligaatioarvonta",
+			"type": "header"
+		},
+		{
+			"text": "Katso peliohjeet",
+			"font-style": "italic"
+		}
+	]
+},
+{
+	"type": "FINANSSILEHTI",
+	"chapters": [
+		{
+			"text": "Suuri obligaatioarvonta",
+			"type": "header"
+		},
+		{
+			"text": "Katso peliohjeet",
+			"font-style": "italic"
+		}
+	]
+},
+{
+	"type": "FINANSSILEHTI",
+	"chapters": [
+		{
+			"text": "Muuttuvat markkinat",
+			"type": "header"
+		},
+		{
+			"text": "Saat siirtyä kolme askelta joko eteen- tai taaksepäin."	
+		},
+		{
+			"text": "Kaikki muut pelaajat, paitsi vankilassa olevat, siirtävät pelinappulaansa 1 askeleen eteenpäin (jos joku tulee \"Finanssilehti\" - ruutuun, uutta korttia ei nosteta)."
+		}
+	]
+},
+{
+	"type": "FINANSSILEHTI",
+	"chapters": [
+		{
+			"text": "Heikentyneet taloudelliset näkymät",
+			"type": "header"
+		},
+		{
+			"text": "Kaikkien rakennettujen jka rakentamattomien tonttien vuokrat laskevat puoleen (ei koske parkkitaloa)."
+		},
+		{	
+			"text": "Voimassa toistaiseksi.",
+			"font-style": "italic"
+		}
+	]
+},
+{
+	"type": "FINANSSILEHTI",
+	"chapters": [
+		{
+			"text": "Huonot ajat",
+			"type": "header"
+		},
+		{
+			"text": "Kaikki pelaajat, myös autottomat, heittävät vuorollaan molempia noppia, mutta siirtävät pelinappulaansa pienemmän silmäluvun mukaan."
+		},
+		{
+			"text": "Ohje koskee myös \"Palkkio\" - tilanteita."
+		},
+		{
+			"text": "Pankki ostaa osakkeita takaisin puoleen hintaan ostohinnasta."
+		},
+		{
+			"text": "Ei osinkojen jakoa."
+		},
+		{	
+			"text": "Voimassa toistaiseksi.",
+			"font-style": "italic"
+		}
+	]
+},
+{
+	"type": "FINANSSILEHTI",
+	"chapters": [
+		{
+			"text": "Inflaatio kiihtyy !",
+			"type": "header"
+		},
+		{
+			"text": "Kaikki pelaajat maksavat puolet käteisvaroistaan pankille."
+		}
+	]
+},	
+{
+	"type": "FINANSSILEHTI",
+	"chapters": [
+		{
+			"text": "Pörssikurssit laskussa",
+			"type": "header"
+		},
+		{
+			"text": "Pankki myy ja ostaa takaisin osakkeita puolella niiden arvosta."
+		},
+		{	
+			"text": "Ei osinkojen jakoa"
+		},
+		{	
+			"text": "Voimassa toistaiseksi.",
+			"font-style": "italic"
+		}
+	]
+},
+{
+	"type": "FINANSSILEHTI",
+	"chapters": [
+		{
+			"text": "Osakkeiden ostosulku !",
+			"type": "header"
+		},
+		{
+			"text": "Pankki ei myy osakkeita."
+		},
+		{	
+			"text": "Pankki ostaa osakkeita takaisin puoleen hintaan ostohinnasta."
+		},
+		{	
+			"text": "Voimassa toistaiseksi.",
+			"font-style": "italic"
+		}
+	]
+},
+{
+	"type": "FINANSSILEHTI",
+	"chapters": [
+		{
+			"text": "Korjaustöitä pankin pääkonttorissa",
+			"type": "header"
+		},
+		{
+			"text": "Pelaaja, joka tulee ruutuun \"Pankin sisäänkäynti\" tai on jo siellä, siirtyy suoraan ruutuun \"Pankin uloskäynti\" ja ottaa pörssivihjeen. Ohje ei koske pankin sisällä olevia pelaajia. Palkkioita ei makseta."
+		},
+		{
+			"text": "Voimassa toistaiseksi.",
+			"font-style": "italic"
+		}
+	]
+},
+{
+	"type": "FINANSSILEHTI",
+	"chapters": [
+		{
+			"text": "Tonttien hinnat nousevat !",
+			"type": "header"
+		},
+		{
+			"text": "Pankki myy ja ostaa takaisin rakentamattomia tontteja 50% normaalia korkeammalla hinnalla."
+		},
+		{
+			"text": "Voimassa toistaiseksi.",
+			"font-style": "italic"
+		}
+	]
+},
+{
+	"type": "FINANSSILEHTI",
+	"chapters": [
+		{
+			"text": "Rakennuskielto !",
+			"type": "header"
+		},
+		{
+			"text": "Kaikki tontit ovat rakennuskiellossa."
+		},
+		{
+			"text": "Ei koske pelaajia, joilla on rakennuslupa."
+		},
+		{
+			"text": "Voimassa toistaiseksi.",
+			"font-style": "italic"
+		}
+	]
+},
+{
+	"type": "FINANSSILEHTI",
+	"chapters": [
+		{
+			"text": "Korotettu omaisuusvero",
+			"type": "header"
+		},
+		{
+			"text": "Kaikki pelaajat maksavat" 
+		},
+		{
+			"text": "10% käteisvaroistaan 100 000€ asti"
+		},
+		{
+			"text": "25% käteisvaroistaan, jotka ylittävät 100 000€"
+		},
+		{
+			"text": "Summa pyöristetään ylöspäin lähimpään 500€:n."
+		}
+	]
+},
+{
+	"type": "FINANSSILEHTI",
+	"chapters": [
+		{
+			"text": "Korkeasuhdanne rakennusalalla",
+			"type": "header"
+		},
+		{
+			"text": "Kaikkien rakennusten ja teollisuustonttien hinnan kaksinkertaistuvat"
+		},
+		{
+			"text": "(Muovitehdas, Bensiiniyhtiö, Öljynjalostamo, Sahalaitos, Paperitehdas ja Rautatehdas)"
+		},
+		{
+			"text": "Voimassa toistaiseksi.",
+			"font-style": "italic"
+		}
+	]
+},
+{
+	"type": "FINANSSILEHTI",
+	"chapters": [
+		{
+			"text": "Tiukentuva lainsäädäntö uhkaa",
+			"type": "header"
+		},
+		{
+			"text": "Yhtiökokoukset eivät saa tehdä päätöksiä yritysryhmien haltuunotosta."
+		},
+		{
+			"text": "Voimassa toistaiseksi.",
+			"font-style": "italic"
+		}
+	]
+},
+{
+	"type": "FINANSSILEHTI",
+	"chapters": [
+		{
+			"text": "Hyvät ajat !",
+			"type": "header"
+		},
+		{
+			"text": "Kaikkien nopanheittojen silmäluvut kerrotaan kahdella."
+		},
+		{
+			"text": "Pankki maksaa kaksinkertaiset. palkkiot."
+		},
+		{
+			"text": "Osingot jaetaan kaksinkertaisina."
+		},
+		{
+			"text": "Voimassa toistaiseksi.",
+			"font-style": "italic"
+		}
+	]
+},
+{
+	"type": "FINANSSILEHTI",
+	"chapters": [
+		{
+			"text": "Bensiinin ja öljyn tuontikielto",
+			"type": "header"
+		},
+		{
+			"text": "Autonomistajatkin heittävät vain yhdellä nopalla. (Ei koske ruudun \"Bensiiniyhtiö\" omistajaa.)"
+		},
+		{
+			"text": "Parkkitalossa ei peritä pysäköintimaksuja"
+		},
+		{
+			"text": "Voimassa toistaiseksi.",
+			"font-style": "italic"
+		}
+	]
+},
+{
+	"type": "FINANSSILEHTI",
+	"chapters": [
+		{
+			"text": "Ennätysvuosi pörssissä !",
+			"type": "header"
+		},
+		{
+			"text": "Pankki jakaa kaikille osakkeenomistajille osakkeiden mukaiset osingot !"
+		}
+	]
+},
+{
+	"type": "FINANSSILEHTI",
+	"chapters": [
+		{
+			"text": "Uusi energiavero !",
+			"type": "header"
+		},
+		{
+			"text": "Kaikki pelaajat, joilla on rakennettuja tontteja (myös lainoitettuja) siirtävät pelinappulansa \"Pankin uloskäyntiin\" ja maksavat:"
+		},
+		{
+			"text": "30 000€/teollisuuslaitos"
+		},
+		{
+			"text": "Rautatehdas, Paperitehdas, Sahalaitos, Öljynjalostamo, Bensiiniyhtiö ja Muovitehdas)"
+		},
+		{
+			"text": "20 000€/muu rakennus"
+		},
+		{
+			"text": "(muut tontit)"
+		},
+		{
+			"text": "Pelaaja, joka kulkee \"Pankin sisäänkäynnin\" kautta saa heittää palkkiosta."
+		}
+	]
+},
+{
+	"type": "FINANSSILEHTI",
+	"chapters": [
+		{
+			"text": "Pörssikurssit nousussa",
+			"type": "header"
+		},
+		{
+			"text": "Pankki myy ja ostaa takaisin osakkeita kaksinkertaisella arvolla."
+		},
+		{	
+			"text": "Pankki jakaa kaikki osingot kaksinkertaisina (muut osingonjaot tapahtuvat normaalisti)"
+		},
+		{	
+			"text": "Voimassa toistaiseksi.",
+			"font-style": "italic"
+		}
+	]
+},
+{
+	"type": "FINANSSILEHTI",
+	"chapters": [
+		{
+			"text": "Tonttien ostokielto !",
+			"type": "header"
+		},
+		{
+			"text": "Pankki ei myy tontteja."
+			
+		},
+		{
+			"text": "Ei koske pelaajia, joilla on ostotodistus."
+		},
+		{
+			"text": "Voimassa toistaiseksi.",
+			"font-style": "italic"
+		}
+	]
+	
+}]

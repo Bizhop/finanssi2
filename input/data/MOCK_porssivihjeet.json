@@ -1,0 +1,632 @@
+[
+  {
+    "id": "PV-01",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Rakennuslupa",
+        "type": "header"
+      },
+      {
+        "text": "Saat rakentaa tonteillesi milloin tahansa vuorollasi ennen nopanheittoa."
+      },
+      {
+        "text": "Ei koske rakennuskieltoa."
+      },
+      {
+        "text": "Säilytä kortti.",
+        "font-style": "italic"
+      }
+    ]
+  },
+  {
+    "id": "PV-02",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Rakennuslupa",
+        "type": "header"
+      },
+      {
+        "text": "Saat rakentaa tonteillesi milloin tahansa vuorollasi ennen nopanheittoa."
+      },
+      {
+        "text": "Ei koske rakennuskieltoa."
+      },
+      {
+        "text": "Säilytä kortti.",
+        "font-style": "italic"
+      }
+    ]
+  },
+  {
+    "id": "PV-03",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Ostotodistus",
+        "type": "header"
+      },
+      {
+        "text": "Saat ostaa tontin, vaikka pankki ei myy tontteja."
+      },
+      {
+        "text": "Säilytä kortti. Palauta käytön jälkeen.",
+        "font-style": "italic"
+      }
+    ]
+  },
+  {
+    "id": "PV-04",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Ostotodistus",
+        "type": "header"
+      },
+      {
+        "text": "Saat ostaa tontin, vaikka pankki ei myy tontteja."
+      },
+      {
+        "text": "Säilytä kortti. Palauta käytön jälkeen.",
+        "font-style": "italic"
+      }
+    ]
+  },
+  {
+    "id": "PV-05",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Finanssilehti",
+        "type": "header"
+      },
+      {
+        "text": "Nosta uusi Finanssilehti."
+      }
+    ]
+  },
+  {
+    "id": "PV-06",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Finanssilehti",
+        "type": "header"
+      },
+      {
+        "text": "Nosta uusi Finanssilehti."
+      }
+    ]
+  },
+  {
+    "id": "PV-07",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Osingonjako",
+        "type": "header"
+      },
+      {
+        "text": "Jaa vastapelaajille 20% osinkoa osakkeista ryhmissä, joissa omistat tontteja."
+      }
+    ]
+  },
+  {
+    "id": "PV-08",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Osingonjako",
+        "type": "header"
+      },
+      {
+        "text": "Jaa vastapelaajille 20% osinkoa osakkeista ryhmissä, joissa omistat tontteja."
+      }
+    ]
+  },
+  {
+    "id": "PV-09",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Pankki jakaa osinkoa",
+        "type": "header"
+      },
+      {
+        "text": "Pankki jakaa osinkoa 20% osakkeillesi."
+      }
+    ]
+  },
+  {
+    "id": "PV-10",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Pankki jakaa osinkoa",
+        "type": "header"
+      },
+      {
+        "text": "Pankki jakaa osinkoa 20% osakkeillesi."
+      }
+    ]
+  },
+  {
+    "id": "PV-11",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Pankki jakaa osinkoa",
+        "type": "header"
+      },
+      {
+        "text": "Pankki jakaa osinkoa kaikille osakkeillesi."
+      }
+    ]
+  },
+  {
+    "id": "PV-12",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Pakkomyynti",
+        "type": "header"
+      },
+      {
+        "text": "Myy halvin tonttisi pankille takaisinostohintaan."
+      },
+      {
+        "text": "Ei koske osakkeita yritysryhmissä.",
+        "font-style": "italic"
+      }
+    ]
+  },
+  {
+    "id": "PV-13",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Pakkomyynti",
+        "type": "header"
+      },
+      {
+        "text": "Myy halvin tonttisi pankille takaisinostohintaan."
+      },
+      {
+        "text": "Ei koske osakkeita yritysryhmissä.",
+        "font-style": "italic"
+      }
+    ]
+  },
+  {
+    "id": "PV-14",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Pakkomyynti",
+        "type": "header"
+      },
+      {
+        "text": "Myy yksi osakkeistasi pankille takaisinostohintaan."
+      },
+      {
+        "text": "Ei koske osakkeita yritysryhmissä.",
+        "font-style": "italic"
+      }
+    ]
+  },
+  {
+    "id": "PV-15",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Siirry",
+        "type": "header"
+      },
+      {
+        "text": "Siirry ruutuun \"Pankin sisäänkäynti\"."
+      }
+    ]
+  },
+  {
+    "id": "PV-16",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Siirry",
+        "type": "header"
+      },
+      {
+        "text": "Siirry ruutuun \"Pankin sisäänkäynti\"."
+      }
+    ]
+  },
+  {
+    "id": "PV-17",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Siirry",
+        "type": "header"
+      },
+      {
+        "text": "Siirry ruutuun \"FP Finanssi Pankki sivukonttori\"."
+      }
+    ]
+  },
+  {
+    "id": "PV-18",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Siirry",
+        "type": "header"
+      },
+      {
+        "text": "Siirry ruutuun \"Rakennusprojekti Oy\"."
+      }
+    ]
+  },
+  {
+    "id": "PV-19",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Vankilaan",
+        "type": "header"
+      },
+      {
+        "text": "Siirry suoraan vankilaan."
+      }
+    ]
+  },
+  {
+    "id": "PV-20",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Vapaudut vankilasta",
+        "type": "header"
+      },
+      {
+        "text": "Voit käyttää kortin vapautuaksesi vankilasta."
+      },
+      {
+        "text": "Säilytä kortti.",
+        "font-style": "italic"
+      }
+    ]
+  },
+  {
+    "id": "PV-21",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Veronpalautus",
+        "type": "header"
+      },
+      {
+        "text": "Saat pankilta 10 000€."
+      }
+    ]
+  },
+  {
+    "id": "PV-22",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Veronpalautus",
+        "type": "header"
+      },
+      {
+        "text": "Saat pankilta 10 000€."
+      }
+    ]
+  },
+  {
+    "id": "PV-23",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Veronpalautus",
+        "type": "header"
+      },
+      {
+        "text": "Saat pankilta 10 000€."
+      }
+    ]
+  },
+  {
+    "id": "PV-24",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Onnistunut sijoitus",
+        "type": "header"
+      },
+      {
+        "text": "Saat pankilta 25 000€."
+      }
+    ]
+  },
+  {
+    "id": "PV-25",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Onnistunut sijoitus",
+        "type": "header"
+      },
+      {
+        "text": "Saat pankilta 25 000€."
+      }
+    ]
+  },
+  {
+    "id": "PV-26",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Perintö",
+        "type": "header"
+      },
+      {
+        "text": "Saat pankilta 50 000€."
+      }
+    ]
+  },
+  {
+    "id": "PV-27",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Sakko",
+        "type": "header"
+      },
+      {
+        "text": "Maksa pankille 5 000€."
+      }
+    ]
+  },
+  {
+    "id": "PV-28",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Sakko",
+        "type": "header"
+      },
+      {
+        "text": "Maksa pankille 5 000€."
+      }
+    ]
+  },
+  {
+    "id": "PV-29",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Konsulttipalkkio",
+        "type": "header"
+      },
+      {
+        "text": "Maksa pankille 15 000€."
+      }
+    ]
+  },
+  {
+    "id": "PV-30",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Konsulttipalkkio",
+        "type": "header"
+      },
+      {
+        "text": "Maksa pankille 15 000€."
+      }
+    ]
+  },
+  {
+    "id": "PV-31",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Korjauskulut",
+        "type": "header"
+      },
+      {
+        "text": "Maksa pankille 5 000€ jokaisesta rakennuksesta ja 10 000€ jokaisesta teollisuuslaitoksesta."
+      }
+    ]
+  },
+  {
+    "id": "PV-32",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Korjauskulut",
+        "type": "header"
+      },
+      {
+        "text": "Maksa pankille 5 000€ jokaisesta rakennuksesta ja 10 000€ jokaisesta teollisuuslaitoksesta."
+      }
+    ]
+  },
+  {
+    "id": "PV-33",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Merkkipäivä",
+        "type": "header"
+      },
+      {
+        "text": "Saat jokaiselta pelaajalta 2 000€."
+      }
+    ]
+  },
+  {
+    "id": "PV-34",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Edustuskulut",
+        "type": "header"
+      },
+      {
+        "text": "Maksa jokaiselle pelaajalle 2 000€."
+      }
+    ]
+  },
+  {
+    "id": "PV-35",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Arpajaisvoitto",
+        "type": "header"
+      },
+      {
+        "text": "Saat auton. Jos sinulla on jo auto, saat pankilta 25 000€."
+      }
+    ]
+  },
+  {
+    "id": "PV-36",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Autovahinko",
+        "type": "header"
+      },
+      {
+        "text": "Jos sinulla on auto, myy se pankille 25 000€:lla."
+      }
+    ]
+  },
+  {
+    "id": "PV-37",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Kurssinousu",
+        "type": "header"
+      },
+      {
+        "text": "Pankki maksaa sinulle 10% osakepääomastasi."
+      }
+    ]
+  },
+  {
+    "id": "PV-38",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Kurssinousu",
+        "type": "header"
+      },
+      {
+        "text": "Pankki maksaa sinulle 10% osakepääomastasi."
+      }
+    ]
+  },
+  {
+    "id": "PV-39",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Kurssilasku",
+        "type": "header"
+      },
+      {
+        "text": "Maksa pankille 10% osakepääomastasi."
+      },
+      {
+        "text": "Ei koske osakkeita yritysryhmissä.",
+        "font-style": "italic"
+      }
+    ]
+  },
+  {
+    "id": "PV-40",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Lainanlyhennys",
+        "type": "header"
+      },
+      {
+        "text": "Maksa takaisin yksi lainoistasi (jos sinulla on lainaa)."
+      }
+    ]
+  },
+  {
+    "id": "PV-41",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Edullinen laina",
+        "type": "header"
+      },
+      {
+        "text": "Voit ottaa pankista lainan, josta ei makseta korkoa ensimmäisellä kerralla \"Pankin uloskäynnissä\"."
+      }
+    ]
+  },
+  {
+    "id": "PV-42",
+    "type": "PORSSIVIHJE",
+    "mock": true,
+    "chapters": [
+      {
+        "text": "Heitä uudestaan",
+        "type": "header"
+      },
+      {
+        "text": "Heitä noppaa uudestaan."
+      }
+    ]
+  }
+]

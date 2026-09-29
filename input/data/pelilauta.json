@@ -1,0 +1,436 @@
+{
+  "_source": "finanssi_pelilauta.txt + board.png. Numbering follows the board photo.",
+  "_unverified": [
+    "groups: membership inferred from square colours and the rules text; Parkkitalo (8, white square) is assumed to belong to Palveluyhtiö",
+    "BANK_DIVIDEND percent null on squares 16, 28 and 46: rules say the amount is 'determined case by case' (possibly the dividend printed on each share)",
+    "square 36 is 'go directly to jail' on the board; both rule texts say 37. The board is used here"
+  ],
+  "groups": [
+    {
+      "id": "KASITEOLLISUUS",
+      "name": "Käsiteollisuus Oy",
+      "color": "vaaleanvihreä",
+      "properties": [
+        3,
+        4,
+        6
+      ]
+    },
+    {
+      "id": "PALVELUYHTIO",
+      "name": "Palveluyhtiö",
+      "color": "violetti",
+      "properties": [
+        8,
+        9,
+        10
+      ]
+    },
+    {
+      "id": "LIIKEKESKUS",
+      "name": "Liikekeskus Oy",
+      "color": "tummanvihreä",
+      "properties": [
+        12,
+        13,
+        15
+      ]
+    },
+    {
+      "id": "FINANSSIYHTYMA",
+      "name": "Finanssiyhtymä",
+      "color": "oranssi",
+      "properties": [
+        18,
+        19
+      ]
+    },
+    {
+      "id": "TEKNIIKKA",
+      "name": "Tekniikka Oy",
+      "color": "ruskea",
+      "properties": [
+        21,
+        22,
+        23
+      ]
+    },
+    {
+      "id": "KEMIA",
+      "name": "Kemia Oy",
+      "color": "punainen",
+      "properties": [
+        26,
+        27,
+        29
+      ]
+    },
+    {
+      "id": "TEOLLISUUSKONSERNI",
+      "name": "Teollisuuskonserni",
+      "color": "sininen",
+      "properties": [
+        30,
+        32,
+        33
+      ]
+    }
+  ],
+  "squares": [
+    {
+      "square": 1,
+      "name": "Pankin uloskäynti",
+      "type": "BANK_EXIT",
+      "mandatoryStop": true,
+      "headOffice": false
+    },
+    {
+      "square": 2,
+      "name": "Mene ruutuun 21",
+      "type": "MOVE_TO",
+      "target": 21,
+      "text": "Siirry \"Elektroniikkayhtiöön\"",
+      "headOffice": false
+    },
+    {
+      "square": 3,
+      "name": "Ompelimo",
+      "type": "PROPERTY",
+      "group": "KASITEOLLISUUS",
+      "price": 10000,
+      "industrial": false,
+      "headOffice": false
+    },
+    {
+      "square": 4,
+      "name": "Maalaamo",
+      "type": "PROPERTY",
+      "group": "KASITEOLLISUUS",
+      "price": 10000,
+      "industrial": false,
+      "headOffice": false
+    },
+    {
+      "square": 5,
+      "name": "Finanssilehti",
+      "type": "FINANCE_NEWS",
+      "headOffice": false
+    },
+    {
+      "square": 6,
+      "name": "Puusepänliike",
+      "type": "PROPERTY",
+      "group": "KASITEOLLISUUS",
+      "price": 15000,
+      "industrial": false,
+      "headOffice": false
+    },
+    {
+      "square": 7,
+      "name": "Pörssivihje",
+      "type": "STOCK_TIP",
+      "headOffice": false
+    },
+    {
+      "square": 8,
+      "name": "Parkkitalo",
+      "type": "PROPERTY",
+      "group": "PALVELUYHTIO",
+      "price": 40000,
+      "industrial": false,
+      "headOffice": false
+    },
+    {
+      "square": 9,
+      "name": "Hotelli",
+      "type": "PROPERTY",
+      "group": "PALVELUYHTIO",
+      "price": 20000,
+      "industrial": false,
+      "headOffice": false
+    },
+    {
+      "square": 10,
+      "name": "Autokorjaamo",
+      "type": "PROPERTY",
+      "group": "PALVELUYHTIO",
+      "price": 20000,
+      "industrial": false,
+      "headOffice": false
+    },
+    {
+      "square": 11,
+      "name": "FP Finanssi Pankki sivukonttori",
+      "type": "BRANCH_OFFICE",
+      "headOffice": false
+    },
+    {
+      "square": 12,
+      "name": "Huonekaluliike",
+      "type": "PROPERTY",
+      "group": "LIIKEKESKUS",
+      "price": 20000,
+      "industrial": false,
+      "headOffice": false
+    },
+    {
+      "square": 13,
+      "name": "Elintarvikeliike",
+      "type": "PROPERTY",
+      "group": "LIIKEKESKUS",
+      "price": 15000,
+      "industrial": false,
+      "headOffice": false
+    },
+    {
+      "square": 14,
+      "name": "Pörssivihje",
+      "type": "STOCK_TIP",
+      "headOffice": false
+    },
+    {
+      "square": 15,
+      "name": "Kirjakauppa",
+      "type": "PROPERTY",
+      "group": "LIIKEKESKUS",
+      "price": 20000,
+      "industrial": false,
+      "headOffice": false
+    },
+    {
+      "square": 16,
+      "name": "Pankki jakaa osinkoa kaikille osakkeillesi",
+      "type": "BANK_DIVIDEND",
+      "percent": null,
+      "headOffice": false
+    },
+    {
+      "square": 17,
+      "name": "Rakennusprojekti Oy",
+      "type": "CONSTRUCTION",
+      "headOffice": false
+    },
+    {
+      "square": 18,
+      "name": "Sijoitusyhtiö",
+      "type": "PROPERTY",
+      "group": "FINANSSIYHTYMA",
+      "price": 25000,
+      "industrial": false,
+      "headOffice": false
+    },
+    {
+      "square": 19,
+      "name": "Luottolaitos",
+      "type": "PROPERTY",
+      "group": "FINANSSIYHTYMA",
+      "price": 25000,
+      "industrial": false,
+      "headOffice": false
+    },
+    {
+      "square": 20,
+      "name": "Pörssivihje",
+      "type": "STOCK_TIP",
+      "headOffice": false
+    },
+    {
+      "square": 21,
+      "name": "Elektroniikkayhtiö",
+      "type": "PROPERTY",
+      "group": "TEKNIIKKA",
+      "price": 25000,
+      "industrial": false,
+      "headOffice": false
+    },
+    {
+      "square": 22,
+      "name": "Videoyhtiö",
+      "type": "PROPERTY",
+      "group": "TEKNIIKKA",
+      "price": 25000,
+      "industrial": false,
+      "headOffice": false
+    },
+    {
+      "square": 23,
+      "name": "ATK-yhtiö",
+      "type": "PROPERTY",
+      "group": "TEKNIIKKA",
+      "price": 30000,
+      "industrial": false,
+      "headOffice": false
+    },
+    {
+      "square": 24,
+      "name": "Vankila",
+      "type": "JAIL",
+      "headOffice": false
+    },
+    {
+      "square": 25,
+      "name": "Pörssivihje",
+      "type": "STOCK_TIP",
+      "headOffice": false
+    },
+    {
+      "square": 26,
+      "name": "Muovitehdas",
+      "type": "PROPERTY",
+      "group": "KEMIA",
+      "price": 40000,
+      "industrial": true,
+      "headOffice": false
+    },
+    {
+      "square": 27,
+      "name": "Bensiiniyhtiö",
+      "type": "PROPERTY",
+      "group": "KEMIA",
+      "price": 30000,
+      "industrial": true,
+      "headOffice": false
+    },
+    {
+      "square": 28,
+      "name": "Pankki jakaa osinkoa kaikille osakkeillesi",
+      "type": "BANK_DIVIDEND",
+      "percent": null,
+      "headOffice": false
+    },
+    {
+      "square": 29,
+      "name": "Öljynjalostamo",
+      "type": "PROPERTY",
+      "group": "KEMIA",
+      "price": 40000,
+      "industrial": true,
+      "headOffice": false
+    },
+    {
+      "square": 30,
+      "name": "Sahalaitos",
+      "type": "PROPERTY",
+      "group": "TEOLLISUUSKONSERNI",
+      "price": 75000,
+      "industrial": true,
+      "headOffice": false
+    },
+    {
+      "square": 31,
+      "name": "Finanssilehti",
+      "type": "FINANCE_NEWS",
+      "headOffice": false
+    },
+    {
+      "square": 32,
+      "name": "Paperitehdas",
+      "type": "PROPERTY",
+      "group": "TEOLLISUUSKONSERNI",
+      "price": 50000,
+      "industrial": true,
+      "headOffice": false
+    },
+    {
+      "square": 33,
+      "name": "Rautatehdas",
+      "type": "PROPERTY",
+      "group": "TEOLLISUUSKONSERNI",
+      "price": 75000,
+      "industrial": true,
+      "headOffice": false
+    },
+    {
+      "square": 34,
+      "name": "Pankin sisäänkäynti",
+      "type": "BANK_ENTRANCE",
+      "mandatoryStop": true,
+      "headOffice": false
+    },
+    {
+      "square": 35,
+      "name": "Kurssiromahdus",
+      "type": "SHARE_CRASH",
+      "percent": 10,
+      "text": "Maksa 10% osakepääomastasi pankille (ei koske yritysryhmiä)",
+      "headOffice": true
+    },
+    {
+      "square": 36,
+      "name": "Mene suoraan vankilaan",
+      "type": "GO_TO_JAIL_CHANCE",
+      "text": "Joudut suoraan vankilaan jos heität nopalla 1:n tai 2:n",
+      "headOffice": true
+    },
+    {
+      "square": 37,
+      "name": "Mene ruutuun 46",
+      "type": "MOVE_TO",
+      "target": 46,
+      "text": "Siirry ruutuun \"Obligaatioiden osto, Osinkojen jako\"",
+      "headOffice": true
+    },
+    {
+      "square": 38,
+      "name": "Pankki myy yhden obligaation eniten tarjoavalle",
+      "type": "BOND_AUCTION",
+      "headOffice": true
+    },
+    {
+      "square": 39,
+      "name": "Pankki jakaa osinkoa 40% osakkeillesi",
+      "type": "BANK_DIVIDEND",
+      "percent": 40,
+      "headOffice": true
+    },
+    {
+      "square": 40,
+      "name": "Pankki välittää rakennusprojekteja",
+      "type": "CONSTRUCTION",
+      "headOffice": true
+    },
+    {
+      "square": 41,
+      "name": "Jaa vastapelaajille 20% osinkoa osakkeista ryhmissä, joissa omistat tontteja",
+      "type": "PLAYER_DIVIDEND",
+      "percent": 20,
+      "headOffice": true
+    },
+    {
+      "square": 42,
+      "name": "Pankki jakaa osinkoa 30% osakkeillesi",
+      "type": "BANK_DIVIDEND",
+      "percent": 30,
+      "headOffice": true
+    },
+    {
+      "square": 43,
+      "name": "Maksa takaisin joku lainoistasi",
+      "type": "REPAY_LOAN",
+      "headOffice": true
+    },
+    {
+      "square": 44,
+      "name": "Mene takaisin ruutuun 30",
+      "type": "MOVE_TO",
+      "target": 30,
+      "text": "Mene takaisin ruutuun \"Sahalaitos\"",
+      "headOffice": true
+    },
+    {
+      "square": 45,
+      "name": "Pieni obligaatioarvonta",
+      "type": "SMALL_BOND_DRAW",
+      "bondPurchase": true,
+      "headOffice": true
+    },
+    {
+      "square": 46,
+      "name": "Obligaatioiden osto, Osinkojen jako",
+      "type": "BOND_PURCHASE_AND_DIVIDEND",
+      "bondPurchase": true,
+      "percent": null,
+      "headOffice": true
+    }
+  ]
+}

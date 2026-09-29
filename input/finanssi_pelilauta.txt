@@ -1,0 +1,46 @@
+RUUTU1		Pankin uloskäynti
+RUUTU2		Siirry "Elektroniikkayhtiöön" "Mene ruutuun 21"
+RUUTU3		Ompelimo 10 000€
+RUUTU4		Maalaamo 10 000€
+RUUTU5		Finanssilehti
+RUUTU6		Puusepänliike 15 000€
+RUUTU7		Pörssivihje
+RUUTU8		Parkkitalo 40 000€
+RUUTU9		Hotelli 20 000€
+RUUTU10		Autokorjaamo 20 000€
+RUUTU11		FP Finanssi Pankki sivukonttori
+RUUTU12		Huonekaluliike 20 000€
+RUUTU13		Elintarvikeliike 15 000€
+RUUTU14		Pörssivihje
+RUUTU15		Kirjakauppa 20 000€
+RUUTU16		Pankki jakaa osinkoa kaikille osakkeillesi
+RUUTU17		Rakennusprojekti Oy
+RUUTU18		Sijoitusyhtiö 25 000€
+RUUTU19		Luottolaitos 25 000€
+RUUTU20		Pörssivihje
+RUUTU21		Elektroniikkayhtiö 25 000€
+RUUTU22		Videoyhtiö 25 000€
+RUUTU23		ATK-yhtiö 30 000€
+RUUTU24		Vankila
+RUUTU25		Pörssivihje
+RUUTU26		Muovitehdas 40 000€
+RUUTU27		Bensiiniyhtiö 30 000€
+RUUTU28		Pankki jakaa osinkoa kaikille osakkeillesi
+RUUTU29		Öljynjalostamo 40 000€
+RUUTU30		Sahalaitos 75 000€
+RUUTU31		Finanssilehti
+RUUTU32		Paperitehdas 50 000€
+RUUTU33		Rautatehdas 75 000€
+RUUTU34		Pankin sisäänkäynti
+RUUTU35pankki	Kurssiromahdus (Maksa 10% osakepääomastasi pankille (ei koske yritysryhmiä))
+RUUTU36pankki	Joudut suoraan vankilaan jos heität nopalla 1:n tai 2:n
+RUUTU37pankki	Siirry ruutuun "Obligaatioiden osto Osinkojen jako" "Mene ruutuun 46"
+RUUTU38pankki	Pankki myy yhden obligaation eniten tarjoavalle
+RUUTU39pankki	Pankki jakaa osinkoa 40% osakkeillesi
+RUUTU40pankki	Pankki välittää rakennusprojekteja
+RUUTU41pankki	Jaa vastapelaajille 20% osinkoa osakkeista ryhmissä, joissa omistat tontteja
+RUUTU42pankki	Pankki jakaa osinkoa 30% osakkeillesi
+RUUTU43pankki	Maksa takaisin joku lainoistasi
+RUUTU44pankki	Mene takaisin ruutuun "Sahalaitos" "Mene takaisin ruutuun 30"
+RUUTU45pankki	Pieni obligaatioarvonta
+RUUTU46pankki	Obligaatioiden osto Osinkojen jako

@@ -1,0 +1,171 @@
+[
+  {
+    "id": "OS-KASITEOLLISUUS-1",
+    "group": "KASITEOLLISUUS",
+    "value": 50000,
+    "dividend": 5000,
+    "mock": true,
+    "verified": [],
+    "mockNote": "value taken from an example in the rules; not confirmed from the share certificate"
+  },
+  {
+    "id": "OS-KASITEOLLISUUS-2",
+    "group": "KASITEOLLISUUS",
+    "value": 50000,
+    "dividend": 5000,
+    "mock": true,
+    "verified": [],
+    "mockNote": "value taken from an example in the rules; not confirmed from the share certificate"
+  },
+  {
+    "id": "OS-KASITEOLLISUUS-3",
+    "group": "KASITEOLLISUUS",
+    "value": 50000,
+    "dividend": 5000,
+    "mock": true,
+    "verified": []
+  },
+  {
+    "id": "OS-PALVELUYHTIO-1",
+    "group": "PALVELUYHTIO",
+    "value": 50000,
+    "dividend": 5000,
+    "mock": true,
+    "verified": []
+  },
+  {
+    "id": "OS-PALVELUYHTIO-2",
+    "group": "PALVELUYHTIO",
+    "value": 50000,
+    "dividend": 5000,
+    "mock": true,
+    "verified": []
+  },
+  {
+    "id": "OS-PALVELUYHTIO-3",
+    "group": "PALVELUYHTIO",
+    "value": 50000,
+    "dividend": 5000,
+    "mock": true,
+    "verified": []
+  },
+  {
+    "id": "OS-LIIKEKESKUS-1",
+    "group": "LIIKEKESKUS",
+    "value": 75000,
+    "dividend": 7500,
+    "mock": true,
+    "verified": [],
+    "mockNote": "value taken from an example in the rules; not confirmed from the share certificate"
+  },
+  {
+    "id": "OS-LIIKEKESKUS-2",
+    "group": "LIIKEKESKUS",
+    "value": 50000,
+    "dividend": 5000,
+    "mock": true,
+    "verified": [],
+    "mockNote": "value taken from an example in the rules; not confirmed from the share certificate"
+  },
+  {
+    "id": "OS-LIIKEKESKUS-3",
+    "group": "LIIKEKESKUS",
+    "value": 50000,
+    "dividend": 5000,
+    "mock": true,
+    "verified": [],
+    "mockNote": "value taken from an example in the rules; not confirmed from the share certificate"
+  },
+  {
+    "id": "OS-FINANSSIYHTYMA-1",
+    "group": "FINANSSIYHTYMA",
+    "value": 75000,
+    "dividend": 7500,
+    "mock": true,
+    "verified": [],
+    "mockNote": "value taken from an example in the rules; not confirmed from the share certificate"
+  },
+  {
+    "id": "OS-FINANSSIYHTYMA-2",
+    "group": "FINANSSIYHTYMA",
+    "value": 75000,
+    "dividend": 7500,
+    "mock": true,
+    "verified": [],
+    "mockNote": "value taken from an example in the rules; not confirmed from the share certificate"
+  },
+  {
+    "id": "OS-TEKNIIKKA-1",
+    "group": "TEKNIIKKA",
+    "value": 100000,
+    "dividend": 10000,
+    "mock": true,
+    "verified": [],
+    "mockNote": "value taken from an example in the rules; not confirmed from the share certificate"
+  },
+  {
+    "id": "OS-TEKNIIKKA-2",
+    "group": "TEKNIIKKA",
+    "value": 75000,
+    "dividend": 7500,
+    "mock": true,
+    "verified": [],
+    "mockNote": "value taken from an example in the rules; not confirmed from the share certificate"
+  },
+  {
+    "id": "OS-TEKNIIKKA-3",
+    "group": "TEKNIIKKA",
+    "value": 75000,
+    "dividend": 7500,
+    "mock": true,
+    "verified": []
+  },
+  {
+    "id": "OS-KEMIA-1",
+    "group": "KEMIA",
+    "value": 100000,
+    "dividend": 10000,
+    "mock": true,
+    "verified": []
+  },
+  {
+    "id": "OS-KEMIA-2",
+    "group": "KEMIA",
+    "value": 100000,
+    "dividend": 10000,
+    "mock": true,
+    "verified": []
+  },
+  {
+    "id": "OS-KEMIA-3",
+    "group": "KEMIA",
+    "value": 100000,
+    "dividend": 10000,
+    "mock": true,
+    "verified": []
+  },
+  {
+    "id": "OS-TEOLLISUUSKONSERNI-1",
+    "group": "TEOLLISUUSKONSERNI",
+    "value": 100000,
+    "dividend": 10000,
+    "mock": true,
+    "verified": []
+  },
+  {
+    "id": "OS-TEOLLISUUSKONSERNI-2",
+    "group": "TEOLLISUUSKONSERNI",
+    "value": 100000,
+    "dividend": 10000,
+    "mock": true,
+    "verified": []
+  },
+  {
+    "id": "OS-TEOLLISUUSKONSERNI-3",
+    "group": "TEOLLISUUSKONSERNI",
+    "value": 100000,
+    "dividend": 10000,
+    "mock": true,
+    "verified": []
+  }
+]
