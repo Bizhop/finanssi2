@@ -14,7 +14,7 @@ export function InputField<T extends FieldValues>({ control, name, label, type, 
 
     return (
         <Stack direction="column" spacing={1}>
-            <TextField {...field} label={label} type={type} error={error !== undefined} />
+            <TextField {...field} label={label} type={type} error={error !== undefined} fullWidth />
             {error && <Alert severity="error">{error.message}</Alert>}
         </Stack>
     )

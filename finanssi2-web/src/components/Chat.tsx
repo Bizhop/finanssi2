@@ -1,17 +1,5 @@
-import { useEffect, useState } from "react"
-import {
-    Avatar,
-    Box,
-    Divider,
-    IconButton,
-    List,
-    ListItem,
-    ListItemAvatar,
-    ListItemText,
-    Paper,
-    Stack,
-    Tooltip,
-} from "@mui/material"
+import { useEffect, useRef, useState } from "react"
+import { Avatar, Box, Divider, IconButton, List, ListItem, ListItemAvatar, ListItemText, Paper, Stack, Tooltip } from "@mui/material"
 import { User } from "firebase/auth"
 import { useSubscription } from "react-stomp-hooks"
 import { z } from "zod/mini"
@@ -22,7 +10,10 @@ import SendIcon from "@mui/icons-material/Send"
 import { InputField } from "./FormInput.tsx"
 
 const ChatMessageSchema = z.object({
+    id: z.string(),
     username: z.string(),
+    // Missing from messages saved before the backend stored it
+    name: z.nullish(z.string()),
     message: z.string(),
     timestamp: z.number(),
     photoUrl: z.string(),
@@ -44,34 +35,51 @@ type TChatProps = {
 
 const apiUrl = import.meta.env.VITE_FINANSSI_API_URL
 
-const Chat = ({ user }: TChatProps) => {
-    const [messages, setMessages] = useState<TChatMessage[]>([])
-    const { control, handleSubmit, formState: { errors, isDirty, isSubmitting, isValid }, reset } = useForm<
-        TNewChatMessage
-    >(
-        {
-            resolver: zodResolver(NewChatMessageSchema),
-            mode: "all",
-            defaultValues: { message: "" },
-        },
-    )
+const PAGE_SIZE = 20
 
-    useEffect(() => {
+const Chat = ({ user }: TChatProps) => {
+    // Newest first, like the backend returns them. The list is rendered with column-reverse, which shows them oldest at the top
+    // and keeps the view anchored to the bottom (newest message) without any scrolling code.
+    const [messages, setMessages] = useState<TChatMessage[]>([])
+    const [hasOlderMessages, setHasOlderMessages] = useState(true)
+    const loadingOlderMessages = useRef(false)
+    const { control, handleSubmit, formState: { errors, isDirty, isSubmitting, isValid }, reset } = useForm<TNewChatMessage>({
+        resolver: zodResolver(NewChatMessageSchema),
+        mode: "all",
+        defaultValues: { message: "" },
+    })
+
+    // Loads the page before the oldest loaded message; with nothing loaded yet, the newest page
+    const loadOlderMessages = () => {
+        if (loadingOlderMessages.current || !hasOlderMessages) return
+        loadingOlderMessages.current = true
+
+        const params = new URLSearchParams({ size: String(PAGE_SIZE) })
+        const oldestMessage = messages.at(-1)
+        if (oldestMessage) params.set("before", oldestMessage.id)
+
         user.getIdToken().then((token) =>
-            fetch(`${apiUrl}/api/chat`, {
+            fetch(`${apiUrl}/api/chat?${params}`, {
                 method: "GET",
                 headers: {
                     "Authorization": `Bearer ${token}`,
                 },
             })
                 .then((response) => response.json())
-                .then((response) => {
-                    const safeParsed = ChatMessageSchemaArray.parse(response)
-                    setMessages(safeParsed)
-                })
-                .catch(console.error)
         )
-    }, [])
+            .then((response) => {
+                const page = ChatMessageSchemaArray.parse(response)
+                // Cleared before the state updates, so the re-render can already trigger the next load
+                loadingOlderMessages.current = false
+                setMessages((prevMessages) => [...prevMessages, ...page])
+                setHasOlderMessages(page.length === PAGE_SIZE)
+            })
+            .catch((error) => {
+                // No automatic retry: the next attempt comes when the user scrolls or a message arrives
+                loadingOlderMessages.current = false
+                console.error(error)
+            })
+    }
 
     const sendChatMessage: SubmitHandler<TNewChatMessage> = (data) => {
         user.getIdToken().then((token) =>
@@ -93,37 +101,74 @@ const Chat = ({ user }: TChatProps) => {
         const safeParsed = ChatMessageSchema.safeParse(parsedObject)
 
         if (safeParsed.success) {
-            setMessages((prevMessages) => {
-                const addedToMessageArray = [...prevMessages, safeParsed.data]
-                return addedToMessageArray.length > 10 ? addedToMessageArray.slice(-10) : addedToMessageArray
-            })
+            const newMessage = safeParsed.data
+            // A message posted while the first page was loading can arrive both in the page and over the websocket
+            setMessages((prevMessages) => prevMessages.some((message) => message.id === newMessage.id) ? prevMessages : [newMessage, ...prevMessages])
         }
     }
 
     useSubscription("/topic/chat", (message) => receiveMessage(message.body))
 
+    // Load older messages whenever the top of the list is in view: on mount (the first page), when the user scrolls up, and again after a page that didn't fill
+    // the list. Re-created on every change so the callback sees the current messages; observe() reports the current state right away.
+    const messageListRef = useRef<HTMLUListElement>(null)
+    const loadMoreTriggerRef = useRef<HTMLLIElement>(null)
+    useEffect(() => {
+        const trigger = loadMoreTriggerRef.current
+        if (!trigger || !hasOlderMessages) return
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) loadOlderMessages()
+            },
+            // Start loading a bit before the user reaches the top
+            { root: messageListRef.current, rootMargin: "200px 0px 0px 0px" },
+        )
+        observer.observe(trigger)
+        return () => observer.disconnect()
+    }, [messages, hasOlderMessages])
+
     return (
-        <Stack direction="column">
+        <Stack direction="column" sx={{ flex: 1, minHeight: 0 }}>
             <h1>Chat</h1>
-            <Box component={Paper}>
-                <List sx={{ width: "100%", maxWidth: 360, bgcolor: "background.paper" }}>
-                    {messages.map((msg, index) => <ChatLine key={`chat-message-${index}`} message={msg} />)}
+            <Box component={Paper} sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+                <List
+                    ref={messageListRef}
+                    sx={{
+                        flex: 1,
+                        overflowY: "auto",
+                        display: "flex",
+                        flexDirection: "column-reverse",
+                        bgcolor: "background.paper",
+                    }}
+                >
+                    {messages.map((msg) => <ChatLine key={msg.id} message={msg} />)}
+                    {/* Last in the DOM, so at the top of the reversed list */}
+                    <li ref={loadMoreTriggerRef} aria-hidden />
                 </List>
-                <form onSubmit={handleSubmit(sendChatMessage)}>
-                    <Stack direction="row">
+            </Box>
+            <form onSubmit={handleSubmit(sendChatMessage)}>
+                {/* useFlexGap: with margin-based spacing, Stack would reset the send button's top margin */}
+                <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: "flex-start", mt: 2 }}>
+                    <Box sx={{ flexGrow: 1 }}>
                         <InputField
                             control={control}
                             name="message"
                             label="Message"
                             type="text"
-                            error={errors.message}
+                            // An empty field only disables sending, it's not worth an error message
+                            error={errors.message?.type === "too_small" ? undefined : errors.message}
                         />
-                        <IconButton color="primary" type="submit" disabled={isSubmitting || !isDirty || !isValid}>
-                            <SendIcon />
-                        </IconButton>
-                    </Stack>
-                </form>
-            </Box>
+                    </Box>
+                    <IconButton
+                        color="primary"
+                        type="submit"
+                        sx={{ mt: 1 }}
+                        disabled={isSubmitting || !isDirty || !isValid}
+                    >
+                        <SendIcon />
+                    </IconButton>
+                </Stack>
+            </form>
         </Stack>
     )
 }
@@ -135,18 +180,34 @@ type ChatLineProps = {
 const ChatLine = ({ message }: ChatLineProps) => {
     return (
         <>
-            <ListItem alignItems="flex-start">
+            <ListItem>
                 <ListItemAvatar>
                     <Tooltip title={message.username} placement="left">
                         <Avatar src={message.photoUrl} />
                     </Tooltip>
                 </ListItemAvatar>
-                <ListItemText primary={message.message} secondary={formatDate(message.timestamp)} />
+                <ListItemText
+                    primary={
+                        <Tooltip title={formatDate(message.timestamp)} placement="top-start">
+                            <span>
+                                <Box component="span" sx={{ fontWeight: "fontWeightMedium", color: "primary.main" }}>
+                                    {senderFirstName(message)}:
+                                </Box>{" "}
+                                {message.message}
+                            </span>
+                        </Tooltip>
+                    }
+                    // Long words (e.g. links) wrap instead of widening the list
+                    sx={{ overflowWrap: "anywhere" }}
+                />
             </ListItem>
             <Divider variant="inset" component="li" />
         </>
     )
 }
+
+// First word of the display name, or the email's local part when there's no name
+const senderFirstName = (message: TChatMessage) => message.name?.trim().split(/\s+/)[0] || message.username.split("@")[0]
 
 const formatDate = (timestamp: number) => {
     const date = new Date(timestamp)

@@ -1,12 +1,14 @@
 {
     "tasks": {
         "dev": "deno run -A --env-file=.env.development npm:vite",
-        // Disabled: no Firebase environment for production yet (only .env.development exists), so a build
-        // would fail at startup with auth/invalid-api-key. Re-enable once production env config is in place.
+        // Component test pages (dev-pages/) with a fake login and backend, at http://localhost:3001
+        "dev:pages": "deno run -A --env-file=.env.development npm:vite --config vite.dev-pages.config.ts",
+        // Disabled: no Firebase environment for production yet (only .env.development exists), so a build would fail at startup
+        // with auth/invalid-api-key. Re-enable once production env config is in place.
         // "build": "deno run -A npm:vite build",
         "fmt": "deno fmt",
         "fmt:check": "deno fmt --check",
-        "typecheck": "deno check src/ vite.config.ts",
+        "typecheck": "deno check src/ dev-pages/ vite.config.ts vite.dev-pages.config.ts",
         "lint": "deno lint"
     },
     "imports": {
@@ -41,10 +43,11 @@
     "fmt": {
         "semiColons": false,
         "indentWidth": 4,
-        "lineWidth": 120
+        "lineWidth": 160
     },
     "exclude": [
         "src/.vite/",
+        "dev-pages/.vite/",
         "src/dist/"
     ]
 }

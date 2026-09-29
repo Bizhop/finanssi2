@@ -32,7 +32,7 @@ const FrontPage = () => {
     }
 
     return (
-        <Stack direction="column">
+        <Stack direction="column" sx={{ flex: 1, minHeight: 0 }}>
             {user
                 ? (
                     <>

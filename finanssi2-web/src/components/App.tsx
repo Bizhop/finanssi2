@@ -20,8 +20,8 @@ const MyRoutes = () => (
 )
 
 const App = () => (
-    <Container component={Paper}>
-        <Stack direction="column">
+    <Container component={Paper} sx={{ height: "100%", display: "flex", flexDirection: "column", pb: 2 }}>
+        <Stack direction="column" sx={{ flex: 1, minHeight: 0 }}>
             <Header />
             <Divider />
             <MyRoutes />
