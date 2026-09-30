@@ -49,7 +49,7 @@ and shares (`input/data/hallintatodistukset.json`, `input/data/osakkeet.json`, l
   current state; bank pays that value.
 - `Redeem(square)`: before rolling only; costs the redemption price printed on the back of the deed (the mortgage value + 10%,
   always a multiple of 500, so no rounding is needed).
-- `SellBack(square | shareId)`: any time during own turn or a `RaiseFunds` decision, when the deed or share has a buy-back value for
+- `SellBackProperty(square)` and `SellBackShare(shareId)`: any time during own turn or a `RaiseFunds` decision, when the deed or share has a buy-back value for
   its current state; bank pays that value. A mortgaged property must be redeemed first. Selling shares back is not restricted by
   complete groups. Buy-back values through `Rules` (Finance News halves or doubles share prices, R23).
 - Update the "can still raise funds" check of step 04 to include mortgaging and selling back, using the per-state values.

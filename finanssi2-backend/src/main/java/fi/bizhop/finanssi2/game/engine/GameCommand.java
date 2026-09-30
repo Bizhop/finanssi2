@@ -14,6 +14,12 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(GameCommand.RepayLoan.class),
         @JsonSubTypes.Type(GameCommand.Pay.class),
         @JsonSubTypes.Type(GameCommand.DeclareBankruptcy.class),
+        @JsonSubTypes.Type(GameCommand.BuyProperty.class),
+        @JsonSubTypes.Type(GameCommand.BuyShare.class),
+        @JsonSubTypes.Type(GameCommand.Mortgage.class),
+        @JsonSubTypes.Type(GameCommand.Redeem.class),
+        @JsonSubTypes.Type(GameCommand.SellBackProperty.class),
+        @JsonSubTypes.Type(GameCommand.SellBackShare.class),
 })
 public sealed interface GameCommand {
     record Roll() implements GameCommand {}
@@ -33,4 +39,17 @@ public sealed interface GameCommand {
 
     /** Only when the payment of a pending {@link PendingDecision.RaiseFunds} cannot be raised in any way */
     record DeclareBankruptcy() implements GameCommand {}
+
+    record BuyProperty(int square) implements GameCommand {}
+
+    record BuyShare(String share) implements GameCommand {}
+
+    record Mortgage(int square) implements GameCommand {}
+
+    /** Pays off a mortgage */
+    record Redeem(int square) implements GameCommand {}
+
+    record SellBackProperty(int square) implements GameCommand {}
+
+    record SellBackShare(String share) implements GameCommand {}
 }

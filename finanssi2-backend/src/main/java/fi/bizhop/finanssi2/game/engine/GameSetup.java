@@ -22,6 +22,12 @@ public class GameSetup {
         this.gameData = gameData;
     }
 
+    /** Every property and share, owned by the bank */
+    public static void initAssets(GameState state, GameData gameData) {
+        state.setProperties(new ArrayList<>(gameData.titleDeeds().stream().map(deed -> new PropertyState(deed.square())).toList()));
+        state.setShares(new ArrayList<>(gameData.shares().stream().map(share -> new ShareState(share.id(), null)).toList()));
+    }
+
     public List<GameEvent> start(GameState state, Dice dice, RandomGenerator random) {
         var players = state.getPlayers();
         if (players.size() < MIN_PLAYERS || players.size() > MAX_PLAYERS) {
@@ -65,6 +71,8 @@ public class GameSetup {
             player.setCash(STARTING_CASH);
             player.setPosition(START_SQUARE);
         }
+
+        initAssets(state, gameData);
 
         var financeNews = new ArrayList<>(gameData.cards(Deck.FINANCE_NEWS).stream().map(Card::id).toList());
         Collections.shuffle(financeNews, random);

@@ -20,6 +20,7 @@ public class TestGame {
         game.state.setTurnOrder(List.of(uids));
         game.state.setCurrentPlayer(uids[0]);
         game.state.setPhase(TurnPhase.BEFORE_ROLL);
+        GameSetup.initAssets(game.state, EngineTests.GAME_DATA);
         return game;
     }
 
@@ -46,6 +47,46 @@ public class TestGame {
 
     public TestGame loanLimit(LoanLimit loanLimit) {
         state.setSettings(new GameSettings(loanLimit));
+        return this;
+    }
+
+    public TestGame owns(String uid, Integer... squares) {
+        for (var square : squares) {
+            state.property(square).setOwner(uid);
+        }
+        return this;
+    }
+
+    public TestGame ownsShares(String uid, String... shares) {
+        for (var share : shares) {
+            state.share(share).setOwner(uid);
+        }
+        return this;
+    }
+
+    /** Owns all properties and shares of the group */
+    public TestGame ownsGroup(String uid, String group) {
+        owns(uid, EngineTests.GAME_DATA.group(group).properties().toArray(Integer[]::new));
+        EngineTests.GAME_DATA.sharesOf(group).forEach(share -> state.share(share.id()).setOwner(uid));
+        return this;
+    }
+
+    public TestGame mortgaged(Integer... squares) {
+        for (var square : squares) {
+            state.property(square).setMortgaged(true);
+        }
+        return this;
+    }
+
+    public TestGame built(Integer... squares) {
+        for (var square : squares) {
+            state.property(square).setBuilt(true);
+        }
+        return this;
+    }
+
+    public TestGame boughtThisTurn() {
+        state.setBoughtThisTurn(true);
         return this;
     }
 

@@ -17,6 +17,11 @@ public class GameState {
     String currentPlayer;
     TurnPhase phase;
     GameSettings settings = GameSettings.DEFAULT;
+    // Title deeds in board order and shares, with their owners; created at game start
+    List<PropertyState> properties = new ArrayList<>();
+    List<ShareState> shares = new ArrayList<>();
+    // The current player has bought a property or share this turn (one purchase per turn)
+    boolean boughtThisTurn;
     // Oldest first; play waits until it is empty
     List<PendingDecision> pendingDecisions = new ArrayList<>();
     // Card ids in draw order. Hidden from clients, who would otherwise know the cards in advance.
@@ -26,6 +31,16 @@ public class GameState {
     /** The player who may act now: the one addressed by the first pending decision, otherwise the one whose turn it is */
     public String actor() {
         return pendingDecisions.isEmpty() ? currentPlayer : pendingDecisions.getFirst().player();
+    }
+
+    public PropertyState property(int square) {
+        return properties.stream().filter(property -> property.getSquare() == square).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("No property on square " + square));
+    }
+
+    public ShareState share(String id) {
+        return shares.stream().filter(share -> share.getId().equals(id)).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("No share " + id));
     }
 
     public int totalLoans() {

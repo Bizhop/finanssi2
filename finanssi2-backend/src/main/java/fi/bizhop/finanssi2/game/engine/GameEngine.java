@@ -3,7 +3,15 @@ package fi.bizhop.finanssi2.game.engine;
 import fi.bizhop.finanssi2.game.data.GameData;
 import fi.bizhop.finanssi2.game.data.Square;
 import fi.bizhop.finanssi2.game.data.SquareType;
+import fi.bizhop.finanssi2.game.data.Share;
+import fi.bizhop.finanssi2.game.data.TitleDeed;
 import fi.bizhop.finanssi2.game.engine.GameCommand.BuyCar;
+import fi.bizhop.finanssi2.game.engine.GameCommand.BuyProperty;
+import fi.bizhop.finanssi2.game.engine.GameCommand.BuyShare;
+import fi.bizhop.finanssi2.game.engine.GameCommand.Mortgage;
+import fi.bizhop.finanssi2.game.engine.GameCommand.Redeem;
+import fi.bizhop.finanssi2.game.engine.GameCommand.SellBackProperty;
+import fi.bizhop.finanssi2.game.engine.GameCommand.SellBackShare;
 import fi.bizhop.finanssi2.game.engine.GameCommand.DeclareBankruptcy;
 import fi.bizhop.finanssi2.game.engine.GameCommand.EndTurn;
 import fi.bizhop.finanssi2.game.engine.GameCommand.Pay;
@@ -11,7 +19,15 @@ import fi.bizhop.finanssi2.game.engine.GameCommand.RepayLoan;
 import fi.bizhop.finanssi2.game.engine.GameCommand.Roll;
 import fi.bizhop.finanssi2.game.engine.GameCommand.SellCar;
 import fi.bizhop.finanssi2.game.engine.GameCommand.TakeLoan;
+import fi.bizhop.finanssi2.game.engine.GameEvent.AssetsReturned;
 import fi.bizhop.finanssi2.game.engine.GameEvent.BankEntranceRoll;
+import fi.bizhop.finanssi2.game.engine.GameEvent.PropertyBought;
+import fi.bizhop.finanssi2.game.engine.GameEvent.PropertyMortgaged;
+import fi.bizhop.finanssi2.game.engine.GameEvent.PropertyRedeemed;
+import fi.bizhop.finanssi2.game.engine.GameEvent.PropertySoldBack;
+import fi.bizhop.finanssi2.game.engine.GameEvent.RentCharged;
+import fi.bizhop.finanssi2.game.engine.GameEvent.ShareBought;
+import fi.bizhop.finanssi2.game.engine.GameEvent.ShareSoldBack;
 import fi.bizhop.finanssi2.game.engine.GameEvent.CarBought;
 import fi.bizhop.finanssi2.game.engine.GameEvent.CarSold;
 import fi.bizhop.finanssi2.game.engine.GameEvent.DiceRolled;
@@ -51,20 +67,27 @@ public class GameEngine {
         DECISION
     }
 
-    static final Map<Class<? extends GameCommand>, Timing> TIMING = Map.of(
-            Roll.class, Timing.BEFORE_ROLL,
-            EndTurn.class, Timing.AFTER_ROLL,
-            BuyCar.class, Timing.BEFORE_ROLL,
-            SellCar.class, Timing.OWN_TURN,
-            TakeLoan.class, Timing.OWN_TURN,
-            RepayLoan.class, Timing.OWN_TURN,
-            Pay.class, Timing.DECISION,
-            DeclareBankruptcy.class, Timing.DECISION);
+    static final Map<Class<? extends GameCommand>, Timing> TIMING = Map.ofEntries(
+            Map.entry(Roll.class, Timing.BEFORE_ROLL),
+            Map.entry(EndTurn.class, Timing.AFTER_ROLL),
+            Map.entry(BuyCar.class, Timing.BEFORE_ROLL),
+            Map.entry(SellCar.class, Timing.OWN_TURN),
+            Map.entry(TakeLoan.class, Timing.OWN_TURN),
+            Map.entry(RepayLoan.class, Timing.OWN_TURN),
+            Map.entry(Pay.class, Timing.DECISION),
+            Map.entry(DeclareBankruptcy.class, Timing.DECISION),
+            Map.entry(BuyProperty.class, Timing.BEFORE_ROLL),
+            Map.entry(BuyShare.class, Timing.BEFORE_ROLL),
+            Map.entry(Mortgage.class, Timing.OWN_TURN),
+            Map.entry(Redeem.class, Timing.BEFORE_ROLL),
+            Map.entry(SellBackProperty.class, Timing.OWN_TURN),
+            Map.entry(SellBackShare.class, Timing.OWN_TURN));
 
     /** Commands allowed while a decision of this type is pending, in or out of turn */
     static Set<Class<? extends GameCommand>> decisionCommands(PendingDecision decision) {
         return switch (decision) {
-            case RaiseFunds ignored -> Set.of(TakeLoan.class, SellCar.class, Pay.class, DeclareBankruptcy.class);
+            case RaiseFunds ignored -> Set.of(TakeLoan.class, SellCar.class, Mortgage.class, SellBackProperty.class, SellBackShare.class,
+                    Pay.class, DeclareBankruptcy.class);
         };
     }
 
@@ -73,11 +96,15 @@ public class GameEngine {
             new RepayLoan(), new Pay(), new DeclareBankruptcy());
 
     static final int REPAY_LOAN_SQUARE = 43;
+    static final int BRANCH_OFFICE_SQUARE = 11;
+    static final int HEAD_OFFICE_FIRST_SQUARE = 35;
 
     final GameData gameData;
     final Rules rules;
     final Payments payments = new Payments();
     final Map<SquareType, SquareHandler> squareHandlers = new EnumMap<>(SquareType.class);
+    // Every command with every parameter value, for allowedCommands
+    final List<GameCommand> candidateCommands;
 
     public GameEngine(GameData gameData, Rules rules) {
         this.gameData = gameData;
@@ -85,6 +112,15 @@ public class GameEngine {
         squareHandlers.put(SquareType.BANK_EXIT, this::bankExit);
         squareHandlers.put(SquareType.BANK_ENTRANCE, this::bankEntrance);
         squareHandlers.put(SquareType.REPAY_LOAN, this::repayLoanSquare);
+        squareHandlers.put(SquareType.PROPERTY, this::property);
+        candidateCommands = new ArrayList<>(SIMPLE_COMMANDS);
+        for (var deed : gameData.titleDeeds()) {
+            candidateCommands.addAll(List.of(new BuyProperty(deed.square()), new Mortgage(deed.square()), new Redeem(deed.square()),
+                    new SellBackProperty(deed.square())));
+        }
+        for (var share : gameData.shares()) {
+            candidateCommands.addAll(List.of(new BuyShare(share.id()), new SellBackShare(share.id())));
+        }
     }
 
     public List<GameEvent> handle(GameState state, String uid, GameCommand command, Dice dice) {
@@ -99,14 +135,21 @@ public class GameEngine {
             case RepayLoan ignored -> repayLoan(player);
             case Pay ignored -> pay(state);
             case DeclareBankruptcy ignored -> declareBankruptcy(state, player);
+            case BuyProperty buy -> buyProperty(state, player, buy.square());
+            case BuyShare buy -> buyShare(state, player, buy.share());
+            case Mortgage mortgage -> mortgage(state, player, mortgage.square());
+            case Redeem redeem -> redeem(state, player, redeem.square());
+            case SellBackProperty sell -> sellBackProperty(state, player, sell.square());
+            case SellBackShare sell -> sellBackShare(state, player, sell.share());
         };
     }
 
     /** Command types ({@code type} values) the player may send right now */
     public List<String> allowedCommands(GameState state, String uid) {
-        return SIMPLE_COMMANDS.stream()
+        return candidateCommands.stream()
                 .filter(command -> isAllowed(state, uid, command))
                 .map(command -> command.getClass().getSimpleName())
+                .distinct()
                 .sorted()
                 .toList();
     }
@@ -163,7 +206,63 @@ public class GameEngine {
                 var decision = (RaiseFunds) pending.getFirst();
                 require(fundsAvailable(state, player) < decision.amount(), "You can still raise enough funds");
             }
+            case BuyProperty buy -> {
+                var deed = deed(buy.square());
+                requirePurchase(state, player);
+                require(state.property(deed.square()).getOwner() == null, "The property is not for sale");
+                require(player.getCash() >= rules.propertyPrice(state, deed), "Not enough cash");
+            }
+            case BuyShare buy -> {
+                var share = share(buy.share());
+                requirePurchase(state, player);
+                require(state.share(share.id()).getOwner() == null, "The share is not for sale");
+                require(player.getCash() >= rules.sharePrice(state, share), "Not enough cash");
+            }
+            case Mortgage mortgage -> {
+                var property = ownProperty(state, player, mortgage.square());
+                require(!property.isMortgaged(), "Already mortgaged");
+                require(rules.mortgageValue(state, deed(property.getSquare()), property) != null, "This property cannot be mortgaged");
+            }
+            case Redeem redeem -> {
+                var property = ownProperty(state, player, redeem.square());
+                require(property.isMortgaged(), "Not mortgaged");
+                require(player.getCash() >= rules.redemptionPrice(state, deed(property.getSquare()), property), "Not enough cash");
+            }
+            case SellBackProperty sell -> {
+                var property = ownProperty(state, player, sell.square());
+                require(!property.isMortgaged(), "Redeem the mortgage first");
+                require(rules.propertyBuyBack(state, deed(property.getSquare()), property) != null,
+                        "The bank does not buy this property back");
+            }
+            case SellBackShare sell -> {
+                var share = share(sell.share());
+                require(player.getUid().equals(state.share(share.id()).getOwner()), "Not your share");
+            }
         }
+    }
+
+    TitleDeed deed(int square) {
+        require(square >= 1 && square <= SQUARE_COUNT && gameData.square(square).type() == SquareType.PROPERTY, "No property on square " + square);
+        return gameData.titleDeed(square);
+    }
+
+    Share share(String id) {
+        require(gameData.shares().stream().anyMatch(share -> share.id().equals(id)), "No share " + id);
+        return gameData.share(id);
+    }
+
+    static PropertyState ownProperty(GameState state, PlayerState player, int square) {
+        var property = state.getProperties().stream().filter(p -> p.getSquare() == square).findFirst();
+        require(property.isPresent() && player.getUid().equals(property.get().getOwner()), "Not your property");
+        return property.get();
+    }
+
+    /** Purchases: on the branch office (11) or in the head office (35–46), one per turn */
+    static void requirePurchase(GameState state, PlayerState player) {
+        var position = player.getPosition();
+        require(position == BRANCH_OFFICE_SQUARE || position >= HEAD_OFFICE_FIRST_SQUARE,
+                "Properties and shares are sold only on square 11 and squares 35–46");
+        require(!state.isBoughtThisTurn(), "Only one purchase per turn");
     }
 
     static void require(boolean condition, String reason) {
@@ -172,7 +271,10 @@ public class GameEngine {
         }
     }
 
-    /** Cash the player could have after selling and borrowing everything they can */
+    /**
+     * Cash the player could have after selling and borrowing everything they can. Each unmortgaged property is either mortgaged or
+     * sold back, whichever gives more; mortgaged ones cannot be redeemed while raising funds, so they add nothing.
+     */
     int fundsAvailable(GameState state, PlayerState player) {
         var funds = player.getCash();
         if (player.isCar()) {
@@ -180,6 +282,18 @@ public class GameEngine {
         }
         if (player.getPosition() != REPAY_LOAN_SQUARE) {
             funds += rules.loansAvailable(state, player) * LOAN_AMOUNT;
+        }
+        var ownership = new Ownership(gameData, state);
+        for (var property : ownership.propertiesOf(player.getUid())) {
+            if (!property.isMortgaged()) {
+                var deed = gameData.titleDeed(property.getSquare());
+                var mortgage = rules.mortgageValue(state, deed, property);
+                var buyBack = rules.propertyBuyBack(state, deed, property);
+                funds += Math.max(mortgage == null ? 0 : mortgage, buyBack == null ? 0 : buyBack);
+            }
+        }
+        for (var share : ownership.sharesOf(player.getUid())) {
+            funds += rules.shareBuyBack(state, share);
         }
         return funds;
     }
@@ -257,10 +371,16 @@ public class GameEngine {
     }
 
     List<GameEvent> endTurn(GameState state, PlayerState player) {
+        return List.of(new TurnEnded(player.getUid()), passTurn(state));
+    }
+
+    /** Starts the next player's turn */
+    static GameEvent passTurn(GameState state) {
         var next = nextPlayer(state);
         state.setCurrentPlayer(next);
         state.setPhase(TurnPhase.BEFORE_ROLL);
-        return List.of(new TurnEnded(player.getUid()), new TurnStarted(next));
+        state.setBoughtThisTurn(false);
+        return new TurnStarted(next);
     }
 
     /** The next player in turn order who is still in the game */
@@ -274,6 +394,67 @@ public class GameEngine {
             }
         }
         throw new IllegalStateException("No players left");
+    }
+
+    /** Landing on a property: rent to its owner, if another player owns it and it is not mortgaged */
+    List<GameEvent> property(GameState state, PlayerState player, Square square, Dice dice) {
+        var property = state.property(square.number());
+        var owner = property.getOwner();
+        if (owner == null || owner.equals(player.getUid()) || property.isMortgaged()) {
+            return List.of();
+        }
+        var deed = gameData.titleDeed(square.number());
+        var completeGroup = new Ownership(gameData, state).ownsCompleteGroup(owner, deed.group());
+        var rent = rules.rent(state, deed, property, player, completeGroup);
+        if (rent == 0) {
+            return List.of();
+        }
+        var events = new ArrayList<GameEvent>();
+        events.add(new RentCharged(player.getUid(), owner, square.number(), rent, completeGroup));
+        events.addAll(payments.charge(state, player, owner, List.of(new Charge(rent, MoneyReason.RENT))));
+        return events;
+    }
+
+    List<GameEvent> buyProperty(GameState state, PlayerState player, int square) {
+        var payment = payments.toBank(player, rules.propertyPrice(state, deed(square)), MoneyReason.PROPERTY_PURCHASE);
+        state.property(square).setOwner(player.getUid());
+        state.setBoughtThisTurn(true);
+        return List.of(payment, new PropertyBought(player.getUid(), square));
+    }
+
+    List<GameEvent> buyShare(GameState state, PlayerState player, String id) {
+        var payment = payments.toBank(player, rules.sharePrice(state, share(id)), MoneyReason.SHARE_PURCHASE);
+        state.share(id).setOwner(player.getUid());
+        state.setBoughtThisTurn(true);
+        return List.of(payment, new ShareBought(player.getUid(), id));
+    }
+
+    List<GameEvent> mortgage(GameState state, PlayerState player, int square) {
+        var property = state.property(square);
+        var value = rules.mortgageValue(state, deed(square), property);
+        property.setMortgaged(true);
+        return List.of(new PropertyMortgaged(player.getUid(), square), payments.fromBank(player, value, MoneyReason.MORTGAGE));
+    }
+
+    List<GameEvent> redeem(GameState state, PlayerState player, int square) {
+        var property = state.property(square);
+        var payment = payments.toBank(player, rules.redemptionPrice(state, deed(square), property), MoneyReason.REDEMPTION);
+        property.setMortgaged(false);
+        return List.of(payment, new PropertyRedeemed(player.getUid(), square));
+    }
+
+    List<GameEvent> sellBackProperty(GameState state, PlayerState player, int square) {
+        var property = state.property(square);
+        var value = rules.propertyBuyBack(state, deed(square), property);
+        property.setOwner(null);
+        property.setBuilt(false);
+        return List.of(new PropertySoldBack(player.getUid(), square), payments.fromBank(player, value, MoneyReason.PROPERTY_SALE));
+    }
+
+    List<GameEvent> sellBackShare(GameState state, PlayerState player, String id) {
+        state.share(id).setOwner(null);
+        return List.of(new ShareSoldBack(player.getUid(), id),
+                payments.fromBank(player, rules.shareBuyBack(state, share(id)), MoneyReason.SHARE_SALE));
     }
 
     List<GameEvent> buyCar(PlayerState player) {
@@ -317,11 +498,27 @@ public class GameEngine {
         player.setCar(false);
         player.setOut(true);
         events.add(new PlayerBankrupt(player.getUid(), decision.creditor()));
+        var properties = new ArrayList<Integer>();
+        for (var property : state.getProperties()) {
+            if (player.getUid().equals(property.getOwner())) {
+                property.setOwner(null);
+                property.setMortgaged(false);
+                property.setBuilt(false);
+                properties.add(property.getSquare());
+            }
+        }
+        var shares = new ArrayList<String>();
+        for (var share : state.getShares()) {
+            if (player.getUid().equals(share.getOwner())) {
+                share.setOwner(null);
+                shares.add(share.getId());
+            }
+        }
+        if (!properties.isEmpty() || !shares.isEmpty()) {
+            events.add(new AssetsReturned(player.getUid(), properties, shares));
+        }
         if (player.getUid().equals(state.getCurrentPlayer())) {
-            var next = nextPlayer(state);
-            state.setCurrentPlayer(next);
-            state.setPhase(TurnPhase.BEFORE_ROLL);
-            events.add(new TurnStarted(next));
+            events.add(passTurn(state));
         }
         return events;
     }

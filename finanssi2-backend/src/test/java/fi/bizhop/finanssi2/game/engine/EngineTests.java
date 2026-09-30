@@ -51,11 +51,14 @@ public final class EngineTests {
 
     /** A deep copy of the state, for checking that a rejected command changed nothing */
     record Snapshot(String currentPlayer, TurnPhase phase, List<String> turnOrder, Set<String> players,
-                    List<PendingDecision> pendingDecisions, GameSettings settings) {
+                    List<PendingDecision> pendingDecisions, GameSettings settings, List<String> properties, List<String> shares,
+                    boolean boughtThisTurn) {
         static Snapshot of(GameState state) {
             return new Snapshot(state.getCurrentPlayer(), state.getPhase(), List.copyOf(state.getTurnOrder()),
                     state.getPlayers().stream().map(PlayerState::toString).collect(Collectors.toSet()),
-                    List.copyOf(state.getPendingDecisions()), state.getSettings());
+                    List.copyOf(state.getPendingDecisions()), state.getSettings(),
+                    state.getProperties().stream().map(PropertyState::toString).toList(),
+                    state.getShares().stream().map(ShareState::toString).toList(), state.isBoughtThisTurn());
         }
     }
 }

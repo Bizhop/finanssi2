@@ -33,7 +33,7 @@ class GameEngineTest {
     void testEveryCommandHasATiming() {
         var commands = Arrays.stream(GameCommand.class.getPermittedSubclasses()).collect(Collectors.toSet());
         assertEquals(commands, GameEngine.TIMING.keySet());
-        assertEquals(commands, GameEngine.SIMPLE_COMMANDS.stream().map(Object::getClass).collect(Collectors.toSet()));
+        assertEquals(commands, ENGINE.candidateCommands.stream().map(Object::getClass).collect(Collectors.toSet()));
     }
 
     @Test

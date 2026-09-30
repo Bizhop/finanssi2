@@ -50,5 +50,23 @@ public sealed interface GameEvent {
 
     record PlayerBankrupt(String player, String creditor) implements GameEvent {}
 
+    /** The bankrupt player's properties (unmortgaged) and shares went back to the bank */
+    record AssetsReturned(String player, List<Integer> properties, List<String> shares) implements GameEvent {}
+
+    record PropertyBought(String player, int square) implements GameEvent {}
+
+    record ShareBought(String player, String share) implements GameEvent {}
+
+    /** Rent for landing on another player's property, paid by {@link MoneyTransferred} or due by {@link PaymentDue} */
+    record RentCharged(String player, String owner, int square, int amount, boolean doubled) implements GameEvent {}
+
+    record PropertyMortgaged(String player, int square) implements GameEvent {}
+
+    record PropertyRedeemed(String player, int square) implements GameEvent {}
+
+    record PropertySoldBack(String player, int square) implements GameEvent {}
+
+    record ShareSoldBack(String player, String share) implements GameEvent {}
+
     record TurnEnded(String player) implements GameEvent {}
 }

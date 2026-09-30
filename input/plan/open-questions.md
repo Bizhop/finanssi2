@@ -35,11 +35,14 @@ Made while implementing; change them if they don't fit.
 | I7 | Lobby events (`PlayerJoined`, `PlayerLeft`) go into the game log along with the start events | 02 |
 | I8 | `allowedCommands` checks each parameterless command's full validation, not only its timing (no `SellCar` without a car, no `BuyCar` without the cash). Commands with parameters (step 05 on) need their own check | 03 |
 | I9 | `GET /api/games/{id}` returns `{game, allowedCommands}` instead of the bare game | 03 |
-| I10 | Per-turn flags are left for step 05, where they are first used; the pending decision queue came with step 04 | 03 |
+| I10 | The pending decision queue came with step 04 and the per-turn purchase flag (`boughtThisTurn`, reset when the turn passes) with step 05 | 03, 05 |
 | I11 | Dev dice need the `dev` profile (`--spring.profiles.active=dev`); values are queued per game and random rolls follow once they run out | 03 |
 | I12 | "Not on square 43" read literally: no `TakeLoan` while the piece is on 43, including the start of the next turn before rolling | 04 |
 | I13 | Car purchase and sale now log `MoneyTransferred` like every other change in cash; `CarBought`/`CarSold` no longer carry the price | 04 |
 | I14 | A bankrupt player whose turn it was passes the turn on at once (`TurnStarted` for the next player, no `TurnEnded`) | 04 |
+| I15 | `allowedCommands` now checks every command with every parameter value (each property and share) but still returns only the command types. The frontend will likely want the concrete options (which squares can be bought or mortgaged); extend the response then | 05 |
+| I16 | Selling back is two commands, `SellBackProperty(square)` and `SellBackShare(share)`, instead of one with either parameter | 05 |
+| I17 | The "can still raise funds" check counts, for each unmortgaged property, the larger of its mortgage and buy-back value, and every share's buy-back value. Mortgaged properties add nothing, since redeeming is not allowed while raising funds | 05 |
 
 ## Decided
 
