@@ -61,6 +61,6 @@ class ChatServiceTest {
         assertEquals("https://example.com/photo.png", saved.getPhotoUrl());
         assertEquals("66f9a1b2c3d4e5f607182940", saved.getId());
         // Clients need the id, so the broadcast message must be the saved one
-        verify(messagingService).sendChatMessage("/topic/chat", saved);
+        verify(messagingService).send("/topic/chat", saved);
     }
 }

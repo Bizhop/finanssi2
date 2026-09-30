@@ -1,0 +1,21 @@
+package fi.bizhop.finanssi2.game.data;
+
+public enum SquareType {
+    BANK_EXIT,
+    PROPERTY,
+    FINANCE_NEWS,
+    STOCK_TIP,
+    BRANCH_OFFICE,
+    BANK_DIVIDEND,
+    CONSTRUCTION,
+    JAIL,
+    BANK_ENTRANCE,
+    MOVE_TO,
+    SHARE_CRASH,
+    GO_TO_JAIL_CHANCE,
+    BOND_AUCTION,
+    PLAYER_DIVIDEND,
+    REPAY_LOAN,
+    SMALL_BOND_DRAW,
+    BOND_PURCHASE_AND_DIVIDEND
+}

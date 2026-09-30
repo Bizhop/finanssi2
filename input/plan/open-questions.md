@@ -43,6 +43,20 @@ Keep this file current: when a question is answered, move it to "Decided" with t
 | R18 | FL-07 "half of cash": rounding | Round the payment up to 500, like FL-13 | 09 |
 | R19 | Starting order when players tie | Tied players re-roll | 02 |
 
+## Implementation decisions to review
+
+Made while implementing; change them if they don't fit.
+
+| # | Decision | Step |
+|---|---|---|
+| I1 | Step 01 loads only the board, groups and Finance News. Title deeds, shares and Stock Tips (and their validations and the mock-count warning) wait for the transcriptions, since their record fields depend on what the cards show | 01 |
+| I2 | Finance News text moved as is; the typos ("jka", "kaksinkertaiset.", "hinnan") are not fixed yet | 01 |
+| I3 | Data files keep the transcription format (`"type": "FINANSSILEHTI"`, chapter `type`/`font-style`), so new transcriptions can be copied in unchanged. Unknown fields fail startup | 01 |
+| I4 | Players live in `GameState` (not directly on `Game`), so the engine gets everything in one object; `GameState` exists from creation | 02 |
+| I5 | Pieces are numbers 0–5, the lowest free one at join. The creator leaving the lobby passes the game to the earliest remaining player | 02 |
+| I6 | Deck order is stored but left out of API responses (`@JsonIgnore`), so clients cannot see upcoming cards | 02 |
+| I7 | Lobby events (`PlayerJoined`, `PlayerLeft`) go into the game log along with the start events | 02 |
+
 ## Decided
 
 _(none yet)_

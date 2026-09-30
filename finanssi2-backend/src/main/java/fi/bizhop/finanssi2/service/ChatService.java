@@ -34,7 +34,7 @@ public class ChatService {
         // Broadcast the saved message so clients get its id
         var savedMessage = chatRepository.save(newMessage);
 
-        messagingService.sendChatMessage(CHAT_TOPIC, savedMessage);
+        messagingService.send(CHAT_TOPIC, savedMessage);
         return savedMessage;
     }
 }

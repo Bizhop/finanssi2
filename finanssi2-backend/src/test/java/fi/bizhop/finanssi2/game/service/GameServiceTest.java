@@ -1,0 +1,240 @@
+package fi.bizhop.finanssi2.game.service;
+
+import fi.bizhop.finanssi2.game.data.GameData;
+import fi.bizhop.finanssi2.game.data.GameDataConfig;
+import fi.bizhop.finanssi2.game.db.Game;
+import fi.bizhop.finanssi2.game.db.GameLogEntry;
+import fi.bizhop.finanssi2.game.db.GameLogRepository;
+import fi.bizhop.finanssi2.game.db.GameRepository;
+import fi.bizhop.finanssi2.game.db.GameStatus;
+import fi.bizhop.finanssi2.game.engine.GameEvent;
+import fi.bizhop.finanssi2.game.engine.PlayerState;
+import fi.bizhop.finanssi2.game.engine.RuleViolation;
+import fi.bizhop.finanssi2.game.engine.ScriptedDice;
+import fi.bizhop.finanssi2.security.User;
+import fi.bizhop.finanssi2.service.MessagingService;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.OptimisticLockingFailureException;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+import java.util.Random;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class GameServiceTest {
+    static final String GAME_ID = "66f9a1b2c3d4e5f607182931";
+
+    static GameData gameData;
+
+    @Mock
+    GameRepository gameRepository;
+    @Mock
+    GameLogRepository gameLogRepository;
+    @Mock
+    MessagingService messagingService;
+
+    @BeforeAll
+    static void load() throws IOException {
+        gameData = new GameDataConfig().gameData();
+    }
+
+    static User user(String uid) {
+        return new User(uid, uid + "@example.com", "Player " + uid, "https://example.com/" + uid + ".png");
+    }
+
+    GameService service(Integer... dice) {
+        return new GameService(gameRepository, gameLogRepository, messagingService, gameData, new ScriptedDice(dice), new Random(1));
+    }
+
+    /** A saved game in the lobby with the given players, the first one the creator */
+    Game lobby(String... uids) {
+        var game = new Game();
+        game.setId(GAME_ID);
+        game.setVersion(3L);
+        game.setCreator(uids[0]);
+        for (int i = 0; i < uids.length; i++) {
+            game.getState().getPlayers().add(new PlayerState(uids[i], "Player " + uids[i], null, i, 0, 0));
+        }
+        game.setLastEventSeq(uids.length);
+        lenient().when(gameRepository.findById(GAME_ID)).thenReturn(Optional.of(game));
+        return game;
+    }
+
+    void saveSucceeds() {
+        when(gameRepository.save(any())).thenAnswer(invocation -> {
+            var game = invocation.<Game>getArgument(0);
+            if (game.getId() == null) {
+                game.setId(GAME_ID);
+            }
+            game.setVersion(game.getVersion() == null ? 0 : game.getVersion() + 1);
+            return game;
+        });
+        when(gameLogRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    @SuppressWarnings("unchecked")
+    List<GameLogEntry> savedEntries() {
+        var captor = ArgumentCaptor.forClass(List.class);
+        verify(gameLogRepository).saveAll(captor.capture());
+        return captor.getValue();
+    }
+
+    @Test
+    void testCreateJoinsCreatorAndBroadcasts() {
+        saveSucceeds();
+
+        var game = service().create(user("a"));
+
+        assertEquals(GameStatus.LOBBY, game.getStatus());
+        assertEquals("a", game.getCreator());
+        var player = game.getState().getPlayers().getFirst();
+        assertEquals(new PlayerState("a", "Player a", "https://example.com/a.png", 0, 0, 0), player);
+        var entries = savedEntries();
+        assertEquals(1, entries.size());
+        assertEquals(new GameLogEntry(null, GAME_ID, 1, entries.getFirst().time(), "PlayerJoined",
+                new GameEvent.PlayerJoined("a", "Player a", 0)), entries.getFirst());
+        verify(messagingService).send("/topic/games/" + GAME_ID, new GameUpdate(GAME_ID, 0, entries));
+        verify(messagingService).send("/topic/games", new LobbyChange(GAME_ID, game));
+    }
+
+    @Test
+    void testJoinTakesFirstFreePiece() {
+        var game = lobby("a", "b", "c");
+        game.getState().getPlayers().remove(1);
+        saveSucceeds();
+
+        service().join(GAME_ID, user("d"));
+
+        assertEquals(1, game.getState().player("d").orElseThrow().getPiece());
+        var entry = savedEntries().getFirst();
+        assertEquals(4, entry.seq());
+        assertEquals(new GameEvent.PlayerJoined("d", "Player d", 1), entry.event());
+    }
+
+    @Test
+    void testJoinTwice() {
+        lobby("a", "b");
+        assertThrows(RuleViolation.class, () -> service().join(GAME_ID, user("b")));
+        verify(gameRepository, never()).save(any());
+    }
+
+    @Test
+    void testJoinFullGame() {
+        lobby("a", "b", "c", "d", "e", "f");
+        assertThrows(RuleViolation.class, () -> service().join(GAME_ID, user("g")));
+        verify(gameRepository, never()).save(any());
+    }
+
+    @Test
+    void testJoinRunningGame() {
+        lobby("a", "b").setStatus(GameStatus.RUNNING);
+        assertThrows(RuleViolation.class, () -> service().join(GAME_ID, user("c")));
+        verify(gameRepository, never()).save(any());
+    }
+
+    @Test
+    void testJoinMissingGame() {
+        when(gameRepository.findById("missing")).thenReturn(Optional.empty());
+        assertThrows(GameNotFoundException.class, () -> service().join("missing", user("a")));
+    }
+
+    @Test
+    void testCreatorLeavingPassesGameOn() {
+        var game = lobby("a", "b", "c");
+        saveSucceeds();
+
+        service().leave(GAME_ID, user("a"));
+
+        assertEquals("b", game.getCreator());
+        assertEquals(List.of("b", "c"), game.getState().getPlayers().stream().map(PlayerState::getUid).toList());
+        assertEquals(new GameEvent.PlayerLeft("a"), savedEntries().getFirst().event());
+    }
+
+    @Test
+    void testLastPlayerLeavingDeletesGame() {
+        var game = lobby("a");
+
+        service().leave(GAME_ID, user("a"));
+
+        verify(gameRepository).delete(game);
+        verify(gameLogRepository).deleteByGameId(GAME_ID);
+        verify(messagingService).send("/topic/games", new LobbyChange(GAME_ID, null));
+        verify(gameRepository, never()).save(any());
+    }
+
+    @Test
+    void testLeaveWhenNotInGame() {
+        lobby("a", "b");
+        assertThrows(RuleViolation.class, () -> service().leave(GAME_ID, user("c")));
+    }
+
+    @Test
+    void testStart() {
+        var game = lobby("a", "b");
+        saveSucceeds();
+
+        service(2, 3, 4, 4).start(GAME_ID, user("a"));
+
+        assertEquals(GameStatus.RUNNING, game.getStatus());
+        assertEquals(List.of("b", "a"), game.getState().getTurnOrder());
+        var entries = savedEntries();
+        assertEquals(List.of(3, 4, 5), entries.stream().map(GameLogEntry::seq).toList());
+        assertEquals(List.of("StartingRoll", "StartingRoll", "GameStarted"), entries.stream().map(GameLogEntry::type).toList());
+        verify(messagingService).send("/topic/games/" + GAME_ID, new GameUpdate(GAME_ID, 4, entries));
+    }
+
+    @Test
+    void testStartWithOnePlayer() {
+        var game = lobby("a");
+        assertThrows(RuleViolation.class, () -> service().start(GAME_ID, user("a")));
+        assertEquals(GameStatus.LOBBY, game.getStatus());
+        verify(gameRepository, never()).save(any());
+    }
+
+    @Test
+    void testNonCreatorStarting() {
+        lobby("a", "b");
+        assertThrows(NotAllowedException.class, () -> service().start(GAME_ID, user("b")));
+        verify(gameRepository, never()).save(any());
+    }
+
+    @Test
+    void testStartTwice() {
+        lobby("a", "b").setStatus(GameStatus.RUNNING);
+        assertThrows(RuleViolation.class, () -> service().start(GAME_ID, user("a")));
+    }
+
+    @Test
+    void testConcurrentChangeStoresAndBroadcastsNothing() {
+        lobby("a");
+        when(gameRepository.save(any())).thenThrow(new OptimisticLockingFailureException("version 3 changed"));
+
+        assertThrows(OptimisticLockingFailureException.class, () -> service().join(GAME_ID, user("b")));
+
+        verifyNoInteractions(gameLogRepository, messagingService);
+    }
+
+    @Test
+    void testEventsOfMissingGame() {
+        when(gameRepository.findById("missing")).thenReturn(Optional.empty());
+        assertThrows(GameNotFoundException.class, () -> service().events("missing", 0));
+        verify(gameLogRepository, never()).findByGameIdAndSeqGreaterThanOrderBySeq(eq("missing"), any(Integer.class));
+    }
+}

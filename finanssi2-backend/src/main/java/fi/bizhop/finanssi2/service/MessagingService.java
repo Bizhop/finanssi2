@@ -1,7 +1,6 @@
 package fi.bizhop.finanssi2.service;
 
 import tools.jackson.databind.ObjectMapper;
-import fi.bizhop.finanssi2.db.ChatMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -16,13 +15,14 @@ public class MessagingService {
     final SimpMessagingTemplate simpMessagingTemplate;
     final ObjectMapper objectMapper = new ObjectMapper();
 
-    public void sendChatMessage(String topic, ChatMessage message) {
+    /** Sends the payload as JSON; a failure is logged, since the change it reports is already saved */
+    public void send(String topic, Object payload) {
         try {
-            var messageJson = objectMapper.writeValueAsString(message);
-            simpMessagingTemplate.convertAndSend(topic, messageJson);
-            logger.log(Level.INFO, "Sent chat message: {0}", messageJson);
+            var json = objectMapper.writeValueAsString(payload);
+            simpMessagingTemplate.convertAndSend(topic, json);
+            logger.log(Level.INFO, "Sent to {0}: {1}", new Object[] {topic, json});
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Failed to send chat message", e);
+            logger.log(Level.WARNING, "Failed to send to " + topic, e);
         }
     }
 }
