@@ -4,6 +4,7 @@ import fi.bizhop.finanssi2.game.data.GameData;
 import fi.bizhop.finanssi2.game.data.GameDataConfig;
 import fi.bizhop.finanssi2.game.engine.GameEvent.GameStarted;
 import fi.bizhop.finanssi2.game.engine.GameEvent.StartingRoll;
+import fi.bizhop.finanssi2.game.engine.GameEvent.TurnStarted;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -28,7 +29,7 @@ class GameSetupTest {
     static GameState lobby(String... uids) {
         var state = new GameState();
         for (int i = 0; i < uids.length; i++) {
-            state.getPlayers().add(new PlayerState(uids[i], "Player " + uids[i], null, i, 0, 0));
+            state.getPlayers().add(new PlayerState(uids[i], "Player " + uids[i], null, i));
         }
         return state;
     }
@@ -44,9 +45,11 @@ class GameSetupTest {
                 new StartingRoll("a", 1, List.of(1, 2)),
                 new StartingRoll("b", 1, List.of(6, 5)),
                 new StartingRoll("c", 1, List.of(3, 3)),
-                new GameStarted(List.of("b", "c", "a"), 75_000)), events);
+                new GameStarted(List.of("b", "c", "a"), 75_000),
+                new TurnStarted("b")), events);
         assertEquals(List.of("b", "c", "a"), state.getTurnOrder());
         assertEquals("b", state.getCurrentPlayer());
+        assertEquals(TurnPhase.BEFORE_ROLL, state.getPhase());
         assertTrue(dice.isEmpty());
         for (var player : state.getPlayers()) {
             assertEquals(75_000, player.getCash());
@@ -69,7 +72,8 @@ class GameSetupTest {
                 new StartingRoll("d", 1, List.of(2, 2)),
                 new StartingRoll("a", 2, List.of(3, 3)),
                 new StartingRoll("c", 2, List.of(6, 1)),
-                new GameStarted(List.of("c", "d", "a", "b"), 75_000)), events);
+                new GameStarted(List.of("c", "d", "a", "b"), 75_000),
+                new TurnStarted("c")), events);
         assertTrue(dice.isEmpty());
     }
 

@@ -7,7 +7,12 @@ import fi.bizhop.finanssi2.game.db.GameLogEntry;
 import fi.bizhop.finanssi2.game.db.GameLogRepository;
 import fi.bizhop.finanssi2.game.db.GameRepository;
 import fi.bizhop.finanssi2.game.db.GameStatus;
+import fi.bizhop.finanssi2.game.engine.GameCommand;
+import fi.bizhop.finanssi2.game.engine.GameEngine;
 import fi.bizhop.finanssi2.game.engine.GameEvent;
+import fi.bizhop.finanssi2.game.engine.GameSetup;
+import fi.bizhop.finanssi2.game.engine.NotYourTurn;
+import fi.bizhop.finanssi2.game.engine.Rules;
 import fi.bizhop.finanssi2.game.engine.PlayerState;
 import fi.bizhop.finanssi2.game.engine.RuleViolation;
 import fi.bizhop.finanssi2.game.engine.ScriptedDice;
@@ -60,7 +65,10 @@ class GameServiceTest {
     }
 
     GameService service(Integer... dice) {
-        return new GameService(gameRepository, gameLogRepository, messagingService, gameData, new ScriptedDice(dice), new Random(1));
+        var rules = new Rules(gameData);
+        var scripted = new ScriptedDice(dice);
+        return new GameService(gameRepository, gameLogRepository, messagingService, gameData, new GameSetup(gameData),
+                new GameEngine(gameData, rules), gameId -> scripted, new Random(1));
     }
 
     /** A saved game in the lobby with the given players, the first one the creator */
@@ -70,7 +78,7 @@ class GameServiceTest {
         game.setVersion(3L);
         game.setCreator(uids[0]);
         for (int i = 0; i < uids.length; i++) {
-            game.getState().getPlayers().add(new PlayerState(uids[i], "Player " + uids[i], null, i, 0, 0));
+            game.getState().getPlayers().add(new PlayerState(uids[i], "Player " + uids[i], null, i));
         }
         game.setLastEventSeq(uids.length);
         lenient().when(gameRepository.findById(GAME_ID)).thenReturn(Optional.of(game));
@@ -105,7 +113,7 @@ class GameServiceTest {
         assertEquals(GameStatus.LOBBY, game.getStatus());
         assertEquals("a", game.getCreator());
         var player = game.getState().getPlayers().getFirst();
-        assertEquals(new PlayerState("a", "Player a", "https://example.com/a.png", 0, 0, 0), player);
+        assertEquals(new PlayerState("a", "Player a", "https://example.com/a.png", 0), player);
         var entries = savedEntries();
         assertEquals(1, entries.size());
         assertEquals(new GameLogEntry(null, GAME_ID, 1, entries.getFirst().time(), "PlayerJoined",
@@ -195,9 +203,11 @@ class GameServiceTest {
         assertEquals(GameStatus.RUNNING, game.getStatus());
         assertEquals(List.of("b", "a"), game.getState().getTurnOrder());
         var entries = savedEntries();
-        assertEquals(List.of(3, 4, 5), entries.stream().map(GameLogEntry::seq).toList());
-        assertEquals(List.of("StartingRoll", "StartingRoll", "GameStarted"), entries.stream().map(GameLogEntry::type).toList());
+        assertEquals(List.of(3, 4, 5, 6), entries.stream().map(GameLogEntry::seq).toList());
+        assertEquals(List.of("StartingRoll", "StartingRoll", "GameStarted", "TurnStarted"),
+                entries.stream().map(GameLogEntry::type).toList());
         verify(messagingService).send("/topic/games/" + GAME_ID, new GameUpdate(GAME_ID, 4, entries));
+        verify(messagingService).send("/topic/games", new LobbyChange(GAME_ID, game));
     }
 
     @Test
@@ -229,6 +239,51 @@ class GameServiceTest {
         assertThrows(OptimisticLockingFailureException.class, () -> service().join(GAME_ID, user("b")));
 
         verifyNoInteractions(gameLogRepository, messagingService);
+    }
+
+    /** A running game of a and b, a to roll */
+    Game running() {
+        var game = lobby("a", "b");
+        game.setStatus(GameStatus.RUNNING);
+        new GameSetup(gameData).start(game.getState(), new ScriptedDice(6, 6, 1, 1), new Random(1));
+        return game;
+    }
+
+    @Test
+    void testCommandSavesAndBroadcastsOnGameTopicOnly() {
+        var game = running();
+        saveSucceeds();
+
+        var entries = service(4).command(GAME_ID, user("a"), new GameCommand.Roll());
+
+        assertEquals(5, game.getState().current().getPosition());
+        assertEquals(List.of("DiceRolled", "PieceMoved", "LandedOn", "NotImplemented"),
+                entries.stream().map(GameLogEntry::type).toList());
+        assertEquals(entries, savedEntries());
+        verify(messagingService).send("/topic/games/" + GAME_ID, new GameUpdate(GAME_ID, 4, entries));
+        verify(messagingService, never()).send(eq("/topic/games"), any());
+    }
+
+    @Test
+    void testCommandInLobby() {
+        lobby("a", "b");
+        assertThrows(RuleViolation.class, () -> service().command(GAME_ID, user("a"), new GameCommand.Roll()));
+        verify(gameRepository, never()).save(any());
+    }
+
+    @Test
+    void testCommandOutOfTurn() {
+        running();
+        assertThrows(NotYourTurn.class, () -> service().command(GAME_ID, user("b"), new GameCommand.Roll()));
+        verify(gameRepository, never()).save(any());
+    }
+
+    @Test
+    void testAllowedCommands() {
+        var game = running();
+        assertEquals(List.of("BuyCar", "Roll"), service().allowedCommands(game, user("a")));
+        assertEquals(List.of(), service().allowedCommands(game, user("b")));
+        assertEquals(List.of(), service().allowedCommands(lobby("a", "b"), user("a")));
     }
 
     @Test

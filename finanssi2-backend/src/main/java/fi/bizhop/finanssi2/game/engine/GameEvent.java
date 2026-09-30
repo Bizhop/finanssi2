@@ -1,6 +1,7 @@
 package fi.bizhop.finanssi2.game.engine;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import fi.bizhop.finanssi2.game.data.SquareType;
 
 import java.util.List;
 
@@ -15,4 +16,21 @@ public sealed interface GameEvent {
     record StartingRoll(String player, int round, List<Integer> dice) implements GameEvent {}
 
     record GameStarted(List<String> turnOrder, int startingCash) implements GameEvent {}
+
+    record TurnStarted(String player) implements GameEvent {}
+
+    record DiceRolled(String player, List<Integer> dice) implements GameEvent {}
+
+    record PieceMoved(String player, int from, int to) implements GameEvent {}
+
+    record LandedOn(String player, int square) implements GameEvent {}
+
+    /** Landed on a square whose effect is not implemented yet */
+    record NotImplemented(String player, int square, SquareType squareType) implements GameEvent {}
+
+    record CarBought(String player, int price) implements GameEvent {}
+
+    record CarSold(String player, int price) implements GameEvent {}
+
+    record TurnEnded(String player) implements GameEvent {}
 }

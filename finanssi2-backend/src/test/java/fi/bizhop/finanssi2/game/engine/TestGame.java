@@ -1,0 +1,60 @@
+package fi.bizhop.finanssi2.game.engine;
+
+import java.util.List;
+import java.util.function.Consumer;
+
+import static fi.bizhop.finanssi2.game.data.GameConstants.STARTING_CASH;
+
+/** Builds game states for rule tests: the given players in turn order, each with starting cash on square 1, the first to roll */
+public class TestGame {
+    final GameState state = new GameState();
+
+    public static TestGame players(String... uids) {
+        var game = new TestGame();
+        for (int i = 0; i < uids.length; i++) {
+            var player = new PlayerState(uids[i], "Player " + uids[i], null, i);
+            player.setCash(STARTING_CASH);
+            player.setPosition(1);
+            game.state.getPlayers().add(player);
+        }
+        game.state.setTurnOrder(List.of(uids));
+        game.state.setCurrentPlayer(uids[0]);
+        game.state.setPhase(TurnPhase.BEFORE_ROLL);
+        return game;
+    }
+
+    TestGame player(String uid, Consumer<PlayerState> change) {
+        change.accept(state.player(uid).orElseThrow());
+        return this;
+    }
+
+    public TestGame at(String uid, int square) {
+        return player(uid, player -> player.setPosition(square));
+    }
+
+    public TestGame cash(String uid, int cash) {
+        return player(uid, player -> player.setCash(cash));
+    }
+
+    public TestGame car(String uid) {
+        return player(uid, player -> player.setCar(true));
+    }
+
+    public TestGame out(String uid) {
+        return player(uid, player -> player.setOut(true));
+    }
+
+    public TestGame turn(String uid) {
+        state.setCurrentPlayer(uid);
+        return this;
+    }
+
+    public TestGame afterRoll() {
+        state.setPhase(TurnPhase.AFTER_ROLL);
+        return this;
+    }
+
+    public GameState state() {
+        return state;
+    }
+}

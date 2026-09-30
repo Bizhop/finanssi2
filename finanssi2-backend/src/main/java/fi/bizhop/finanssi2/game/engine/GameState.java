@@ -15,9 +15,15 @@ public class GameState {
     // Player uids in turn order, starting with the first player; empty before the game starts
     List<String> turnOrder = new ArrayList<>();
     String currentPlayer;
+    TurnPhase phase;
     // Card ids in draw order. Hidden from clients, who would otherwise know the cards in advance.
     @JsonIgnore
     List<String> financeNewsDeck = new ArrayList<>();
+
+    /** The player whose turn it is */
+    public PlayerState current() {
+        return player(currentPlayer).orElseThrow();
+    }
 
     public Optional<PlayerState> player(String uid) {
         return players.stream().filter(player -> player.getUid().equals(uid)).findFirst();

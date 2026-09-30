@@ -58,6 +58,7 @@ public class GameSetup {
         }
         state.setTurnOrder(turnOrder);
         state.setCurrentPlayer(turnOrder.getFirst());
+        state.setPhase(TurnPhase.BEFORE_ROLL);
 
         // No interest or Stock Tip for starting on square 1 (R12)
         for (var player : players) {
@@ -70,6 +71,7 @@ public class GameSetup {
         state.setFinanceNewsDeck(financeNews);
 
         events.add(new GameEvent.GameStarted(List.copyOf(turnOrder), STARTING_CASH));
+        events.add(new GameEvent.TurnStarted(turnOrder.getFirst()));
         return events;
     }
 }

@@ -2,6 +2,8 @@ package fi.bizhop.finanssi2.game.web;
 
 import fi.bizhop.finanssi2.game.db.Game;
 import fi.bizhop.finanssi2.game.db.GameLogEntry;
+import fi.bizhop.finanssi2.game.engine.GameCommand;
+import fi.bizhop.finanssi2.game.engine.NotYourTurn;
 import fi.bizhop.finanssi2.game.engine.RuleViolation;
 import fi.bizhop.finanssi2.game.service.GameNotFoundException;
 import fi.bizhop.finanssi2.game.service.GameService;
@@ -14,6 +16,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestAttribute;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -39,9 +42,19 @@ public class GameController {
         return gameService.list(user);
     }
 
+    /** The game, with the commands the user may send right now */
     @RequestMapping(value = "/api/games/{id}", method = RequestMethod.GET, produces = "application/json")
-    @ResponseBody Game get(@PathVariable String id) {
-        return gameService.get(id);
+    @ResponseBody GameView get(@PathVariable String id, @RequestAttribute("user") User user) {
+        var game = gameService.get(id);
+        return new GameView(game, gameService.allowedCommands(game, user));
+    }
+
+    /** Runs an in-game command, e.g. {@code {"type": "Roll"}}, and returns the events it caused */
+    @RequestMapping(value = "/api/games/{id}/commands", method = RequestMethod.POST, consumes = "application/json",
+            produces = "application/json")
+    @ResponseBody List<GameLogEntry> command(@PathVariable String id, @RequestBody GameCommand command,
+                                             @RequestAttribute("user") User user) {
+        return gameService.command(id, user, command);
     }
 
     /** The game's events after sequence number {@code after}, oldest first; the whole log by default */
@@ -73,8 +86,8 @@ public class GameController {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
     }
 
-    @ExceptionHandler(NotAllowedException.class)
-    ProblemDetail notAllowed(NotAllowedException e) {
+    @ExceptionHandler({NotAllowedException.class, NotYourTurn.class})
+    ProblemDetail notAllowed(RuntimeException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, e.getMessage());
     }
 

@@ -7,7 +7,11 @@ import fi.bizhop.finanssi2.game.db.GameLogRepository;
 import fi.bizhop.finanssi2.game.db.GameRepository;
 import fi.bizhop.finanssi2.game.db.GameStatus;
 import fi.bizhop.finanssi2.game.engine.GameEvent;
+import fi.bizhop.finanssi2.game.engine.GameSetup;
 import fi.bizhop.finanssi2.game.engine.PlayerState;
+import fi.bizhop.finanssi2.game.engine.ScriptedDice;
+import fi.bizhop.finanssi2.game.data.GameData;
+import fi.bizhop.finanssi2.game.service.DiceSource;
 import fi.bizhop.finanssi2.service.MessagingService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +24,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -27,6 +32,7 @@ import tools.jackson.databind.JsonNode;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 
 import static fi.bizhop.finanssi2.web.SecurityConfig.TEST_USER_HEADER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -53,15 +59,41 @@ class GameControllerTest {
     GameRepository gameRepository;
     @MockitoBean
     GameLogRepository gameLogRepository;
+    @MockitoBean
+    DiceSource diceSource;
+    @Autowired
+    GameData gameData;
 
     String url(String path) {
         return String.format("http://localhost:%d/api/games%s", port, path);
     }
 
-    ResponseEntity<JsonNode> post(String path, String uid) {
+    static HttpHeaders user(String uid) {
         var headers = new HttpHeaders();
         headers.add(TEST_USER_HEADER, uid);
-        return restTemplate.exchange(url(path), HttpMethod.POST, new HttpEntity<>(headers), JsonNode.class);
+        return headers;
+    }
+
+    ResponseEntity<JsonNode> post(String path, String uid) {
+        return restTemplate.exchange(url(path), HttpMethod.POST, new HttpEntity<>(user(uid)), JsonNode.class);
+    }
+
+    ResponseEntity<JsonNode> get(String path, String uid) {
+        return restTemplate.exchange(url(path), HttpMethod.GET, new HttpEntity<>(user(uid)), JsonNode.class);
+    }
+
+    ResponseEntity<JsonNode> command(String json, String uid) {
+        var headers = user(uid);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        return restTemplate.exchange(url("/" + GAME_ID + "/commands"), HttpMethod.POST, new HttpEntity<>(json, headers), JsonNode.class);
+    }
+
+    /** A running game of a and b, a to roll */
+    Game running() {
+        var game = lobby("a", "b");
+        game.setStatus(GameStatus.RUNNING);
+        new GameSetup(gameData).start(game.getState(), new ScriptedDice(6, 6, 1, 1), new Random(1));
+        return game;
     }
 
     Game lobby(String... uids) {
@@ -70,7 +102,7 @@ class GameControllerTest {
         game.setVersion(1L);
         game.setCreator(uids[0]);
         for (int i = 0; i < uids.length; i++) {
-            game.getState().getPlayers().add(new PlayerState(uids[i], "Player " + uids[i], null, i, 0, 0));
+            game.getState().getPlayers().add(new PlayerState(uids[i], "Player " + uids[i], null, i));
         }
         when(gameRepository.findById(GAME_ID)).thenReturn(Optional.of(game));
         return game;
@@ -89,6 +121,7 @@ class GameControllerTest {
     void testStartReturnsGameWithoutDeckOrder() {
         lobby("a", "b");
         saveSucceeds();
+        when(diceSource.forGame(GAME_ID)).thenReturn(new ScriptedDice(6, 6, 1, 1));
 
         var response = post("/" + GAME_ID + "/start", "a");
 
@@ -120,7 +153,7 @@ class GameControllerTest {
     void testMissingGameIsNotFound() {
         when(gameRepository.findById("missing")).thenReturn(Optional.empty());
         assertEquals(HttpStatus.NOT_FOUND, post("/missing/join", "a").getStatusCode());
-        assertEquals(HttpStatus.NOT_FOUND, restTemplate.getForEntity(url("/missing"), String.class).getStatusCode());
+        assertEquals(HttpStatus.NOT_FOUND, get("/missing", "a").getStatusCode());
     }
 
     @Test
@@ -154,14 +187,43 @@ class GameControllerTest {
     }
 
     @Test
+    void testGetListsAllowedCommandsForTheUser() {
+        running();
+
+        var forA = get("/" + GAME_ID, "a").getBody();
+        assertEquals(GAME_ID, forA.get("game").get("id").asString());
+        assertEquals("[\"BuyCar\",\"Roll\"]", forA.get("allowedCommands").toString());
+        assertEquals("[]", get("/" + GAME_ID, "b").getBody().get("allowedCommands").toString());
+    }
+
+    @Test
+    void testRollCommand() {
+        running();
+        saveSucceeds();
+        when(diceSource.forGame(GAME_ID)).thenReturn(new ScriptedDice(4));
+
+        var response = command("{\"type\": \"Roll\"}", "a");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("DiceRolled", response.getBody().get(0).get("event").get("type").asString());
+        assertEquals(4, response.getBody().get(0).get("event").get("dice").get(0).asInt());
+    }
+
+    @Test
+    void testCommandStatusCodes() {
+        running();
+        assertEquals(HttpStatus.FORBIDDEN, command("{\"type\": \"Roll\"}", "b").getStatusCode());
+        assertEquals(HttpStatus.CONFLICT, command("{\"type\": \"EndTurn\"}", "a").getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, command("{\"type\": \"Cheat\"}", "a").getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, command("{}", "a").getStatusCode());
+    }
+
+    @Test
     void testList() {
         var game = lobby("a");
         game.setStatus(GameStatus.LOBBY);
         when(gameRepository.findByStatusOrPlayer(any(), any(), any())).thenReturn(List.of(game));
-        var headers = new HttpHeaders();
-        headers.add(TEST_USER_HEADER, "b");
-
-        var response = restTemplate.exchange(url(""), HttpMethod.GET, new HttpEntity<>(headers), JsonNode.class);
+        var response = get("", "b");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(GAME_ID, response.getBody().get(0).get("id").asString());

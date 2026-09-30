@@ -23,7 +23,7 @@ JSON directly.
 - `GameData` Spring bean that loads everything at startup and gives lookups: square by number, deed by square, shares by group,
   group of a square, cards by deck.
 - `GameConstants` (plain constants, not data files): 2–6 players, starting cash 75 000, car 50 000 / sold back 25 000, loan 50 000,
-  interest 5 000, max 3 loans per player and 6 in total, bank entrance reward 5 000 per pip, bond price 500 and numbers 1–12,
+  interest 5 000, max 3 loans per player and 6 in total (official rule; step 04 adds a setting to lift the total), bank entrance reward 5 000 per pip, bond price 500 and numbers 1–12,
   small draw prizes 50 000 / 25 000 / 15 000, grand draw 100 000 / 50 000 / 25 000, mortgage redemption +10%, brokerage fee
   20 000–120 000 in steps of 10 000 with 30 000 to the bank, win at 1 000 000 cash with 2 complete groups.
 - Log a warning at startup with the number of mock entries per asset type.

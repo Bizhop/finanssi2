@@ -31,7 +31,6 @@ Keep this file current: when a question is answered, move it to "Decided" with t
 | R6 | Missed turns in jail | The turn is skipped automatically with an event; the player cannot act during it. Rent, bond draws and dividends continue as normal | 07 |
 | R7 | "Hyvät ajat": "all dice rolls are doubled" | Doubles movement rolls only. The card lists the doubled bank reward and dividends separately. Jail, shareholders' meeting and bond draw rolls stay normal | 09 |
 | R8 | Square 38 auction format | Sealed bids from every player (0 = pass), highest wins, tie goes to the earliest in turn order from the current player; the winner pays their bid | 08 |
-| R9 | Bank's money | Unlimited; only loans (6), cars and assets are limited | 04 |
 | R10 | Buildings per property | One; buildings cannot be removed or sold | 06 |
 | R11 | "Muuttuvat markkinat": do other players' one-step moves take effect? | Yes, except that a Finance News square draws no card | 09 |
 | R12 | Starting on square 1 | No interest or Stock Tip at game start | 02 |
@@ -56,7 +55,14 @@ Made while implementing; change them if they don't fit.
 | I5 | Pieces are numbers 0–5, the lowest free one at join. The creator leaving the lobby passes the game to the earliest remaining player | 02 |
 | I6 | Deck order is stored but left out of API responses (`@JsonIgnore`), so clients cannot see upcoming cards | 02 |
 | I7 | Lobby events (`PlayerJoined`, `PlayerLeft`) go into the game log along with the start events | 02 |
+| I8 | `allowedCommands` checks each parameterless command's full validation, not only its timing (no `SellCar` without a car, no `BuyCar` without the cash). Commands with parameters (step 05 on) need their own check | 03 |
+| I9 | `GET /api/games/{id}` returns `{game, allowedCommands}` instead of the bare game | 03 |
+| I10 | Per-turn flags and the pending decision queue are left for steps 04–05, where they are first used | 03 |
+| I11 | Dev dice need the `dev` profile (`--spring.profiles.active=dev`); values are queued per game and random rolls follow once they run out | 03 |
 
 ## Decided
 
-_(none yet)_
+| # | Question | Decision | Affects |
+|---|---|---|---|
+| R9 | Bank's money | Unlimited, as a hidden implementation detail (the rules don't say). Cars and assets stay limited | 04 |
+| L1 | Total bank loan limit | Game setting: official 6 loans in total (default), or house rule "unlimited bank loans" (still 3 per player), which the frontend recommends | 02, 04, 13 |

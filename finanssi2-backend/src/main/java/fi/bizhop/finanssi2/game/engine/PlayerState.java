@@ -1,12 +1,10 @@
 package fi.bizhop.finanssi2.game.engine;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class PlayerState {
     // Firebase uid
     String uid;
@@ -18,4 +16,14 @@ public class PlayerState {
     int cash;
     // Square 1–46; 0 before the game starts
     int position;
+    boolean car;
+    // Out of the game (bankrupt); skipped in turn order
+    boolean out;
+
+    public PlayerState(String uid, String name, String photoUrl, int piece) {
+        this.uid = uid;
+        this.name = name;
+        this.photoUrl = photoUrl;
+        this.piece = piece;
+    }
 }
