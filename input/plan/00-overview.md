@@ -10,7 +10,7 @@ interpretations in [open-questions.md](open-questions.md) so they stay in one pl
 
 | # | Step | Result |
 |---|---|---|
-| 01 | [Game data](01-game-data.md) | Board, groups, title deeds, shares, cards and rule constants loaded and validated |
+| 01 | [Game data](01-game-data.md) | Board, groups, title deeds, shares, cards and rule constants loaded and validated (board and Finance News done) |
 | 02 | [Game lobby](02-game-lobby.md) | Create, join and start a game; state saved and broadcast |
 | 03 | [Turn engine and movement](03-turn-engine-and-movement.md) | Command/event engine, dice, movement, car, turn order |
 | 04 | [Money and loans](04-money-and-loans.md) | Payments, loans, interest, square 34 reward, raising funds, basic bankruptcy |
@@ -19,7 +19,7 @@ interpretations in [open-questions.md](open-questions.md) so they stay in one pl
 | 07 | [Special squares and jail](07-special-squares-and-jail.md) | Every fixed-effect square on the board |
 | 08 | [Bonds](08-bonds.md) | Bond purchase, small and grand draws, auction |
 | 09 | [Finance News](09-finance-news.md) | News deck, active card, all 21 card effects |
-| 10 | [Stock Tips](10-stock-tips.md) | Stock Tip deck, held cards, card effects (mock data first) |
+| 10 | [Stock Tips](10-stock-tips.md) | Stock Tip deck, held cards, all card effects |
 | 11 | [Shareholders' meeting](11-shareholders-meeting.md) | Business group takeover |
 | 12 | [Game end](12-game-end.md) | Win condition, full bankruptcy, finished games |
 | 13 | [Frontend](13-frontend.md) | Outline only; detailed when the backend is in place |
@@ -29,26 +29,18 @@ Each later step replaces some of those placeholders.
 
 ## Assets
 
-Source material is in `input/`. Generated data is in `input/data/`; files prefixed `MOCK_` contain invented values, and every
-mock entry has `"mock": true` plus a `verified` list of the fields known to be correct. Replace entries as transcriptions arrive and
-drop the `mock` flag from confirmed entries.
+Source material is in `input/`: the rules, the board photo and the 2026-09-30 photos of the cards. Data transcribed from them is in
+`input/data/`; the backend's `src/main/resources/gamedata/` holds the canonical copies once step 01 has loaded them.
 
 | Asset | Count | Status | File |
 |---|---|---|---|
-| Board squares | 46 | Transcribed; group membership inferred from colours | `input/finanssi_pelilauta.txt` (cp1252), `input/data/pelilauta.json` |
-| Finance News | 21 | Transcribed (text only) | `input/finanssilehdet_21kpl.json` |
-| Title deeds | 20 | **Mock**; square, name and price are real | `input/data/MOCK_hallintatodistukset.json` |
-| Shares | 21 per contents list | **Mock**, 20 entries (one per property); some values from rule examples | `input/data/MOCK_osakkeet.json` |
-| Stock Tips | 42 | **Mock**; invented cards that cover the mechanics the rules mention (building permit, purchase certificate, compulsory sale, dividends) | `input/data/MOCK_porssivihjeet.json` |
-| Bonds | 12 | Numbers 1–12 and price 500 from the rules; no file needed | step 01 rule constants |
-| Car and loan certificates | 6 + 6 | Only counts matter; no file needed | step 01 rule constants |
-
-Transcriptions needed from the physical game, most important first:
-
-1. Title deeds: rent, built rent, building price, mortgage value and buy-back value for each property; confirm the group of
-   Parkkitalo and how its rent works.
-2. Shares: value of each certificate, any dividend printed on it, and why there are 21 shares for 20 properties.
-3. Stock Tips: all 42 cards, text as in the Finance News file.
+| Board squares | 46 | Transcribed; three names and square 8's group need correcting from the board photo and deeds (step 01) | `input/finanssi_pelilauta.txt` (cp1252), `input/data/pelilauta.json` |
+| Finance News | 21 | Transcribed from the cards | `input/data/finanssilehdet.json` (supersedes `input/finanssilehdet_21kpl.json`) |
+| Title deeds | 20 | Transcribed, front and back | `input/data/hallintatodistukset.json` |
+| Shares | 21 | Transcribed: 19 group shares and 2 fund shares | `input/data/osakkeet.json` |
+| Stock Tips | 41 (42 per contents list; one is missing from the set, D6) | Transcribed | `input/data/porssivihjeet.json` |
+| Bonds | 12 | Numbers 1–12 and price 500 ("Palautetaan voiton jälkeen": returned after a win); no file needed | step 01 rule constants |
+| Car and loan certificates | 6 + 6 | Only counts matter; the certificate texts match the rules; no file needed | step 01 rule constants |
 
 ## Architecture
 

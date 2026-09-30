@@ -14,8 +14,8 @@ Winning, finishing bankruptcy handling, and closing a game.
 ## Bankruptcy, complete
 
 Collect what steps 04–10 added into one procedure and test it as a whole: cash to the creditor (R13), loans cancelled, car,
-properties (unmortgaged, buildings removed), shares and bonds back to the bank, held Stock Tips back to the deck, pending decisions
-for the player dropped, player skipped in turn order.
+properties (unmortgaged, buildings removed), shares (fund shares too) and bonds back to the bank, held Stock Tips back to the
+deck, pending decisions for the player dropped, player skipped in turn order.
 
 ## Leaving a running game
 

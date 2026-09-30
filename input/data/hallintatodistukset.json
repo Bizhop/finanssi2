@@ -1,0 +1,525 @@
+{
+  "_source": "2026-09-30 Hallintatodistukset, etupuoli.jpg and ... takapuoli.jpg (photos of the physical game)",
+  "_notes": [
+    "null inside rent/mortgage/redemption/buyBack is a dash on the card: not available in that state (e.g. Hotelli pays no rent unbuilt)",
+    "mortgage null: 'Ei lainoitusta' (cannot be mortgaged); buyBack null: 'Ei osteta takaisin' (bank does not buy it back)",
+    "redemption is printed on the back ('LAINOITETTU', 'Lunastusarvo'); every value is the mortgage value + 10%",
+    "building.label is the word the card uses in '<label> maksaa'; Teollisuus = industrial plant",
+    "Pysäköintitalo (board: P-talo) belongs to no group, cannot be built on, cannot be mortgaged; parkingFee is paid only by car owners",
+    "the backs of squares 3 and 4 carry handwritten corrections swapping their numbers; both show the same values"
+  ],
+  "titleDeeds": [
+    {
+      "id": "HT-03",
+      "square": 3,
+      "name": "Ompelimo",
+      "group": "KASITEOLLISUUS",
+      "price": 10000,
+      "building": {
+        "label": "Rakennus",
+        "price": 10000
+      },
+      "rent": {
+        "unbuilt": 2500,
+        "built": 25000
+      },
+      "parkingFee": null,
+      "mortgage": {
+        "unbuilt": 10000,
+        "built": 20000
+      },
+      "redemption": {
+        "unbuilt": 11000,
+        "built": 22000
+      },
+      "buyBack": null
+    },
+    {
+      "id": "HT-04",
+      "square": 4,
+      "name": "Maalaamo",
+      "group": "KASITEOLLISUUS",
+      "price": 10000,
+      "building": {
+        "label": "Rakennus",
+        "price": 10000
+      },
+      "rent": {
+        "unbuilt": 2500,
+        "built": 25000
+      },
+      "parkingFee": null,
+      "mortgage": {
+        "unbuilt": 10000,
+        "built": 20000
+      },
+      "redemption": {
+        "unbuilt": 11000,
+        "built": 22000
+      },
+      "buyBack": null
+    },
+    {
+      "id": "HT-06",
+      "square": 6,
+      "name": "Puusepänliike",
+      "group": "KASITEOLLISUUS",
+      "price": 15000,
+      "building": {
+        "label": "Rakennus",
+        "price": 15000
+      },
+      "rent": {
+        "unbuilt": 5000,
+        "built": 30000
+      },
+      "parkingFee": null,
+      "mortgage": {
+        "unbuilt": 15000,
+        "built": 25000
+      },
+      "redemption": {
+        "unbuilt": 16500,
+        "built": 27500
+      },
+      "buyBack": null
+    },
+    {
+      "id": "HT-08",
+      "square": 8,
+      "name": "Pysäköintitalo",
+      "group": null,
+      "price": 40000,
+      "building": null,
+      "rent": null,
+      "parkingFee": 10000,
+      "mortgage": null,
+      "redemption": null,
+      "buyBack": {
+        "unbuilt": 25000,
+        "built": null
+      }
+    },
+    {
+      "id": "HT-09",
+      "square": 9,
+      "name": "Hotelli",
+      "group": "PALVELUYHTIO",
+      "price": 20000,
+      "building": {
+        "label": "Hotelli",
+        "price": 30000
+      },
+      "rent": {
+        "unbuilt": null,
+        "built": 50000
+      },
+      "parkingFee": null,
+      "mortgage": {
+        "unbuilt": 20000,
+        "built": 40000
+      },
+      "redemption": {
+        "unbuilt": 22000,
+        "built": 44000
+      },
+      "buyBack": {
+        "unbuilt": 15000,
+        "built": 45000
+      }
+    },
+    {
+      "id": "HT-10",
+      "square": 10,
+      "name": "Autokorjaamo",
+      "group": "PALVELUYHTIO",
+      "price": 20000,
+      "building": {
+        "label": "Korjaamo",
+        "price": 20000
+      },
+      "rent": {
+        "unbuilt": 5000,
+        "built": 40000
+      },
+      "parkingFee": null,
+      "mortgage": {
+        "unbuilt": 15000,
+        "built": 35000
+      },
+      "redemption": {
+        "unbuilt": 16500,
+        "built": 38500
+      },
+      "buyBack": {
+        "unbuilt": 15000,
+        "built": 40000
+      }
+    },
+    {
+      "id": "HT-12",
+      "square": 12,
+      "name": "Huonekaluliike",
+      "group": "LIIKEKESKUS",
+      "price": 20000,
+      "building": {
+        "label": "Liike",
+        "price": 40000
+      },
+      "rent": {
+        "unbuilt": 5000,
+        "built": 40000
+      },
+      "parkingFee": null,
+      "mortgage": {
+        "unbuilt": 20000,
+        "built": null
+      },
+      "redemption": {
+        "unbuilt": 22000,
+        "built": null
+      },
+      "buyBack": {
+        "unbuilt": null,
+        "built": 60000
+      }
+    },
+    {
+      "id": "HT-13",
+      "square": 13,
+      "name": "Elintarvikeliike",
+      "group": "LIIKEKESKUS",
+      "price": 15000,
+      "building": {
+        "label": "Liike",
+        "price": 15000
+      },
+      "rent": {
+        "unbuilt": 5000,
+        "built": 25000
+      },
+      "parkingFee": null,
+      "mortgage": {
+        "unbuilt": 15000,
+        "built": null
+      },
+      "redemption": {
+        "unbuilt": 16500,
+        "built": null
+      },
+      "buyBack": {
+        "unbuilt": null,
+        "built": 30000
+      }
+    },
+    {
+      "id": "HT-15",
+      "square": 15,
+      "name": "Kirjakauppa",
+      "group": "LIIKEKESKUS",
+      "price": 20000,
+      "building": {
+        "label": "Liike",
+        "price": 20000
+      },
+      "rent": {
+        "unbuilt": 5000,
+        "built": 40000
+      },
+      "parkingFee": null,
+      "mortgage": {
+        "unbuilt": 20000,
+        "built": null
+      },
+      "redemption": {
+        "unbuilt": 22000,
+        "built": null
+      },
+      "buyBack": {
+        "unbuilt": null,
+        "built": 40000
+      }
+    },
+    {
+      "id": "HT-18",
+      "square": 18,
+      "name": "Investointiyhtiö",
+      "group": "FINANSSIYHTYMA",
+      "price": 25000,
+      "building": {
+        "label": "Rakennus",
+        "price": 25000
+      },
+      "rent": {
+        "unbuilt": null,
+        "built": 50000
+      },
+      "parkingFee": null,
+      "mortgage": {
+        "unbuilt": null,
+        "built": 50000
+      },
+      "redemption": {
+        "unbuilt": null,
+        "built": 55000
+      },
+      "buyBack": {
+        "unbuilt": 25000,
+        "built": null
+      }
+    },
+    {
+      "id": "HT-19",
+      "square": 19,
+      "name": "Luottolaitos",
+      "group": "FINANSSIYHTYMA",
+      "price": 25000,
+      "building": {
+        "label": "Rakennus",
+        "price": 35000
+      },
+      "rent": {
+        "unbuilt": null,
+        "built": 60000
+      },
+      "parkingFee": null,
+      "mortgage": {
+        "unbuilt": null,
+        "built": 60000
+      },
+      "redemption": {
+        "unbuilt": null,
+        "built": 66000
+      },
+      "buyBack": {
+        "unbuilt": 25000,
+        "built": null
+      }
+    },
+    {
+      "id": "HT-21",
+      "square": 21,
+      "name": "Elektroniikkayhtiö",
+      "group": "TEKNIIKKA",
+      "price": 25000,
+      "building": {
+        "label": "Rakennus",
+        "price": 25000
+      },
+      "rent": {
+        "unbuilt": 10000,
+        "built": 50000
+      },
+      "parkingFee": null,
+      "mortgage": {
+        "unbuilt": 25000,
+        "built": 50000
+      },
+      "redemption": {
+        "unbuilt": 27500,
+        "built": 55000
+      },
+      "buyBack": null
+    },
+    {
+      "id": "HT-22",
+      "square": 22,
+      "name": "Videoyhtiö",
+      "group": "TEKNIIKKA",
+      "price": 25000,
+      "building": {
+        "label": "Rakennus",
+        "price": 25000
+      },
+      "rent": {
+        "unbuilt": 10000,
+        "built": 50000
+      },
+      "parkingFee": null,
+      "mortgage": {
+        "unbuilt": 25000,
+        "built": 50000
+      },
+      "redemption": {
+        "unbuilt": 27500,
+        "built": 55000
+      },
+      "buyBack": null
+    },
+    {
+      "id": "HT-23",
+      "square": 23,
+      "name": "ATK-yhtiö",
+      "group": "TEKNIIKKA",
+      "price": 30000,
+      "building": {
+        "label": "Rakennus",
+        "price": 30000
+      },
+      "rent": {
+        "unbuilt": 15000,
+        "built": 60000
+      },
+      "parkingFee": null,
+      "mortgage": {
+        "unbuilt": 30000,
+        "built": 60000
+      },
+      "redemption": {
+        "unbuilt": 33000,
+        "built": 66000
+      },
+      "buyBack": null
+    },
+    {
+      "id": "HT-26",
+      "square": 26,
+      "name": "Muovitehdas",
+      "group": "KEMIA",
+      "price": 40000,
+      "building": {
+        "label": "Teollisuus",
+        "price": 40000
+      },
+      "rent": {
+        "unbuilt": 15000,
+        "built": 75000
+      },
+      "parkingFee": null,
+      "mortgage": {
+        "unbuilt": 40000,
+        "built": 40000
+      },
+      "redemption": {
+        "unbuilt": 44000,
+        "built": 44000
+      },
+      "buyBack": {
+        "unbuilt": null,
+        "built": 75000
+      }
+    },
+    {
+      "id": "HT-27",
+      "square": 27,
+      "name": "Bensiiniyhtiö",
+      "group": "KEMIA",
+      "price": 30000,
+      "building": {
+        "label": "Teollisuus",
+        "price": 30000
+      },
+      "rent": {
+        "unbuilt": 10000,
+        "built": 60000
+      },
+      "parkingFee": null,
+      "mortgage": {
+        "unbuilt": 30000,
+        "built": 30000
+      },
+      "redemption": {
+        "unbuilt": 33000,
+        "built": 33000
+      },
+      "buyBack": {
+        "unbuilt": null,
+        "built": 50000
+      }
+    },
+    {
+      "id": "HT-29",
+      "square": 29,
+      "name": "Jalostamo",
+      "group": "KEMIA",
+      "price": 40000,
+      "building": {
+        "label": "Teollisuus",
+        "price": 50000
+      },
+      "rent": {
+        "unbuilt": 15000,
+        "built": 75000
+      },
+      "parkingFee": null,
+      "mortgage": {
+        "unbuilt": 40000,
+        "built": 40000
+      },
+      "redemption": {
+        "unbuilt": 44000,
+        "built": 44000
+      },
+      "buyBack": {
+        "unbuilt": null,
+        "built": 75000
+      }
+    },
+    {
+      "id": "HT-30",
+      "square": 30,
+      "name": "Sahalaitos",
+      "group": "TEOLLISUUSKONSERNI",
+      "price": 75000,
+      "building": {
+        "label": "Teollisuus",
+        "price": 200000
+      },
+      "rent": {
+        "unbuilt": 20000,
+        "built": 200000
+      },
+      "parkingFee": null,
+      "mortgage": null,
+      "redemption": null,
+      "buyBack": {
+        "unbuilt": 50000,
+        "built": 150000
+      }
+    },
+    {
+      "id": "HT-32",
+      "square": 32,
+      "name": "Paperitehdas",
+      "group": "TEOLLISUUSKONSERNI",
+      "price": 50000,
+      "building": {
+        "label": "Teollisuus",
+        "price": 100000
+      },
+      "rent": {
+        "unbuilt": 20000,
+        "built": 200000
+      },
+      "parkingFee": null,
+      "mortgage": null,
+      "redemption": null,
+      "buyBack": {
+        "unbuilt": 50000,
+        "built": 100000
+      }
+    },
+    {
+      "id": "HT-33",
+      "square": 33,
+      "name": "Rautatehdas",
+      "group": "TEOLLISUUSKONSERNI",
+      "price": 75000,
+      "building": {
+        "label": "Teollisuus",
+        "price": 150000
+      },
+      "rent": {
+        "unbuilt": 30000,
+        "built": 300000
+      },
+      "parkingFee": null,
+      "mortgage": null,
+      "redemption": null,
+      "buyBack": {
+        "unbuilt": 75000,
+        "built": 150000
+      }
+    }
+  ]
+}

@@ -1,0 +1,187 @@
+{
+  "_source": "2026-09-30 Osakkeet.jpg (photo of the physical game)",
+  "_notes": [
+    "value is the share's price ('50 000,-'); dividendPercent and dividend ('Osinko') are printed on it; buyBack is 'Takaisinostoarvo'",
+    "each group share also prints the group's squares and total share capital ('Kokonaisosakepääoma'): KASITEOLLISUUS 150000, PALVELUYHTIO 100000, LIIKEKESKUS 175000, FINANSSIYHTYMA 150000, TEKNIIKKA 250000, KEMIA 300000, TEOLLISUUSKONSERNI 500000",
+    "OS-RAHASTO-*: 'Rahasto-osake' (fund share), in no group; Stock Tips 'Rahasto-osakeanti' give them away by percent"
+  ],
+  "groupShareCapital": {
+    "KASITEOLLISUUS": 150000,
+    "PALVELUYHTIO": 100000,
+    "LIIKEKESKUS": 175000,
+    "FINANSSIYHTYMA": 150000,
+    "TEKNIIKKA": 250000,
+    "KEMIA": 300000,
+    "TEOLLISUUSKONSERNI": 500000
+  },
+  "shares": [
+    {
+      "id": "OS-KASITEOLLISUUS-1",
+      "group": "KASITEOLLISUUS",
+      "value": 50000,
+      "dividendPercent": 20,
+      "dividend": 10000,
+      "buyBack": 50000
+    },
+    {
+      "id": "OS-KASITEOLLISUUS-2",
+      "group": "KASITEOLLISUUS",
+      "value": 50000,
+      "dividendPercent": 20,
+      "dividend": 10000,
+      "buyBack": 50000
+    },
+    {
+      "id": "OS-KASITEOLLISUUS-3",
+      "group": "KASITEOLLISUUS",
+      "value": 50000,
+      "dividendPercent": 25,
+      "dividend": 12500,
+      "buyBack": 40000
+    },
+    {
+      "id": "OS-PALVELUYHTIO-1",
+      "group": "PALVELUYHTIO",
+      "value": 50000,
+      "dividendPercent": 20,
+      "dividend": 10000,
+      "buyBack": 50000
+    },
+    {
+      "id": "OS-PALVELUYHTIO-2",
+      "group": "PALVELUYHTIO",
+      "value": 50000,
+      "dividendPercent": 25,
+      "dividend": 12500,
+      "buyBack": 40000
+    },
+    {
+      "id": "OS-LIIKEKESKUS-1",
+      "group": "LIIKEKESKUS",
+      "value": 50000,
+      "dividendPercent": 25,
+      "dividend": 12500,
+      "buyBack": 40000
+    },
+    {
+      "id": "OS-LIIKEKESKUS-2",
+      "group": "LIIKEKESKUS",
+      "value": 50000,
+      "dividendPercent": 25,
+      "dividend": 12500,
+      "buyBack": 40000
+    },
+    {
+      "id": "OS-LIIKEKESKUS-3",
+      "group": "LIIKEKESKUS",
+      "value": 75000,
+      "dividendPercent": 30,
+      "dividend": 22500,
+      "buyBack": 40000
+    },
+    {
+      "id": "OS-FINANSSIYHTYMA-1",
+      "group": "FINANSSIYHTYMA",
+      "value": 75000,
+      "dividendPercent": 30,
+      "dividend": 22500,
+      "buyBack": 40000
+    },
+    {
+      "id": "OS-FINANSSIYHTYMA-2",
+      "group": "FINANSSIYHTYMA",
+      "value": 75000,
+      "dividendPercent": 40,
+      "dividend": 30000,
+      "buyBack": 37500
+    },
+    {
+      "id": "OS-TEKNIIKKA-1",
+      "group": "TEKNIIKKA",
+      "value": 75000,
+      "dividendPercent": 30,
+      "dividend": 22500,
+      "buyBack": 40000
+    },
+    {
+      "id": "OS-TEKNIIKKA-2",
+      "group": "TEKNIIKKA",
+      "value": 75000,
+      "dividendPercent": 40,
+      "dividend": 30000,
+      "buyBack": 37500
+    },
+    {
+      "id": "OS-TEKNIIKKA-3",
+      "group": "TEKNIIKKA",
+      "value": 100000,
+      "dividendPercent": 50,
+      "dividend": 50000,
+      "buyBack": 50000
+    },
+    {
+      "id": "OS-KEMIA-1",
+      "group": "KEMIA",
+      "value": 100000,
+      "dividendPercent": 30,
+      "dividend": 30000,
+      "buyBack": 60000
+    },
+    {
+      "id": "OS-KEMIA-2",
+      "group": "KEMIA",
+      "value": 100000,
+      "dividendPercent": 40,
+      "dividend": 40000,
+      "buyBack": 50000
+    },
+    {
+      "id": "OS-KEMIA-3",
+      "group": "KEMIA",
+      "value": 100000,
+      "dividendPercent": 50,
+      "dividend": 50000,
+      "buyBack": 50000
+    },
+    {
+      "id": "OS-TEOLLISUUSKONSERNI-1",
+      "group": "TEOLLISUUSKONSERNI",
+      "value": 100000,
+      "dividendPercent": 40,
+      "dividend": 40000,
+      "buyBack": 50000
+    },
+    {
+      "id": "OS-TEOLLISUUSKONSERNI-2",
+      "group": "TEOLLISUUSKONSERNI",
+      "value": 200000,
+      "dividendPercent": 50,
+      "dividend": 100000,
+      "buyBack": 100000
+    },
+    {
+      "id": "OS-TEOLLISUUSKONSERNI-3",
+      "group": "TEOLLISUUSKONSERNI",
+      "value": 200000,
+      "dividendPercent": 50,
+      "dividend": 100000,
+      "buyBack": 100000
+    },
+    {
+      "id": "OS-RAHASTO-20",
+      "group": null,
+      "value": 50000,
+      "dividendPercent": 20,
+      "dividend": 10000,
+      "buyBack": 50000
+    },
+    {
+      "id": "OS-RAHASTO-25",
+      "group": null,
+      "value": 50000,
+      "dividendPercent": 25,
+      "dividend": 12500,
+      "buyBack": 25000
+    }
+  ]
+}

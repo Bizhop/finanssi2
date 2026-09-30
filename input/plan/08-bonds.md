@@ -19,6 +19,9 @@ Twelve bonds, numbered 1–12, 500 each. A player holds any number; bonds cannot
   1+1 → 2, 1, 12.
 - A prize goes only to a bond owned by a player; a winning bond returns to the bank.
 - Square 46 with "Hyvät ajat" in effect applies to all players (step 09); keep the square's bond purchase callable per player.
+- Stock Tips reuse these parts (step 10): "Uusi obligaatiolaina" gives a free bond of the drawer's choice (from the left neighbour
+  when the bank has none), "Obligaatiovoitto!" pays 25 000 on bond 1 and returns it, and "Pakkomyynti" auctions an asset with the
+  square 38 bid mechanism. Keep bond ownership changes and the bidding in one place each.
 
 ## Tests
 

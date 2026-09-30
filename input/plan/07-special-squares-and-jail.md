@@ -20,23 +20,27 @@ remain `NotImplemented`.
 
 ## Dividends
 
-- Bank dividend squares: 39 pays 40% and 42 pays 30% of the player's share capital. Squares 16 and 28 pay "on all your shares"
-  and 46 pays a dividend without a stated amount: pay the dividend printed on each share (B2, mock value until D2).
+- Every share prints its dividend ("Osinko", its price × its dividend percent). Bank dividend squares pay that printed dividend:
+  - 16 and 28 ("osinkoa kaikille osakkeillesi") and 46 ("Osinkojen jako"): on all the player's shares, fund shares included (B2).
+  - 39 ("osinkoa 40 %:n osakkeillesi") and 42 ("30 %:n osakkeillesi"): only on the player's shares whose dividend percent is 40 or
+    30 (B3). The percentages identify shares; they are not a percentage of share capital.
 - Square 41: the player pays each other player 20% of that player's share capital in the groups where the paying player owns at
-  least one property. Use the two examples in the rules as test cases (B gets 40 000, C gets 45 000). A shortfall is a payment
-  obligation.
+  least one property (fund shares are in no group, so never count). Use the two examples in the rules as test cases (B gets
+  40 000, C gets 45 000). A shortfall is a payment obligation.
 - All dividend amounts go through `Rules` ("Huonot ajat" stops dividends, "Hyvät ajat" doubles them, and more, in step 09).
 
 ## Share crash
 
-- Square 35: pay the bank 10% of share capital, not counting shares in complete business groups the player owns.
+- Square 35: pay the bank 10% of share capital, not counting shares in complete business groups the player owns. Fund shares
+  count.
 
 ## Tests
 
 - Each move square, including the landing effect at the target
 - Jail durations for each die value; skipped turns; rent collected while in jail
 - Square 36 for rolls 1–6; the exception after jail and its reset on square 1
-- Dividends on each square; square 41 with the rules examples; square 35 with and without complete groups
+- Dividends on each square, including 39 and 42 paying only the matching share class; square 41 with the rules examples;
+  square 35 with and without complete groups
 
 ## Done when
 

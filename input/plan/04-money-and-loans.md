@@ -35,7 +35,7 @@ raising funds covers loans and selling the car only; step 05 adds mortgaging and
 ## Game settings
 
 - `GameSettings` on the game, set by the creator in the lobby (`PUT /api/games/{id}/settings`, lobby only) and fixed at start. The
-  first setting is the loan limit; later house rules go here too.
+  first setting is the loan limit; later house rules go here too (step 10 adds the minimum bid of the "Pakkomyynti" auction, L3).
 - Settings reach the engine through `Rules`, so callers don't check them.
 
 ## Square 34 reward

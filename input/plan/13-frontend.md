@@ -5,8 +5,8 @@ everything needed: game state, events, `allowedCommands` per user and the per-ga
 
 Likely steps, in order:
 
-1. Games page: list, create, join, start (step 02 API, `/topic/games`); the creator picks the game settings (step 04), with the
-   house rule "unlimited bank loans" marked as recommended
+1. Games page: list, create, join, start (step 02 API, `/topic/games`); the creator picks the game settings (steps 04 and 10), with
+   the house rule "unlimited bank loans" marked as recommended
 2. Game view skeleton: load the game, subscribe to `/topic/games/{id}`, reload on version gaps, event log
 3. Board: 46 squares from `GameData` (served by a new `GET /api/game-data`), pieces, owners, buildings, mortgages; `input/board.png`
    as the visual reference
