@@ -26,7 +26,7 @@ Made while implementing; change them if they don't fit.
 
 | # | Decision | Step |
 |---|---|---|
-| I1 | Step 01 loads only the board, groups and Finance News. Title deeds, shares and Stock Tips (and their validations and the mock-count warning) wait for the transcriptions, since their record fields depend on what the cards show | 01 |
+| I1 | Step 01 first loaded only the board, groups and Finance News; title deeds, shares and Stock Tips followed once transcribed, with record fields shaped by the cards | 01 |
 | I2 | Finance News text moved as is; superseded by the transcription from the physical cards, which step 01 puts in the resources | 01 |
 | I3 | Data files keep the transcription format (`"type": "FINANSSILEHTI"`, chapter `type`/`font-style`), so new transcriptions can be copied in unchanged. Unknown fields fail startup | 01 |
 | I4 | Players live in `GameState` (not directly on `Game`), so the engine gets everything in one object; `GameState` exists from creation | 02 |

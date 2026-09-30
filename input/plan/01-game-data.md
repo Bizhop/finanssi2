@@ -9,7 +9,7 @@ The board, the groups and the Finance News cards load from `finanssi2-backend/sr
 (`input/` keeps the raw sources and photos), with `Square`, `SquareType`, `BusinessGroup`, `Card`, `CardChapter`, `GameData` and
 `GameConstants` in `game.data`. Title deeds, shares and Stock Tips waited for the transcriptions (I1).
 
-## Remaining: title deeds, shares, Stock Tips (transcribed 2026-09-30)
+## Done (second part): title deeds, shares, Stock Tips (transcribed 2026-09-30)
 
 - Copy `input/data/hallintatodistukset.json`, `osakkeet.json` and `porssivihjeet.json` to the resources, and replace the resource
   `finanssilehdet.json` with `input/data/finanssilehdet.json` (same ids, text from the physical cards; this also settles I2).
@@ -19,7 +19,8 @@ The board, the groups and the Finance News cards load from `finanssi2-backend/sr
   - squares 39 and 42: the percent identifies shares ("40 %:n osakkeillesi"), not a percentage of capital (B3); rename the field so
     the two meanings can't be mixed up, e.g. `shareClass`
   - drop the `_unverified` notes that the cards answered
-- Records in `game.data`: `TitleDeed` (square, name, group or null, price, building label and price or null, rent / mortgage /
+- Records in `game.data`: `GameAssets` (everything read from the files, the input of `GameData`), `ByState`, `Building`,
+  `TitleDeed` (square, name, group or null, price, building label and price or null, rent / mortgage /
   redemption / buy-back as unbuilt–built pairs with nulls for dashes, parking fee), `Share` (id, group or null, value, dividend
   percent, dividend, buy-back). Nothing is mock any more, so no `mock` field and no startup warning about mock data.
 - `GameData` lookups: deed by square, shares by group, fund shares, cards by deck (Stock Tips added).

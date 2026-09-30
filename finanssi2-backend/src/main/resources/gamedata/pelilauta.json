@@ -1,10 +1,5 @@
 {
-  "_source": "finanssi_pelilauta.txt + board.png. Numbering follows the board photo.",
-  "_unverified": [
-    "groups: membership inferred from square colours and the rules text; Parkkitalo (8, white square) is assumed to belong to Palveluyhtiö",
-    "BANK_DIVIDEND percent null on squares 16, 28 and 46: rules say the amount is 'determined case by case' (possibly the dividend printed on each share)",
-    "square 36 is 'go directly to jail' on the board; both rule texts say 37. The board is used here"
-  ],
+  "_source": "finanssi_pelilauta.txt + board.png, corrected from the 2026-09-30 title deed photos. Numbering follows the board photo.",
   "groups": [
     {
       "id": "KASITEOLLISUUS",
@@ -21,7 +16,6 @@
       "name": "Palveluyhtiö",
       "color": "violetti",
       "properties": [
-        8,
         9,
         10
       ]
@@ -133,9 +127,8 @@
     },
     {
       "square": 8,
-      "name": "Parkkitalo",
+      "name": "Pysäköintitalo",
       "type": "PROPERTY",
-      "group": "PALVELUYHTIO",
       "price": 40000,
       "industrial": false,
       "headOffice": false
@@ -201,7 +194,6 @@
       "square": 16,
       "name": "Pankki jakaa osinkoa kaikille osakkeillesi",
       "type": "BANK_DIVIDEND",
-      "percent": null,
       "headOffice": false
     },
     {
@@ -212,7 +204,7 @@
     },
     {
       "square": 18,
-      "name": "Sijoitusyhtiö",
+      "name": "Investointiyhtiö",
       "type": "PROPERTY",
       "group": "FINANSSIYHTYMA",
       "price": 25000,
@@ -295,12 +287,11 @@
       "square": 28,
       "name": "Pankki jakaa osinkoa kaikille osakkeillesi",
       "type": "BANK_DIVIDEND",
-      "percent": null,
       "headOffice": false
     },
     {
       "square": 29,
-      "name": "Öljynjalostamo",
+      "name": "Jalostamo",
       "type": "PROPERTY",
       "group": "KEMIA",
       "price": 40000,
@@ -378,10 +369,10 @@
     },
     {
       "square": 39,
-      "name": "Pankki jakaa osinkoa 40% osakkeillesi",
+      "name": "Pankki jakaa osinkoa 40%:n osakkeillesi",
       "type": "BANK_DIVIDEND",
-      "percent": 40,
-      "headOffice": true
+      "headOffice": true,
+      "shareClass": 40
     },
     {
       "square": 40,
@@ -398,10 +389,10 @@
     },
     {
       "square": 42,
-      "name": "Pankki jakaa osinkoa 30% osakkeillesi",
+      "name": "Pankki jakaa osinkoa 30%:n osakkeillesi",
       "type": "BANK_DIVIDEND",
-      "percent": 30,
-      "headOffice": true
+      "headOffice": true,
+      "shareClass": 30
     },
     {
       "square": 43,
@@ -429,8 +420,12 @@
       "name": "Obligaatioiden osto, Osinkojen jako",
       "type": "BOND_PURCHASE_AND_DIVIDEND",
       "bondPurchase": true,
-      "percent": null,
       "headOffice": true
     }
+  ],
+  "_notes": [
+    "square 36 is 'go directly to jail' on the board; both rule texts say 37. The board is used here (B1)",
+    "squares 39 and 42: shareClass identifies shares by their printed dividend percent ('40 %:n osakkeillesi'), not a percentage of share capital (B3)",
+    "square 8 (P-talo on the board, Pysäköintitalo on its title deed) belongs to no group"
   ]
 }

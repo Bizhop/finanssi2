@@ -10,6 +10,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 /** Loads the game assets from {@code gamedata/} on the classpath; startup fails if they are inconsistent */
@@ -24,18 +25,33 @@ public class GameDataConfig {
             .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
             .build();
 
-    @JsonIgnoreProperties({"_source", "_unverified"})
+    @JsonIgnoreProperties({"_source", "_notes"})
     record BoardFile(List<BusinessGroup> groups, List<Square> squares) {}
+
+    @JsonIgnoreProperties({"_source", "_notes"})
+    record TitleDeedFile(List<TitleDeed> titleDeeds) {}
+
+    @JsonIgnoreProperties({"_source", "_notes"})
+    record ShareFile(Map<String, Integer> groupShareCapital, List<Share> shares) {}
 
     @Bean
     public GameData gameData() throws IOException {
-        var board = read("gamedata/pelilauta.json", new TypeReference<BoardFile>() {});
-        var financeNews = read("gamedata/finanssilehdet.json", new TypeReference<List<Card>>() {});
-        var gameData = new GameData(board.squares(), board.groups(), financeNews);
-        var mockCards = financeNews.stream().filter(Card::mock).count();
-        logger.info(String.format("Loaded game data: %d squares, %d groups, %d Finance News cards (%d mock)",
-                board.squares().size(), board.groups().size(), financeNews.size(), mockCards));
+        var assets = readAssets();
+        var gameData = new GameData(assets);
+        logger.info(String.format("Loaded game data: %d squares, %d groups, %d title deeds, %d shares, %d Finance News, %d Stock Tips",
+                assets.squares().size(), assets.groups().size(), assets.titleDeeds().size(), assets.shares().size(),
+                assets.financeNews().size(), assets.stockTips().size()));
         return gameData;
+    }
+
+    static GameAssets readAssets() throws IOException {
+        var board = read("gamedata/pelilauta.json", new TypeReference<BoardFile>() {});
+        var titleDeeds = read("gamedata/hallintatodistukset.json", new TypeReference<TitleDeedFile>() {});
+        var shares = read("gamedata/osakkeet.json", new TypeReference<ShareFile>() {});
+        var financeNews = read("gamedata/finanssilehdet.json", new TypeReference<List<Card>>() {});
+        var stockTips = read("gamedata/porssivihjeet.json", new TypeReference<List<Card>>() {});
+        return new GameAssets(board.squares(), board.groups(), titleDeeds.titleDeeds(), shares.shares(), shares.groupShareCapital(),
+                financeNews, stockTips);
     }
 
     static <T> T read(String path, TypeReference<T> type) throws IOException {

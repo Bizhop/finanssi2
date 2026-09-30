@@ -10,7 +10,7 @@ interpretations in [open-questions.md](open-questions.md) so they stay in one pl
 
 | # | Step | Result |
 |---|---|---|
-| 01 | [Game data](01-game-data.md) | Board, groups, title deeds, shares, cards and rule constants loaded and validated (board and Finance News done) |
+| 01 | [Game data](01-game-data.md) | Board, groups, title deeds, shares, cards and rule constants loaded and validated |
 | 02 | [Game lobby](02-game-lobby.md) | Create, join and start a game; state saved and broadcast |
 | 03 | [Turn engine and movement](03-turn-engine-and-movement.md) | Command/event engine, dice, movement, car, turn order |
 | 04 | [Money and loans](04-money-and-loans.md) | Payments, loans, interest, square 34 reward, raising funds, basic bankruptcy |
@@ -30,11 +30,11 @@ Each later step replaces some of those placeholders.
 ## Assets
 
 Source material is in `input/`: the rules, the board photo and the 2026-09-30 photos of the cards. Data transcribed from them is in
-`input/data/`; the backend's `src/main/resources/gamedata/` holds the canonical copies once step 01 has loaded them.
+`input/data/`; the backend's `src/main/resources/gamedata/` holds the canonical copies that the game loads.
 
 | Asset | Count | Status | File |
 |---|---|---|---|
-| Board squares | 46 | Transcribed; three names and square 8's group need correcting from the board photo and deeds (step 01) | `input/finanssi_pelilauta.txt` (cp1252), `input/data/pelilauta.json` |
+| Board squares | 46 | Transcribed, corrected from the board photo and title deeds | `input/finanssi_pelilauta.txt` (cp1252), `input/data/pelilauta.json` |
 | Finance News | 21 | Transcribed from the cards | `input/data/finanssilehdet.json` (supersedes `input/finanssilehdet_21kpl.json`) |
 | Title deeds | 20 | Transcribed, front and back | `input/data/hallintatodistukset.json` |
 | Shares | 21 | Transcribed: 19 group shares and 2 fund shares | `input/data/osakkeet.json` |

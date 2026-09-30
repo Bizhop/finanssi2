@@ -1,0 +1,622 @@
+[
+  {
+    "id": "PV-01",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Rakennuslupa",
+        "type": "header"
+      },
+      {
+        "text": "Säästä tämä kortti. Koska tahansa pelivuorosi aikana saat rakentaa – myös rakennuskiellon aikana. Ainoa vaatimus on, että olet Rakennusprojekti Oy:n ruudussa."
+      },
+      {
+        "text": "Kortti palautetaan rakentamisen jälkeen."
+      }
+    ]
+  },
+  {
+    "id": "PV-02",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Ostotodistus",
+        "type": "header"
+      },
+      {
+        "text": "Saat ostaa pankista yhden tontin tai osakkeen, vaikka ostokieltokin olisi voimassa. Pidä tämä kortti itselläsi, kunnes käytät sen."
+      },
+      {
+        "text": "Kortti palautetaan heti käytön jälkeen."
+      }
+    ]
+  },
+  {
+    "id": "PV-03",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Rahasto-osakeanti",
+        "type": "header"
+      },
+      {
+        "text": "Saat pankista ilmaiseksi 20%:n rahasto-osakkeen. Mikäli tämä osake on jo jollakin toisella pelaajalla, heität molempia noppia. Jos heität 7 tai enemmän, saat ottaa 20%:n rahasto-osakkeen ilmaiseksi."
+      }
+    ]
+  },
+  {
+    "id": "PV-04",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Ojaanajo",
+        "type": "header"
+      },
+      {
+        "text": "Tämä sääntö koskee vain autoilijoita. Olet ajanut ojaan, ja autostasi tuli pelkkää peltiromua. Joudut luovuttamaan autotodistuksesi pankille korvauksetta."
+      }
+    ]
+  },
+  {
+    "id": "PV-05",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Kolari",
+        "type": "header"
+      },
+      {
+        "text": "Olet ajanut kolarin vasemmanpuoleisen pelitoverisi kanssa. Te molemmat siirrytte nyt ruutuun 10."
+      },
+      {
+        "text": "Sääntö koskee myös autottomia."
+      }
+    ]
+  },
+  {
+    "id": "PV-06",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Autoveron korotus!",
+        "type": "header"
+      },
+      {
+        "text": "Jos sinulla on auto, sinun on heti maksettava pankille 15.000,-."
+      }
+    ]
+  },
+  {
+    "id": "PV-07",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Rakennuslupa",
+        "type": "header"
+      },
+      {
+        "text": "Säästä tämä kortti. Koska tahansa oman pelivuorosi aikana saat rakentaa yhdelle tontille, huolimatta siitä, missä olet pelilaudalla, ja vaikka rakennuskiellon aikana."
+      },
+      {
+        "text": "Kortti palautetaan rakentamisen jälkeen."
+      }
+    ]
+  },
+  {
+    "id": "PV-08",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Ostotodistus",
+        "type": "header"
+      },
+      {
+        "text": "Saat ostaa pankista yhden tontin tai osakkeen, vaikka ostokieltokin olisi voimassa. Pidä tämä kortti itselläsi, kunnes käytät sen."
+      },
+      {
+        "text": "Kortti palautetaan heti käytön jälkeen."
+      }
+    ]
+  },
+  {
+    "id": "PV-09",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Rahasto-osakeanti",
+        "type": "header"
+      },
+      {
+        "text": "Saat pankista ilmaiseksi 25%:n rahasto-osakkeen. Mikäli tämä osake on jo jollakin toisella pelaajalla, heität molempia noppia. Jos heität 7 tai enemmän, saat ottaa 25%:n rahasto-osakkeen ilmaiseksi."
+      }
+    ]
+  },
+  {
+    "id": "PV-10",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Tulipalo",
+        "type": "header"
+      },
+      {
+        "text": "Kaksi rakennuksistasi on palanut – luovuta kaksi, mitkä tahansa, rakennuksistasi pankille."
+      },
+      {
+        "text": "Sen jälkeen heität yhtä noppaa. Saat 10.000,- jokaista nopansilmää kohti vakuutusrahoja."
+      }
+    ]
+  },
+  {
+    "id": "PV-11",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Kiinteistöjen korjauskustannuksia",
+        "type": "header"
+      },
+      {
+        "text": "Maksa pankille per"
+      },
+      {
+        "text": "teollisuus 40.000,-"
+      },
+      {
+        "text": "(ruudut 26, 27, 29, 30, 32 ja 33)"
+      },
+      {
+        "text": "muu rakennus 20.000,-"
+      },
+      {
+        "text": "(muut ruudut)"
+      }
+    ]
+  },
+  {
+    "id": "PV-12",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Korjauskuluja",
+        "type": "header"
+      },
+      {
+        "text": "Jos olet autonomistaja, mene ruutuun 10."
+      },
+      {
+        "text": "Jos sinulla ei ole autoa, heität ylimääräisen heiton yhdellä nopalla."
+      }
+    ]
+  },
+  {
+    "id": "PV-13",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Osinkojen jako",
+        "type": "header"
+      },
+      {
+        "text": "Maksa 20% osinkoa kyseisestä osakepääomasta niille osakkeenomistajille, joilla on osakkeita yritysryhmissä, joissa omistat tontin."
+      }
+    ]
+  },
+  {
+    "id": "PV-14",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Osinkojen jako",
+        "type": "header"
+      },
+      {
+        "text": "Maksa 20% osinkoa kyseisestä osakepääomasta niille osakkeenomistajille, joilla on osakkeita yritysryhmissä, joissa omistat tontin."
+      }
+    ]
+  },
+  {
+    "id": "PV-15",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Osinkojen jako",
+        "type": "header"
+      },
+      {
+        "text": "Maksa 20% osinkoa kyseisestä osakepääomasta niille osakkeenomistajille, joilla on osakkeita yritysryhmissä, joissa omistat tontin."
+      }
+    ]
+  },
+  {
+    "id": "PV-16",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Obligaatiovoitto!",
+        "type": "header"
+      },
+      {
+        "text": "Obligaatio nro 1 tuonut voittoa 25.000,-. Jos nro 1 ei ole sinulla, joudut maksamaan 25.000,- nro 1:n omistajalle (jos obligaatio on pankissa, sääntö ei päde)."
+      },
+      {
+        "text": "Obligaatio luovutetaan takaisin pankille."
+      }
+    ]
+  },
+  {
+    "id": "PV-17",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Kokous",
+        "type": "header"
+      },
+      {
+        "text": "Mene jollekin tontille – mille tahansa, joko omallesi tai toisen omistuksessa olevalle. Et saa palkkiota, jos kuljet pankin sisäänkäynnin kautta."
+      }
+    ]
+  },
+  {
+    "id": "PV-18",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Kokous",
+        "type": "header"
+      },
+      {
+        "text": "Mene ruutuun 20, mutta älä ota uutta pörssivihjettä. Jos jo olet ruudussa 20, siirry ruutuun 34, mutta älä heitä palkkiota varten."
+      }
+    ]
+  },
+  {
+    "id": "PV-19",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Kokous",
+        "type": "header"
+      },
+      {
+        "text": "Mene suoraan pysäköintitaloon ruudussa 8. Et saa palkkiota, jos kuljet pankin sisäänkäynnin kautta."
+      },
+      {
+        "text": "Sitten otat Finanssilehden."
+      }
+    ]
+  },
+  {
+    "id": "PV-20",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Onnistunut kokous",
+        "type": "header"
+      },
+      {
+        "text": "Mene suoraan pankin sisäänkäyntiin (ruutu 34) ja heitä noppaa palkkiota varten."
+      },
+      {
+        "text": "Sitten otat Finanssilehden."
+      }
+    ]
+  },
+  {
+    "id": "PV-21",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Osinkojen jako",
+        "type": "header"
+      },
+      {
+        "text": "Anna oikeanpuoleiselle pelitoverillesi osinkoa osakkeista, jotka ovat niissä ryhmissä, joissa omistat tontin."
+      }
+    ]
+  },
+  {
+    "id": "PV-22",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Osinkojen jako",
+        "type": "header"
+      },
+      {
+        "text": "Jos olet nyt 1-ruudussa, saat osinkoa kaikista osakkeistasi."
+      }
+    ]
+  },
+  {
+    "id": "PV-23",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Osakevoittoa!",
+        "type": "header"
+      },
+      {
+        "text": "Saat osinkoa kaikista osakkeistasi."
+      }
+    ]
+  },
+  {
+    "id": "PV-24",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Uusi obligaatiolaina",
+        "type": "header"
+      },
+      {
+        "text": "Saat pankilta ilmaiseksi valitsemasi obligaation. Jos pankissa ei ole obligaatioita jäljellä, vasemmanpuoleisen pelitoverisi on annettava sinulle obligaatio, jonka sinä valitset."
+      }
+    ]
+  },
+  {
+    "id": "PV-25",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Kokous",
+        "type": "header"
+      },
+      {
+        "text": "Säästä tämä kortti. Valitsemanasi ajankohtana pelaat kortin ja menet suoraan ruutuun 17, jossa on Rakennusprojekti Oy. Saman vuoron aikana et saa heittää noppia."
+      },
+      {
+        "text": "Kortti palautetaan heti käytön jälkeen."
+      }
+    ]
+  },
+  {
+    "id": "PV-26",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Kokous",
+        "type": "header"
+      },
+      {
+        "text": "Saat siirtyä suoraan pankin sisäänkäyntiin (ruutu 34), jos maksat 25.000,-."
+      }
+    ]
+  },
+  {
+    "id": "PV-27",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Kokous pankin lainaosastolla",
+        "type": "header"
+      },
+      {
+        "text": "Mene ruutuun 43 ja maksa yksi lainoistasi. Jos sinulla ei ole lainaa, mene ruutuun 34 ja heitä palkkiota varten."
+      }
+    ]
+  },
+  {
+    "id": "PV-28",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Kokous pankin lainaosastolla",
+        "type": "header"
+      },
+      {
+        "text": "Mene ruutuun 43 ja maksa yksi lainoistasi. Jos sinulla ei ole lainaa, mene ruutuun 34 ja heitä palkkiota varten."
+      }
+    ]
+  },
+  {
+    "id": "PV-29",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Kuljetuslakko",
+        "type": "header"
+      },
+      {
+        "text": "Jätä väliin kaksi heittovuoroa ja säilytä tämä kortti."
+      },
+      {
+        "text": "Ennen kuin heität seuraavan kerran, sinun on otettava Finanssilehti."
+      }
+    ]
+  },
+  {
+    "id": "PV-30",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Epäselvyyksiä liiketoimissa",
+        "type": "header"
+      },
+      {
+        "text": "Olet pidätetty. Mene heti vankilaan tai maksa 30.000,- takuita. Seuraavalla vuorollasi heität molempia noppia; jos molemmat nopat näyttävät saman silmäluvun, saat takuusumman takaisin."
+      }
+    ]
+  },
+  {
+    "id": "PV-31",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Epävakaat tonttimarkkinat",
+        "type": "header"
+      },
+      {
+        "text": "Heitä molempia noppia. Jos heität 8 tai enemmän, mitään ei tapahdu. Jos heität 7 tai vähemmän, sinun on myytävä joku tonteistasi (rakennettu tai rakentamaton) takaisin pankille, nimellisestä ostoarvosta. (Koskee myös tontteja, joita ei tavallisesti osteta takaisin)."
+      },
+      {
+        "text": "Ei koske tontteja yritysryhmissä."
+      }
+    ]
+  },
+  {
+    "id": "PV-32",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Epävakaa taloudellinen tilanne",
+        "type": "header"
+      },
+      {
+        "text": "Ota Finanssilehti ja noudata sen ohjeita."
+      }
+    ]
+  },
+  {
+    "id": "PV-33",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Epävakaa taloudellinen tilanne",
+        "type": "header"
+      },
+      {
+        "text": "Ota Finanssilehti ja noudata sen ohjeita."
+      }
+    ]
+  },
+  {
+    "id": "PV-34",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Perintö",
+        "type": "header"
+      },
+      {
+        "text": "Olet perinyt sukulaiseltasi 50.000,-. Siirry ruutuun 1. Älä nosta uutta pörssivihjettä."
+      }
+    ]
+  },
+  {
+    "id": "PV-35",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Pakkoluovutus",
+        "type": "header"
+      },
+      {
+        "text": "Anna valitsemasi osake tai tontti (rakennettu tai rakentamaton) vasemmanpuoleiselle pelitoverillesi. Hänen täytyy kuitenkin maksaa sinulle 10.000,-."
+      },
+      {
+        "text": "Ei koske tontteja ja osakkeita yritysryhmässä."
+      }
+    ]
+  },
+  {
+    "id": "PV-36",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Pakkomyynti",
+        "type": "header"
+      },
+      {
+        "text": "Sinun on myytävä yksi osakkeistasi tai tonteistasi (rakentamaton tai rakennettu) korkeimman tarjouksen antaneelle. Itse et saa huutaa. Jos pelaajia on vain kaksi, tämän kortin ohje ei ole voimassa."
+      },
+      {
+        "text": "(Ei koske tonttia tai osaketta yritysryhmässä)."
+      }
+    ]
+  },
+  {
+    "id": "PV-37",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Veronpalautus",
+        "type": "header"
+      },
+      {
+        "text": "Saat veronpalautusta pankilta 20% käteisvaroistasi."
+      },
+      {
+        "text": "Ota sitten Finanssilehti."
+      }
+    ]
+  },
+  {
+    "id": "PV-38",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Pörssikauppaa",
+        "type": "header"
+      },
+      {
+        "text": "Jos haluat, saat vaihtaa osakkeen (yhden) jonkun pelitoverisi kanssa. Vaihdettavilla osakkeilla on oltava sama ostoarvo. Jos edellytykset vaihtoon ovat olemassa, korttia ei saa säästää, vaan vaihto on suoritettava."
+      },
+      {
+        "text": "(Ei koske osakkeita yritysryhmissä)."
+      }
+    ]
+  },
+  {
+    "id": "PV-39",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Virheinvestointi",
+        "type": "header"
+      },
+      {
+        "text": "Kaikki 30%:n osakkeesi ovat tulleet arvottomiksi, ja ne on palautettava pankkiin."
+      },
+      {
+        "text": "Sääntö ei koske osakkeita yritysryhmissä."
+      }
+    ]
+  },
+  {
+    "id": "PV-40",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Virheinvestointi",
+        "type": "header"
+      },
+      {
+        "text": "Kaikki 40%:n osakkeesi ovat tulleet arvottomiksi, ja ne on palautettava pankkiin."
+      },
+      {
+        "text": "Sääntö ei koske osakkeita yritysryhmissä."
+      }
+    ]
+  },
+  {
+    "id": "PV-41",
+    "type": "PORSSIVIHJE",
+    "chapters": [
+      {
+        "text": "Virheinvestointeja",
+        "type": "header"
+      },
+      {
+        "text": "Maksa pankille osakkeesta"
+      },
+      {
+        "text": "20% 5.000,-"
+      },
+      {
+        "text": "25% 5.000,-"
+      },
+      {
+        "text": "30% 10.000,-"
+      },
+      {
+        "text": "40% 10.000,-"
+      },
+      {
+        "text": "50% 15.000,-"
+      },
+      {
+        "text": "Sääntö koskee myös osakkeita yritysryhmissä."
+      }
+    ]
+  }
+]

@@ -40,6 +40,7 @@ public final class GameConstants {
     public static final int WINNING_COMPLETE_GROUPS = 2;
 
     public static final int FINANCE_NEWS_CARD_COUNT = 21;
-    public static final int STOCK_TIP_CARD_COUNT = 42;
+    // The rules list 42; one is missing from the physical set
+    public static final int STOCK_TIP_CARD_COUNT = 41;
     public static final List<Integer> INDUSTRIAL_SQUARES = List.of(26, 27, 29, 30, 32, 33);
 }
