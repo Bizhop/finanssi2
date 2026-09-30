@@ -28,9 +28,27 @@ public sealed interface GameEvent {
     /** Landed on a square whose effect is not implemented yet */
     record NotImplemented(String player, int square, SquareType squareType) implements GameEvent {}
 
-    record CarBought(String player, int price) implements GameEvent {}
+    record SettingsChanged(GameSettings settings) implements GameEvent {}
 
-    record CarSold(String player, int price) implements GameEvent {}
+    record CarBought(String player) implements GameEvent {}
+
+    record CarSold(String player) implements GameEvent {}
+
+    /** {@code from} or {@code to} is null for the bank */
+    record MoneyTransferred(String from, String to, int amount, MoneyReason reason) implements GameEvent {}
+
+    /** {@code loans}: how many the player has now */
+    record LoanTaken(String player, int loans) implements GameEvent {}
+
+    record LoanRepaid(String player, int loans) implements GameEvent {}
+
+    /** The player cannot pay from cash and must raise funds or go bankrupt; see {@link PendingDecision.RaiseFunds} */
+    record PaymentDue(String player, String creditor, int amount) implements GameEvent {}
+
+    /** Roll for the square 34 reward */
+    record BankEntranceRoll(String player, List<Integer> dice) implements GameEvent {}
+
+    record PlayerBankrupt(String player, String creditor) implements GameEvent {}
 
     record TurnEnded(String player) implements GameEvent {}
 }

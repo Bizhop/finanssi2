@@ -9,6 +9,7 @@ import fi.bizhop.finanssi2.game.db.GameStatus;
 import fi.bizhop.finanssi2.game.engine.GameCommand;
 import fi.bizhop.finanssi2.game.engine.GameEngine;
 import fi.bizhop.finanssi2.game.engine.GameEvent;
+import fi.bizhop.finanssi2.game.engine.GameSettings;
 import fi.bizhop.finanssi2.game.engine.GameSetup;
 import fi.bizhop.finanssi2.game.engine.PlayerState;
 import fi.bizhop.finanssi2.game.engine.RuleViolation;
@@ -100,11 +101,18 @@ public class GameService {
         commit(game, List.of(new GameEvent.PlayerLeft(user.uid())), true);
     }
 
+    /** Sets the house rules of a game in the lobby */
+    public Game changeSettings(String id, User user, GameSettings settings) {
+        var game = get(id);
+        requireCreator(game, user, "Only the creator can change the settings");
+        requireLobby(game);
+        game.getState().setSettings(settings);
+        return commit(game, List.of(new GameEvent.SettingsChanged(settings)), true).game();
+    }
+
     public Game start(String id, User user) {
         var game = get(id);
-        if (!game.getCreator().equals(user.uid())) {
-            throw new NotAllowedException("Only the creator can start the game");
-        }
+        requireCreator(game, user, "Only the creator can start the game");
         requireLobby(game);
         var events = gameSetup.start(game.getState(), diceSource.forGame(id), gameRandom);
         game.setStatus(GameStatus.RUNNING);
@@ -124,6 +132,12 @@ public class GameService {
     /** Command types the user may send in the game right now */
     public List<String> allowedCommands(Game game, User user) {
         return game.getStatus() == GameStatus.RUNNING ? gameEngine.allowedCommands(game.getState(), user.uid()) : List.of();
+    }
+
+    static void requireCreator(Game game, User user, String reason) {
+        if (!game.getCreator().equals(user.uid())) {
+            throw new NotAllowedException(reason);
+        }
     }
 
     static void requireLobby(Game game) {

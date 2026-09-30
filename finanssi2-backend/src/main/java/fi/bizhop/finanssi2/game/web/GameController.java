@@ -3,6 +3,7 @@ package fi.bizhop.finanssi2.game.web;
 import fi.bizhop.finanssi2.game.db.Game;
 import fi.bizhop.finanssi2.game.db.GameLogEntry;
 import fi.bizhop.finanssi2.game.engine.GameCommand;
+import fi.bizhop.finanssi2.game.engine.GameSettings;
 import fi.bizhop.finanssi2.game.engine.NotYourTurn;
 import fi.bizhop.finanssi2.game.engine.RuleViolation;
 import fi.bizhop.finanssi2.game.service.GameNotFoundException;
@@ -74,6 +75,17 @@ public class GameController {
     @RequestMapping(value = "/api/games/{id}/leave", method = RequestMethod.POST)
     void leave(@PathVariable String id, @RequestAttribute("user") User user) {
         gameService.leave(id, user);
+    }
+
+    /** Sets the house rules, e.g. {@code {"loanLimit": "UNLIMITED"}}; creator only, in the lobby */
+    @RequestMapping(value = "/api/games/{id}/settings", method = RequestMethod.PUT, consumes = "application/json",
+            produces = "application/json")
+    @ResponseBody Game changeSettings(@PathVariable String id, @RequestBody GameSettings settings,
+                                      @RequestAttribute("user") User user) {
+        if (settings.loanLimit() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "loanLimit is required");
+        }
+        return gameService.changeSettings(id, user, settings);
     }
 
     @RequestMapping(value = "/api/games/{id}/start", method = RequestMethod.POST, produces = "application/json")

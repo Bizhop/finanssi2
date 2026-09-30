@@ -16,9 +16,21 @@ public class GameState {
     List<String> turnOrder = new ArrayList<>();
     String currentPlayer;
     TurnPhase phase;
+    GameSettings settings = GameSettings.DEFAULT;
+    // Oldest first; play waits until it is empty
+    List<PendingDecision> pendingDecisions = new ArrayList<>();
     // Card ids in draw order. Hidden from clients, who would otherwise know the cards in advance.
     @JsonIgnore
     List<String> financeNewsDeck = new ArrayList<>();
+
+    /** The player who may act now: the one addressed by the first pending decision, otherwise the one whose turn it is */
+    public String actor() {
+        return pendingDecisions.isEmpty() ? currentPlayer : pendingDecisions.getFirst().player();
+    }
+
+    public int totalLoans() {
+        return players.stream().mapToInt(PlayerState::getLoans).sum();
+    }
 
     /** The player whose turn it is */
     public PlayerState current() {

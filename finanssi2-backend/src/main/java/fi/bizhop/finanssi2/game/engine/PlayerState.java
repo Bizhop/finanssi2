@@ -17,6 +17,7 @@ public class PlayerState {
     // Square 1–46; 0 before the game starts
     int position;
     boolean car;
+    int loans;
     // Out of the game (bankrupt); skipped in turn order
     boolean out;
 

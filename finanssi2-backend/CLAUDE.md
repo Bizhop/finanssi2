@@ -24,7 +24,10 @@ echo 'org.gradle.projectcachedir=/home/agent/.cache/gradle-project-cache/finanss
 
 ## Running the backend and MongoDB
 
-Avoid running them in the sandbox; build and test are enough. For more (real database, running API, websocket), ask the developer to
+Avoid running them in the sandbox; build and test are enough. The MongoDB integration tests (`GameMongoIntegrationTest`) run only
+with `FINANSSI_MONGODB_URI` set; with the developer's database running on the host:
+`FINANSSI_MONGODB_URI=mongodb://finanssi:finanssi@host.docker.internal:27017/finanssi bash -l -c "./gradlew test --console=plain"`.
+They remove only what they create. For more (real database, running API, websocket), ask the developer to
 start the services locally (`docker compose up -d`, `./gradlew bootRun`) and reach them at `host.docker.internal` (e.g. port 8080);
 if blocked, ask them to allow the port in the sandbox network policy. If a sandbox database is unavoidable, use `mongo:7` on a port
 other than 27017 (latest `mongo` won't start on the sandbox's 6.19+ kernel) and remove it afterwards.

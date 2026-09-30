@@ -7,5 +7,5 @@ import java.util.List;
 /** The effect of landing on a square of one type */
 @FunctionalInterface
 public interface SquareHandler {
-    List<GameEvent> land(GameState state, PlayerState player, Square square);
+    List<GameEvent> land(GameState state, PlayerState player, Square square, Dice dice);
 }

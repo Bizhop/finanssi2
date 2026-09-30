@@ -21,7 +21,11 @@ raising funds covers loans and selling the car only; step 05 adds mortgaging and
 - Bank loan limit, a game setting chosen in the lobby:
   - **Official** (default): 6 loans in total across the game, as there are 6 loan certificates.
   - **House rule "unlimited bank loans"**: no total limit, still 3 per player. The official limit favours the first players, who
-    can take all 6 loans in the first round; the frontend recommends this option.
+    can take all 6 loans in the first round; the frontend recommends this option. The bigger advantage is buying power: loans
+    fund early purchases of properties and shares, whose returns come fast while the interest is small. Protection against
+    bankruptcy matters less.
+- Further house rules for loans (e.g. to make borrowing costlier or riskier) may come later, as more settings next to the loan
+  limit.
 - `RepayLoan`: any time during own turn, pays 50 000.
 - Square 1 (landing): 5 000 interest per loan held.
 - Square 43: the player must repay one loan if they have any, plus 5 000 interest on it. Uses the obligation mechanism when cash is
@@ -44,9 +48,9 @@ raising funds covers loans and selling the car only; step 05 adds mortgaging and
 - `DeclareBankruptcy` is allowed only when the player cannot cover the obligation even after all possible loans and sales. The engine
   checks this itself: compare what the player could still raise with what they owe, so a player cannot go bankrupt to dodge a
   payment.
-- The creditor gets the player's cash (R13), loans are cancelled (under the official limit they go back to the 6-loan pool), the car returns to the bank. The
-  player is marked out and skipped in turn order. Step 05 onward extends this to properties and shares, step 12 finishes the game
-  when one player is left.
+- The creditor gets the player's cash (R13), loans are cancelled (under the official limit they go back to the 6-loan pool), the
+  car returns to the bank. The player is marked out and skipped in turn order. Step 05 onward extends this to properties and
+  shares, step 12 finishes the game when one player is left.
 
 ## Tests
 

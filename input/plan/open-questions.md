@@ -19,6 +19,12 @@ Keep this file current: when a question is answered, move it to "Decided" with t
 | B1 | "Go directly to jail" is square 36 on the board; both rule texts say 37 (37 is "go to square 46") | Board is right: 36. The square 37 rules (die roll, exception after jail) apply to square 36 | 07 |
 | B2 | Dividend amount on squares 16, 28 and 46 ("determined case by case"). Finance News "Ennätysvuosi" pays "dividends according to the shares", which suggests each share lists a dividend | Pay the dividend printed on each share (mock value until D2) | 07, 09 |
 
+## Later consideration
+
+| # | Topic | Notes |
+|---|---|---|
+| L2 | House rules for improved loans | Loan risk is small next to the fast returns from early purchases. Possible settings: higher interest, interest on every lap, a repayment deadline. Add as `GameSettings` fields next to the loan limit |
+
 ## Rules that need an interpretation for digital play
 
 | # | Question | Proposal | Affects |
@@ -57,12 +63,15 @@ Made while implementing; change them if they don't fit.
 | I7 | Lobby events (`PlayerJoined`, `PlayerLeft`) go into the game log along with the start events | 02 |
 | I8 | `allowedCommands` checks each parameterless command's full validation, not only its timing (no `SellCar` without a car, no `BuyCar` without the cash). Commands with parameters (step 05 on) need their own check | 03 |
 | I9 | `GET /api/games/{id}` returns `{game, allowedCommands}` instead of the bare game | 03 |
-| I10 | Per-turn flags and the pending decision queue are left for steps 04–05, where they are first used | 03 |
+| I10 | Per-turn flags are left for step 05, where they are first used; the pending decision queue came with step 04 | 03 |
 | I11 | Dev dice need the `dev` profile (`--spring.profiles.active=dev`); values are queued per game and random rolls follow once they run out | 03 |
+| I12 | "Not on square 43" read literally: no `TakeLoan` while the piece is on 43, including the start of the next turn before rolling | 04 |
+| I13 | Car purchase and sale now log `MoneyTransferred` like every other change in cash; `CarBought`/`CarSold` no longer carry the price | 04 |
+| I14 | A bankrupt player whose turn it was passes the turn on at once (`TurnStarted` for the next player, no `TurnEnded`) | 04 |
 
 ## Decided
 
 | # | Question | Decision | Affects |
 |---|---|---|---|
 | R9 | Bank's money | Unlimited, as a hidden implementation detail (the rules don't say). Cars and assets stay limited | 04 |
-| L1 | Total bank loan limit | Game setting: official 6 loans in total (default), or house rule "unlimited bank loans" (still 3 per player), which the frontend recommends | 02, 04, 13 |
+| L1 | Total bank loan limit | Game setting: official 6 loans in total (default), or house rule "unlimited bank loans" (still 3 per player), which the frontend recommends. Under the official limit the first players get the loans, and with them the money for early purchases, whose returns outweigh the small interest | 02, 04, 13 |

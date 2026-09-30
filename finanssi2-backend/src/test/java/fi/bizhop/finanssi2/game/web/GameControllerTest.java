@@ -8,6 +8,7 @@ import fi.bizhop.finanssi2.game.db.GameRepository;
 import fi.bizhop.finanssi2.game.db.GameStatus;
 import fi.bizhop.finanssi2.game.engine.GameEvent;
 import fi.bizhop.finanssi2.game.engine.GameSetup;
+import fi.bizhop.finanssi2.game.engine.LoanLimit;
 import fi.bizhop.finanssi2.game.engine.PlayerState;
 import fi.bizhop.finanssi2.game.engine.ScriptedDice;
 import fi.bizhop.finanssi2.game.data.GameData;
@@ -85,7 +86,8 @@ class GameControllerTest {
     ResponseEntity<JsonNode> command(String json, String uid) {
         var headers = user(uid);
         headers.setContentType(MediaType.APPLICATION_JSON);
-        return restTemplate.exchange(url("/" + GAME_ID + "/commands"), HttpMethod.POST, new HttpEntity<>(json, headers), JsonNode.class);
+        return restTemplate.exchange(url("/" + GAME_ID + "/commands"), HttpMethod.POST, new HttpEntity<>(json, headers),
+                JsonNode.class);
     }
 
     /** A running game of a and b, a to roll */
@@ -192,7 +194,7 @@ class GameControllerTest {
 
         var forA = get("/" + GAME_ID, "a").getBody();
         assertEquals(GAME_ID, forA.get("game").get("id").asString());
-        assertEquals("[\"BuyCar\",\"Roll\"]", forA.get("allowedCommands").toString());
+        assertEquals("[\"BuyCar\",\"Roll\",\"TakeLoan\"]", forA.get("allowedCommands").toString());
         assertEquals("[]", get("/" + GAME_ID, "b").getBody().get("allowedCommands").toString());
     }
 
@@ -216,6 +218,25 @@ class GameControllerTest {
         assertEquals(HttpStatus.CONFLICT, command("{\"type\": \"EndTurn\"}", "a").getStatusCode());
         assertEquals(HttpStatus.BAD_REQUEST, command("{\"type\": \"Cheat\"}", "a").getStatusCode());
         assertEquals(HttpStatus.BAD_REQUEST, command("{}", "a").getStatusCode());
+    }
+
+    @Test
+    void testChangeSettings() {
+        var game = lobby("a", "b");
+        saveSucceeds();
+        var headers = user("a");
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        var response = restTemplate.exchange(url("/" + GAME_ID + "/settings"), HttpMethod.PUT,
+                new HttpEntity<>("{\"loanLimit\": \"UNLIMITED\"}", headers), JsonNode.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("UNLIMITED", response.getBody().get("state").get("settings").get("loanLimit").asString());
+        assertEquals(LoanLimit.UNLIMITED, game.getState().getSettings().loanLimit());
+        for (var json : List.of("{}", "{\"loanLimit\": \"SOME\"}")) {
+            assertEquals(HttpStatus.BAD_REQUEST, restTemplate.exchange(url("/" + GAME_ID + "/settings"), HttpMethod.PUT,
+                    new HttpEntity<>(json, headers), JsonNode.class).getStatusCode(), json);
+        }
     }
 
     @Test

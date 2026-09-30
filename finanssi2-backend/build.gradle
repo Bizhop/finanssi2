@@ -41,4 +41,6 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	// Enables the MongoDB integration tests; an input so that setting or clearing it reruns the tests
+	inputs.property('mongodbUri', System.getenv('FINANSSI_MONGODB_URI') ?: '')
 }

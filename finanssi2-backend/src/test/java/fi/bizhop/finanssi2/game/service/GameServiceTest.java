@@ -10,7 +10,9 @@ import fi.bizhop.finanssi2.game.db.GameStatus;
 import fi.bizhop.finanssi2.game.engine.GameCommand;
 import fi.bizhop.finanssi2.game.engine.GameEngine;
 import fi.bizhop.finanssi2.game.engine.GameEvent;
+import fi.bizhop.finanssi2.game.engine.GameSettings;
 import fi.bizhop.finanssi2.game.engine.GameSetup;
+import fi.bizhop.finanssi2.game.engine.LoanLimit;
 import fi.bizhop.finanssi2.game.engine.NotYourTurn;
 import fi.bizhop.finanssi2.game.engine.Rules;
 import fi.bizhop.finanssi2.game.engine.PlayerState;
@@ -211,6 +213,29 @@ class GameServiceTest {
     }
 
     @Test
+    void testChangeSettings() {
+        var game = lobby("a", "b");
+        saveSucceeds();
+
+        service().changeSettings(GAME_ID, user("a"), new GameSettings(LoanLimit.UNLIMITED));
+
+        assertEquals(LoanLimit.UNLIMITED, game.getState().getSettings().loanLimit());
+        assertEquals(new GameEvent.SettingsChanged(new GameSettings(LoanLimit.UNLIMITED)), savedEntries().getFirst().event());
+        verify(messagingService).send("/topic/games", new LobbyChange(GAME_ID, game));
+    }
+
+    @Test
+    void testChangeSettingsRejected() {
+        lobby("a", "b");
+        assertThrows(NotAllowedException.class,
+                () -> service().changeSettings(GAME_ID, user("b"), new GameSettings(LoanLimit.UNLIMITED)));
+        running();
+        assertThrows(RuleViolation.class,
+                () -> service().changeSettings(GAME_ID, user("a"), new GameSettings(LoanLimit.UNLIMITED)));
+        verify(gameRepository, never()).save(any());
+    }
+
+    @Test
     void testStartWithOnePlayer() {
         var game = lobby("a");
         assertThrows(RuleViolation.class, () -> service().start(GAME_ID, user("a")));
@@ -281,7 +306,7 @@ class GameServiceTest {
     @Test
     void testAllowedCommands() {
         var game = running();
-        assertEquals(List.of("BuyCar", "Roll"), service().allowedCommands(game, user("a")));
+        assertEquals(List.of("BuyCar", "Roll", "TakeLoan"), service().allowedCommands(game, user("a")));
         assertEquals(List.of(), service().allowedCommands(game, user("b")));
         assertEquals(List.of(), service().allowedCommands(lobby("a", "b"), user("a")));
     }

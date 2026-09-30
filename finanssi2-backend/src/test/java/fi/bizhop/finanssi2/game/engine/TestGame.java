@@ -40,6 +40,15 @@ public class TestGame {
         return player(uid, player -> player.setCar(true));
     }
 
+    public TestGame loans(String uid, int loans) {
+        return player(uid, player -> player.setLoans(loans));
+    }
+
+    public TestGame loanLimit(LoanLimit loanLimit) {
+        state.setSettings(new GameSettings(loanLimit));
+        return this;
+    }
+
     public TestGame out(String uid) {
         return player(uid, player -> player.setOut(true));
     }
