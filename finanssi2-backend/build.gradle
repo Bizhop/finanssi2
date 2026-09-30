@@ -36,11 +36,26 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
 	testImplementation 'org.springframework.boot:spring-boot-resttestclient'
 	testImplementation 'org.springframework.boot:spring-boot-restclient'
+	testImplementation 'de.bwaldvogel:mongo-java-server:1.47.0'
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+	testImplementation 'org.testcontainers:testcontainers-mongodb'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
-	// Enables the MongoDB integration tests; an input so that setting or clearing it reruns the tests
-	inputs.property('mongodbUri', System.getenv('FINANSSI_MONGODB_URI') ?: '')
+	useJUnitPlatform {
+		excludeTags 'container'
+	}
+}
+
+// Tests that need Docker (Testcontainers); run manually with ./gradlew containerTest
+tasks.register('containerTest', Test) {
+	description = 'Runs the tests that start Docker containers.'
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform {
+		includeTags 'container'
+	}
 }

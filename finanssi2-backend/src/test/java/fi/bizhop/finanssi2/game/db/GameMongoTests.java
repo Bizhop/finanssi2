@@ -14,7 +14,6 @@ import fi.bizhop.finanssi2.security.User;
 import fi.bizhop.finanssi2.service.MessagingService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -33,14 +32,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-/**
- * Saves and loads games in a real MongoDB. Runs only when {@code FINANSSI_MONGODB_URI} is set, e.g.
- * {@code mongodb://finanssi:finanssi@host.docker.internal:27017/finanssi}. Removes only the documents it created.
- */
-@SpringBootTest(properties = "spring.mongodb.uri=${FINANSSI_MONGODB_URI}")
+/** Saves and loads games in MongoDB; subclasses choose the database. Removes only the documents it created. */
+@SpringBootTest
 @ActiveProfiles("test")
-@EnabledIfEnvironmentVariable(named = "FINANSSI_MONGODB_URI", matches = ".+")
-class GameMongoIntegrationTest {
+abstract class GameMongoTests {
     @Autowired
     GameService gameService;
     @Autowired
