@@ -39,6 +39,38 @@ public sealed interface GameEvent {
 
     record FinanceNewsDrawn(String player, String card, String replaced) implements GameEvent {}
 
+    record StockTipDrawn(String player, String card, boolean held) implements GameEvent {}
+    record StockTipUsed(String player, String card) implements GameEvent {}
+    record CarLost(String player) implements GameEvent {}
+    record BondTransferred(String from, String to, int number) implements GameEvent {}
+    record BondGranted(String player, int number) implements GameEvent {}
+    record AssetTransferred(String from, String to, String asset) implements GameEvent {}
+    record SharesSwapped(String player, String given, String receivedFrom, String received) implements GameEvent {}
+    record ShareIssued(String player, String share) implements GameEvent {}
+    record ShareTaken(String player, String from, String share) implements GameEvent {}
+    record ShareLost(String player, String share) implements GameEvent {}
+    record AssetAuctionCompleted(String seller, String asset, int amount, String winner, List<PendingDecision.Bid> bids)
+            implements GameEvent {
+        public AssetAuctionCompleted { bids = List.copyOf(bids); }
+    }
+    record AssetAuctionStarted(String seller, String asset, int minimumBid, List<String> bidders) implements GameEvent {
+        public AssetAuctionStarted { bidders = List.copyOf(bidders); }
+    }
+    record BuildingsBurned(String player, List<Integer> squares) implements GameEvent {
+        public BuildingsBurned { squares = List.copyOf(squares); }
+    }
+    record StockTipDividendCharged(String player, String shareholder, List<String> shares, int amount) implements GameEvent {
+        public StockTipDividendCharged { shares = List.copyOf(shares); }
+    }
+    record BailRoll(String player, List<Integer> dice, boolean bailReturned) implements GameEvent {
+        public BailRoll { dice = List.copyOf(dice); }
+    }
+    record BondOneWon(String player, String previousOwner, int amount) implements GameEvent {}
+
+    record HeldStockTipsReturned(String player, List<String> cards) implements GameEvent {
+        public HeldStockTipsReturned { cards = List.copyOf(cards); }
+    }
+
     /** Landed on a square whose effect is not implemented yet */
     record NotImplemented(String player, int square, SquareType squareType) implements GameEvent {}
 

@@ -27,11 +27,15 @@ import java.util.List;
         @JsonSubTypes.Type(GameCommand.Pass.class),
         @JsonSubTypes.Type(GameCommand.BidBond.class),
         @JsonSubTypes.Type(GameCommand.ChooseNewsDirection.class),
+        @JsonSubTypes.Type(GameCommand.ChooseStockTipOption.class),
+        @JsonSubTypes.Type(GameCommand.UseHeldStockTip.class),
+        @JsonSubTypes.Type(GameCommand.BidAsset.class),
 })
 public sealed interface GameCommand permits GameCommand.Roll, GameCommand.EndTurn, GameCommand.BuyCar, GameCommand.SellCar,
         GameCommand.TakeLoan, GameCommand.RepayLoan, GameCommand.Pay, GameCommand.DeclareBankruptcy, GameCommand.BuyProperty,
         GameCommand.BuyShare, GameCommand.Mortgage, GameCommand.Redeem, GameCommand.SellBackProperty, GameCommand.SellBackShare,
-        GameCommand.Build, GameCommand.BuyBond, GameCommand.Pass, GameCommand.BidBond, GameCommand.ChooseNewsDirection {
+        GameCommand.Build, GameCommand.BuyBond, GameCommand.Pass, GameCommand.BidBond, GameCommand.ChooseNewsDirection,
+        GameCommand.ChooseStockTipOption, GameCommand.UseHeldStockTip, GameCommand.BidAsset {
     record Roll() implements GameCommand {}
 
     record EndTurn() implements GameCommand {}
@@ -74,4 +78,7 @@ public sealed interface GameCommand permits GameCommand.Roll, GameCommand.EndTur
     record Pass() implements GameCommand {}
     record BidBond(int amount) implements GameCommand {}
     record ChooseNewsDirection(boolean forward) implements GameCommand {}
+    record ChooseStockTipOption(String option) implements GameCommand {}
+    record UseHeldStockTip(String card) implements GameCommand {}
+    record BidAsset(int amount) implements GameCommand {}
 }

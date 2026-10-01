@@ -121,7 +121,14 @@ public class Rules {
 
     /** Whether the player may build now: while standing on a Rakennusprojekti Oy square (17 or 40) */
     public boolean canBuild(GameState state, PlayerState player) {
-        return gameData.square(player.getPosition()).type() == SquareType.CONSTRUCTION && !"FL-12".equals(state.getActiveFinanceNews());
+        var onProject = canBuildAtProject(state, player);
+        var permitAtProject = onProject && (player.getHeldStockTips().contains("PV-01") || player.getHeldStockTips().contains("PV-07"));
+        var permitAnywhere = player.getHeldStockTips().contains("PV-07");
+        return (onProject || permitAnywhere) && (!"FL-12".equals(state.getActiveFinanceNews()) || permitAtProject || permitAnywhere);
+    }
+
+    boolean canBuildAtProject(GameState state, PlayerState player) {
+        return gameData.square(player.getPosition()).type() == SquareType.CONSTRUCTION;
     }
 
     public int buildingPrice(GameState state, TitleDeed deed) {
@@ -164,6 +171,15 @@ public class Rules {
     boolean loansStopped(GameState state) { return "FL-01".equals(state.getActiveFinanceNews()); }
     boolean dividendsStopped(GameState state) { return "FL-06".equals(state.getActiveFinanceNews()) || "FL-08".equals(state.getActiveFinanceNews()); }
     public boolean shareholdersMeetingsAllowed(GameState state) { return !"FL-15".equals(state.getActiveFinanceNews()); }
+
+    public int compulsorySaleMinimumBid(GameState state, String asset) {
+        if (state.getSettings().compulsorySaleMinimumBid() != CompulsorySaleMinimumBid.HALF_NOMINAL_PRICE) return 0;
+        var parts = asset.split(":");
+        if (parts[0].equals("S")) return gameData.share(parts[1]).value() / 2;
+        var property = state.property(Integer.parseInt(parts[1]));
+        var deed = gameData.titleDeed(property.getSquare());
+        return (deed.price() + (property.isBuilt() ? deed.building().price() : 0)) / 2;
+    }
 
     private int halfPrice(int value) {
         return ((value + 999) / 1_000) * 500;

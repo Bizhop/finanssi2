@@ -172,16 +172,24 @@ abstract class GameMongoTests {
         var offer = new PendingDecision.BondOffer("it-a", BondContinuation.GRAND_DRAW);
         var auction = new PendingDecision.BondAuction("it-b", List.of("it-a", "it-b"), 1,
                 List.of(new PendingDecision.Bid("it-a", 1_000)));
-        game.getState().getPendingDecisions().addAll(List.of(offer, auction));
+        var assetAuction = new PendingDecision.AssetAuction("it-a", "P:3", 0, List.of("it-b"), 0,
+                List.of(new PendingDecision.Bid("it-c", 500)));
+        game.getState().getPendingDecisions().addAll(List.of(offer, auction, assetAuction));
+        game.getState().getPlayers().getFirst().getHeldStockTips().add("PV-25");
+        game.getState().getStockTipDeck().add("PV-01");
         gameRepository.save(game);
 
         var loaded = gameService.get(id);
-        assertEquals(List.of(offer, auction), loaded.getState().getPendingDecisions());
+        assertEquals(List.of(offer, auction, assetAuction), loaded.getState().getPendingDecisions());
+        assertEquals(List.of("PV-25"), loaded.getState().getPlayers().getFirst().getHeldStockTips());
+        assertEquals(List.of("PV-01"), loaded.getState().getStockTipDeck());
         var json = objectMapper.readTree(objectMapper.writeValueAsString(loaded));
         assertFalse(json.has("unarchivedEvents"));
         var decisions = json.get("state").get("pendingDecisions");
+        assertEquals(3, decisions.size());
         assertEquals(2, decisions.get(0).get("after").asInt());
         assertFalse(decisions.get(1).has("bids"));
+        assertFalse(decisions.get(2).has("bids"));
     }
 
     @Test

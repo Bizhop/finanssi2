@@ -26,5 +26,7 @@ public enum MoneyReason {
     BANKRUPTCY,
     BOND_PURCHASE,
     BOND_PRIZE,
-    FINANCE_NEWS
+    FINANCE_NEWS,
+    STOCK_TIP,
+    ASSET_AUCTION
 }

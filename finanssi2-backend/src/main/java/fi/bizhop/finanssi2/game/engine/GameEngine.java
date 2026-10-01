@@ -97,7 +97,10 @@ public class GameEngine {
             Map.entry(GameCommand.BuyBond.class, Timing.DECISION),
             Map.entry(GameCommand.Pass.class, Timing.DECISION),
             Map.entry(GameCommand.BidBond.class, Timing.DECISION),
-            Map.entry(GameCommand.ChooseNewsDirection.class, Timing.DECISION));
+            Map.entry(GameCommand.ChooseNewsDirection.class, Timing.DECISION),
+            Map.entry(GameCommand.ChooseStockTipOption.class, Timing.DECISION),
+            Map.entry(GameCommand.UseHeldStockTip.class, Timing.OWN_TURN),
+            Map.entry(GameCommand.BidAsset.class, Timing.DECISION));
 
     /** Commands allowed while a decision of this type is pending, in or out of turn */
     static Set<Class<? extends GameCommand>> decisionCommands(PendingDecision decision) {
@@ -106,6 +109,8 @@ public class GameEngine {
             case PendingDecision.BondOffer ignored -> Set.of(GameCommand.BuyBond.class, GameCommand.Pass.class);
             case PendingDecision.BondAuction ignored -> Set.of(GameCommand.BidBond.class);
             case PendingDecision.NewsDirection ignored -> Set.of(GameCommand.ChooseNewsDirection.class);
+            case PendingDecision.StockTipChoice ignored -> Set.of(GameCommand.ChooseStockTipOption.class);
+            case PendingDecision.AssetAuction ignored -> Set.of(GameCommand.BidAsset.class);
         };
     }
 
@@ -137,7 +142,8 @@ public class GameEngine {
         var bondCommands = Stream.concat(
                 IntStream.rangeClosed(1, BOND_COUNT).mapToObj(number -> (GameCommand) new GameCommand.BuyBond(number)),
                 Stream.of(new GameCommand.Pass(), new GameCommand.BidBond(0), new GameCommand.ChooseNewsDirection(true),
-                        new GameCommand.ChooseNewsDirection(false)));
+                        new GameCommand.ChooseNewsDirection(false), new GameCommand.ChooseStockTipOption(""),
+                        new GameCommand.UseHeldStockTip("PV-25"), new GameCommand.BidAsset(0)));
         candidateCommands = Stream.of(SIMPLE_COMMANDS.stream(), propertyCommands, shareCommands, bondCommands)
                 .flatMap(commands -> commands)
                 .toList();
@@ -159,7 +165,8 @@ public class GameEngine {
             case SMALL_BOND_DRAW -> bonds::smallBondDraw;
             case BOND_AUCTION -> bonds::bondAuction;
             case FINANCE_NEWS -> this::financeNews;
-            case STOCK_TIP, BRANCH_OFFICE, CONSTRUCTION -> GameEngine::notImplemented;
+            case STOCK_TIP -> this::stockTip;
+            case BRANCH_OFFICE, CONSTRUCTION -> GameEngine::notImplemented;
         };
     }
 
@@ -168,13 +175,13 @@ public class GameEngine {
         var player = state.player(uid).orElseThrow();
         return switch (command) {
             case Roll ignored -> roll(state, player, dice);
-            case EndTurn ignored -> endTurn(state, player);
+            case EndTurn ignored -> endTurn(state, player, dice);
             case BuyCar ignored -> buyCar(player);
             case SellCar ignored -> sellCar(player);
             case TakeLoan ignored -> takeLoan(player);
             case RepayLoan ignored -> repayLoan(player);
             case Pay ignored -> pay(state);
-            case DeclareBankruptcy ignored -> declareBankruptcy(state, player);
+            case DeclareBankruptcy ignored -> declareBankruptcy(state, player, dice);
             case BuyProperty buy -> buyProperty(state, player, buy.square());
             case BuyShare buy -> buyShare(state, player, buy.share());
             case Mortgage mortgage -> mortgage(state, player, mortgage.square());
@@ -186,6 +193,9 @@ public class GameEngine {
             case GameCommand.Pass ignored -> bonds.passBond(state, dice);
             case GameCommand.BidBond bid -> bonds.bidBond(state, player, bid.amount(), dice);
             case GameCommand.ChooseNewsDirection choose -> chooseNewsDirection(state, player, choose.forward(), dice);
+            case GameCommand.ChooseStockTipOption choose -> resolveStockTipChoice(state, player, choose.option(), dice);
+            case GameCommand.UseHeldStockTip use -> useHeldStockTip(state, player, use.card(), dice);
+            case GameCommand.BidAsset bid -> bidAsset(state, player, bid.amount());
         };
     }
 
@@ -200,6 +210,10 @@ public class GameEngine {
     }
 
     boolean isAllowed(GameState state, String uid, GameCommand command) {
+        if (command instanceof GameCommand.ChooseStockTipOption) {
+            return uid.equals(state.actor()) && !state.getPendingDecisions().isEmpty()
+                    && state.getPendingDecisions().getFirst() instanceof PendingDecision.StockTipChoice;
+        }
         try {
             validate(state, uid, command);
             return true;
@@ -248,14 +262,14 @@ public class GameEngine {
                 var deed = deed(buy.square());
                 requirePurchase(state, player);
                 require(state.property(deed.square()).getOwner() == null, "The property is not for sale");
-                require(!rules.propertiesTradingStopped(state), "The bank is not selling properties");
+                require(!rules.propertiesTradingStopped(state) || hasPurchaseCertificate(player), "The bank is not selling properties");
                 require(player.getCash() >= rules.propertyPrice(state, deed), "Not enough cash");
             }
             case BuyShare buy -> {
                 var share = share(buy.share());
                 requirePurchase(state, player);
                 require(state.share(share.id()).getOwner() == null, "The share is not for sale");
-                require(!rules.shareTradingStopped(state), "The bank is not selling shares");
+                require(!rules.shareTradingStopped(state) || hasPurchaseCertificate(player), "The bank is not selling shares");
                 require(player.getCash() >= rules.sharePrice(state, share), "Not enough cash");
             }
             case Mortgage mortgage -> {
@@ -281,6 +295,8 @@ public class GameEngine {
             case Build build -> {
                 require(rules.canBuild(state, player), "Building is allowed only on squares 17 and 40");
                 require(!build.squares().isEmpty(), "Nothing to build");
+                if ("PV-07".equals(buildingPermit(state, player)))
+                    require(build.squares().size() == 1, "This permit covers one property");
                 require(build.squares().stream().distinct().count() == build.squares().size(), "One building per property");
                 var cost = build.squares().stream().mapToInt(square -> {
                     var property = ownProperty(state, player, square);
@@ -301,6 +317,20 @@ public class GameEngine {
                     && bid.amount() >= 0 && bid.amount() % BOND_PRICE == 0 && bid.amount() <= player.getCash(), "Invalid bid");
             case GameCommand.ChooseNewsDirection ignored -> require(pending.getFirst() instanceof PendingDecision.NewsDirection,
                     "No Finance News direction to choose");
+            case GameCommand.ChooseStockTipOption choose -> {
+                require(pending.getFirst() instanceof PendingDecision.StockTipChoice, "No Stock Tip choice to make");
+                require(((PendingDecision.StockTipChoice) pending.getFirst()).options().contains(choose.option()), "Invalid Stock Tip choice");
+            }
+            case GameCommand.UseHeldStockTip use -> require(use.card().equals("PV-25")
+                    && player.getHeldStockTips().contains(use.card()) && state.getPhase() == TurnPhase.BEFORE_ROLL,
+                    "This held Stock Tip cannot be used now");
+            case GameCommand.BidAsset bid -> {
+                require(pending.getFirst() instanceof PendingDecision.AssetAuction, "No asset auction is running");
+                var auction = (PendingDecision.AssetAuction) pending.getFirst();
+                require(bid.amount() >= 0 && bid.amount() % 500 == 0 && bid.amount() <= player.getCash()
+                                && (bid.amount() == 0 || bid.amount() >= auction.minimumBid()),
+                        "Invalid asset auction bid");
+            }
         }
     }
 
@@ -311,6 +341,12 @@ public class GameEngine {
             return;
         }
         var phase = state.getPhase();
+        if (command instanceof Build && phase == TurnPhase.AFTER_ROLL) {
+            var player = state.current();
+            if (player.isNoMovementRollThisTurn() && player.getPosition() == 17) return;
+            if (player.getHeldStockTips().contains("PV-07")
+                    || player.getHeldStockTips().contains("PV-01") && (player.getPosition() == 17 || player.getPosition() == 40)) return;
+        }
         switch (TIMING.get(command.getClass())) {
             case BEFORE_ROLL -> require(phase == TurnPhase.BEFORE_ROLL, "Only allowed before rolling");
             case AFTER_ROLL -> require(phase == TurnPhase.AFTER_ROLL, "Only allowed after rolling");
@@ -375,6 +411,13 @@ public class GameEngine {
 
     List<GameEvent> roll(GameState state, PlayerState player, Dice dice) {
         var events = new ArrayList<GameEvent>();
+        if (player.isBailRollPending()) {
+            var bailDice = rollDice(dice, 2);
+            var returned = bailDice.getFirst().equals(bailDice.getLast());
+            events.add(new GameEvent.BailRoll(player.getUid(), bailDice, returned));
+            if (returned) events.add(payments.fromBank(player, 30_000, MoneyReason.STOCK_TIP));
+            player.setBailRollPending(false);
+        }
         var roll = rollDice(dice, rules.movementDice(state, player));
         events.add(new DiceRolled(player.getUid(), roll));
         var from = player.getPosition();
@@ -410,11 +453,15 @@ public class GameEngine {
      * stops do not apply (R4).
      */
     List<GameEvent> moveTo(GameState state, PlayerState player, int target, Dice dice) {
+        return moveTo(state, player, target, dice, true, true);
+    }
+
+    List<GameEvent> moveTo(GameState state, PlayerState player, int target, Dice dice, boolean drawFinanceNews, boolean drawStockTip) {
         var events = new ArrayList<GameEvent>();
         var from = player.getPosition();
         player.setPosition(target);
         events.add(new PieceMoved(player.getUid(), from, target));
-        events.addAll(land(state, player, dice));
+        events.addAll(land(state, player, dice, drawFinanceNews, drawStockTip));
         return List.copyOf(events);
     }
 
@@ -423,12 +470,459 @@ public class GameEngine {
     }
 
     List<GameEvent> land(GameState state, PlayerState player, Dice dice, boolean drawFinanceNews) {
+        return land(state, player, dice, drawFinanceNews, true);
+    }
+
+    List<GameEvent> land(GameState state, PlayerState player, Dice dice, boolean drawFinanceNews, boolean drawStockTip) {
         var events = new ArrayList<GameEvent>();
         var square = gameData.square(player.getPosition());
         events.add(new LandedOn(player.getUid(), square.number()));
-        if (drawFinanceNews || square.type() != SquareType.FINANCE_NEWS) {
+        if (square.type() == SquareType.BANK_EXIT) {
+            events.addAll(bankExit(state, player, square, dice, drawStockTip));
+        } else if ((drawFinanceNews || square.type() != SquareType.FINANCE_NEWS)
+                && (drawStockTip || square.type() != SquareType.STOCK_TIP)) {
             events.addAll(squareHandler(square.type()).land(state, player, square, dice));
         }
+        return List.copyOf(events);
+    }
+
+    List<GameEvent> stockTip(GameState state, PlayerState player, Square square, Dice dice) {
+        return drawStockTip(state, player, dice);
+    }
+
+    List<GameEvent> drawStockTip(GameState state, PlayerState player, Dice dice) {
+        if (state.getStockTipDeck().isEmpty()) return List.of();
+        var id = state.getStockTipDeck().removeFirst();
+        var held = List.of("PV-01", "PV-02", "PV-07", "PV-08", "PV-25", "PV-29").contains(id);
+        if (held) player.getHeldStockTips().add(id);
+        else state.getStockTipDeck().addLast(id);
+        var events = new ArrayList<GameEvent>();
+        events.add(new GameEvent.StockTipDrawn(player.getUid(), id, held));
+        if (id.equals("PV-29")) {
+            player.setMissedTurns(2);
+            player.setMissedTurnsInJail(false);
+        }
+        if (!held) events.addAll(resolveStockTip(state, player, id, dice));
+        return List.copyOf(events);
+    }
+
+    List<GameEvent> useHeldStockTip(GameState state, PlayerState player, String card, Dice dice) {
+        var events = new ArrayList<GameEvent>(consumeHeldTip(state, player, card));
+        events.addAll(moveTo(state, player, 17, dice));
+        player.setNoMovementRollThisTurn(true);
+        state.setPhase(TurnPhase.AFTER_ROLL);
+        return List.copyOf(events);
+    }
+
+    private List<GameEvent> consumePurchaseCertificate(GameState state, PlayerState player, boolean property) {
+        if (property ? !rules.propertiesTradingStopped(state) : !rules.shareTradingStopped(state)) return List.of();
+        var card = player.getHeldStockTips().stream().filter(c -> c.equals("PV-02") || c.equals("PV-08")).findFirst();
+        return card.map(value -> consumeHeldTip(state, player, value)).orElseGet(List::of);
+    }
+
+    private List<GameEvent> consumeHeldTip(GameState state, PlayerState player, String card) {
+        if (!player.getHeldStockTips().remove(card)) return List.of();
+        state.getStockTipDeck().addLast(card);
+        return List.of(new GameEvent.StockTipUsed(player.getUid(), card));
+    }
+
+    private boolean hasPurchaseCertificate(PlayerState player) {
+        return player.getHeldStockTips().stream().anyMatch(card -> card.equals("PV-02") || card.equals("PV-08"));
+    }
+
+    List<GameEvent> resolveStockTip(GameState state, PlayerState player, String card, Dice dice) {
+        var events = new ArrayList<GameEvent>();
+        var ownership = new Ownership(gameData, state);
+        switch (card) {
+            case "PV-03", "PV-09" -> issueFundShare(state, player, card.equals("PV-03") ? 20 : 25, dice, events);
+            case "PV-04" -> {
+                if (player.isCar()) { player.setCar(false); events.add(new GameEvent.CarLost(player.getUid())); }
+            }
+            case "PV-05" -> {
+                events.addAll(moveTo(state, player, 10, dice));
+                if (hasOtherActivePlayer(state, player.getUid())) {
+                    var left = relativePlayer(state, player.getUid(), 1);
+                    events.addAll(moveTo(state, left, 10, dice));
+                }
+            }
+            case "PV-06" -> events.addAll(chargeStockTipPlayers(state, player, p -> p.isCar() ? 15_000 : 0));
+            case "PV-10" -> queueChoice(state, player, card, fireOptions(ownership.builtPropertiesOf(player.getUid())), events);
+            case "PV-11" -> {
+                var amount = (int) (ownership.plantCount(player.getUid()) * 40_000 + ownership.otherBuildingCount(player.getUid()) * 20_000);
+                if (amount > 0) events.addAll(payments.charge(state, player, null, List.of(new Charge(amount, MoneyReason.STOCK_TIP))));
+            }
+            case "PV-12" -> {
+                if (player.isCar()) events.addAll(moveTo(state, player, 10, dice));
+                else events.addAll(extraRoll(state, player, 1, dice));
+            }
+            case "PV-13", "PV-14", "PV-15" -> events.addAll(playerDividend(state, player, gameData.square(41), dice));
+            case "PV-16" -> events.addAll(bondOneWins(state, player));
+            case "PV-17" -> queueChoice(state, player, card, gameData.titleDeeds().stream().map(d -> Integer.toString(d.square())).toList(), events);
+            case "PV-18" -> events.addAll(player.getPosition() == 20
+                    ? moveToWithoutLanding(state, player, 34) : moveTo(state, player, 20, dice, true, false));
+            case "PV-19" -> { events.addAll(moveTo(state, player, 8, dice)); events.addAll(financeNews(state, player, gameData.square(player.getPosition()), dice)); }
+            case "PV-20" -> { events.addAll(moveTo(state, player, 34, dice)); events.addAll(financeNews(state, player, gameData.square(player.getPosition()), dice)); }
+            case "PV-21" -> events.addAll(neighbourDividend(state, player));
+            case "PV-22" -> { if (player.getPosition() == 1) events.addAll(allShareDividend(state, player)); }
+            case "PV-23" -> events.addAll(allShareDividend(state, player));
+            case "PV-24" -> freeBond(state, player, events);
+            case "PV-26" -> queueChoice(state, player, card, List.of("PAY", "PASS"), events);
+            case "PV-27", "PV-28" -> events.addAll(player.getLoans() > 0
+                    ? moveTo(state, player, 43, dice) : moveTo(state, player, 34, dice));
+            case "PV-30" -> {
+                if (player.getCash() < 30_000) events.addAll(goToJailFromTip(state, player, dice));
+                else queueChoice(state, player, card, List.of("JAIL", "BAIL"), events);
+            }
+            case "PV-31" -> {
+                var roll = rollDice(dice, 2);
+                events.add(new DiceRolled(player.getUid(), roll));
+                if (roll.stream().mapToInt(Integer::intValue).sum() <= 7) {
+                    var eligible = ownership.propertiesOf(player.getUid()).stream()
+                            .filter(p -> !p.isMortgaged() && !ownership.ownsCompleteGroup(player.getUid(), gameData.titleDeed(p.getSquare()).group()))
+                            .map(p -> Integer.toString(p.getSquare())).toList();
+                    if (!eligible.isEmpty()) queueChoice(state, player, card, eligible, events);
+                }
+            }
+            case "PV-32", "PV-33" -> events.addAll(financeNews(state, player, gameData.square(player.getPosition()), dice));
+            case "PV-34" -> { events.add(payments.fromBank(player, 50_000, MoneyReason.STOCK_TIP)); events.addAll(moveTo(state, player, 1, dice, true, false)); }
+            case "PV-35" -> {
+                if (hasOtherActivePlayer(state, player.getUid()))
+                    queueChoice(state, player, card, transferableAssets(state, player, ownership), events);
+            }
+            case "PV-36" -> {
+                if (state.getTurnOrder().stream().filter(uid -> !state.player(uid).orElseThrow().isOut()).count() > 2)
+                    queueChoice(state, player, card, transferableAssets(state, player, ownership), events);
+            }
+            case "PV-37" -> {
+                events.add(payments.fromBank(player, roundUp500(player.getCash(), 5), MoneyReason.STOCK_TIP));
+                events.addAll(financeNews(state, player, gameData.square(player.getPosition()), dice));
+            }
+            case "PV-38" -> {
+                var swaps = shareSwapOptions(state, player, ownership);
+                if (!swaps.isEmpty()) {
+                    swaps.add("PASS");
+                    queueChoice(state, player, card, swaps, events);
+                }
+            }
+            case "PV-39", "PV-40" -> returnSharesByPercent(state, player, card.equals("PV-39") ? 30 : 40, events);
+            case "PV-41" -> events.addAll(payPerShareClass(state, player));
+            default -> throw new IllegalArgumentException("No Stock Tip effect for " + card);
+        }
+        return List.copyOf(events);
+    }
+
+    private void queueChoice(GameState state, PlayerState player, String card, List<String> options, List<GameEvent> events) {
+        if (!options.isEmpty()) state.getPendingDecisions().add(new PendingDecision.StockTipChoice(player.getUid(), card, options));
+    }
+
+    List<GameEvent> resolveStockTipChoice(GameState state, PlayerState player, String option, Dice dice) {
+        var decision = (PendingDecision.StockTipChoice) state.getPendingDecisions().removeFirst();
+        var events = new ArrayList<GameEvent>();
+        events.add(new GameEvent.StockTipUsed(player.getUid(), decision.card()));
+        switch (decision.card()) {
+            case "PV-10" -> {
+                var squares = option.split(",");
+                var burned = java.util.Arrays.stream(squares).map(Integer::parseInt).toList();
+                for (var square : burned) state.property(square).setBuilt(false);
+                events.add(new GameEvent.BuildingsBurned(player.getUid(), burned));
+                if (squares.length > 0) {
+                    var die = dice.roll();
+                    events.add(new DiceRolled(player.getUid(), List.of(die)));
+                    events.add(payments.fromBank(player, die * 10_000, MoneyReason.STOCK_TIP));
+                }
+            }
+            case "PV-17" -> events.addAll(moveTo(state, player, Integer.parseInt(option), dice));
+            case "PV-24" -> {
+                var parts = option.split(":");
+                if (parts[0].equals("B")) {
+                    var bond = state.bond(Integer.parseInt(parts[1]));
+                    if (bond.getOwner() == null) {
+                        bond.setOwner(player.getUid());
+                        events.add(new GameEvent.BondGranted(player.getUid(), bond.getNumber()));
+                    }
+                }
+                else {
+                    var donor = state.player(parts[1]).orElseThrow();
+                    var bond = state.bond(Integer.parseInt(parts[2]));
+                    if (!donor.isOut() && donor.getUid().equals(bond.getOwner())) {
+                        bond.setOwner(player.getUid());
+                        events.add(new GameEvent.BondTransferred(donor.getUid(), player.getUid(), bond.getNumber()));
+                    }
+                }
+            }
+            case "PV-26" -> {
+                if (option.equals("PAY") && player.getCash() >= 25_000) {
+                    events.add(payments.toBank(player, 25_000, MoneyReason.STOCK_TIP));
+                    events.addAll(moveTo(state, player, 34, dice));
+                }
+            }
+            case "PV-30" -> {
+                if (option.equals("JAIL") || player.getCash() < 30_000) events.addAll(goToJailFromTip(state, player, dice));
+                else {
+                    events.add(payments.toBank(player, 30_000, MoneyReason.STOCK_TIP));
+                    player.setBailRollPending(true);
+                }
+            }
+            case "PV-31" -> {
+                var square = Integer.parseInt(option);
+                var property = state.property(square);
+                if (!player.getUid().equals(property.getOwner())) break;
+                var deed = gameData.titleDeed(square);
+                var price = deed.price() + (property.isBuilt() ? deed.building().price() : 0);
+                if (property.isMortgaged()) price -= rules.redemptionPrice(state, deed, property);
+                property.setOwner(null);
+                property.setBuilt(false);
+                property.setMortgaged(false);
+                events.add(new GameEvent.PropertySoldBack(player.getUid(), square));
+                events.add(payments.fromBank(player, Math.max(price, 0), MoneyReason.PROPERTY_SALE));
+            }
+            case "PV-35" -> {
+                if (!player.getUid().equals(assetOwner(state, option))) break;
+                var receiver = relativePlayer(state, player.getUid(), 1);
+                transferAsset(state, player, receiver, option);
+                events.addAll(payments.charge(state, receiver, player.getUid(), List.of(new Charge(10_000, MoneyReason.STOCK_TIP))));
+                events.add(new GameEvent.AssetTransferred(player.getUid(), receiver.getUid(), option));
+            }
+            case "PV-36" -> {
+                if (player.getUid().equals(assetOwner(state, option))) startCompulsoryAuction(state, player, option, events);
+            }
+            case "PV-38" -> {
+                if (!option.equals("PASS")) {
+                    var parts = option.split("\\|");
+                    var otherShare = state.share(parts[2]);
+                    var ownShare = state.share(parts[0]);
+                    if (!player.getUid().equals(ownShare.getOwner()) || !parts[1].equals(otherShare.getOwner())) break;
+                    ownShare.setOwner(parts[1]);
+                    otherShare.setOwner(player.getUid());
+                    events.add(new GameEvent.SharesSwapped(player.getUid(), parts[0], parts[1], parts[2]));
+                }
+            }
+            default -> throw new IllegalArgumentException("No Stock Tip choice effect for " + decision.card());
+        }
+        return List.copyOf(events);
+    }
+
+    private List<GameEvent> moveToWithoutLanding(GameState state, PlayerState player, int target) {
+        var from = player.getPosition();
+        player.setPosition(target);
+        return List.of(new PieceMoved(player.getUid(), from, target), new LandedOn(player.getUid(), target));
+    }
+
+    private List<GameEvent> extraRoll(GameState state, PlayerState player, int diceCount, Dice dice) {
+        var roll = rollDice(dice, diceCount);
+        var pips = roll.stream().mapToInt(Integer::intValue).sum();
+        if ("FL-16".equals(state.getActiveFinanceNews())) pips *= 2;
+        var from = player.getPosition();
+        var to = moveForward(from, pips);
+        player.setPosition(to);
+        var events = new ArrayList<GameEvent>();
+        events.add(new DiceRolled(player.getUid(), roll));
+        events.add(new PieceMoved(player.getUid(), from, to));
+        events.addAll(land(state, player, dice));
+        return List.copyOf(events);
+    }
+
+    private void issueFundShare(GameState state, PlayerState player, int dividendPercent, Dice dice, List<GameEvent> events) {
+        var share = gameData.fundShares().stream().filter(s -> s.dividendPercent() == dividendPercent).findFirst().orElseThrow();
+        var currentOwner = state.share(share.id()).getOwner();
+        if (currentOwner == null) {
+            state.share(share.id()).setOwner(player.getUid());
+            events.add(new GameEvent.ShareIssued(player.getUid(), share.id()));
+        } else if (!currentOwner.equals(player.getUid())) {
+            var roll = rollDice(dice, 2);
+            events.add(new DiceRolled(player.getUid(), roll));
+            if (roll.stream().mapToInt(Integer::intValue).sum() >= 7) {
+                state.share(share.id()).setOwner(player.getUid());
+                events.add(new GameEvent.ShareTaken(player.getUid(), currentOwner, share.id()));
+            }
+        }
+    }
+
+    private List<GameEvent> allShareDividend(GameState state, PlayerState player) {
+        var events = new ArrayList<GameEvent>();
+        var shares = new Ownership(gameData, state).sharesOf(player.getUid());
+        var amount = shares.stream().mapToInt(share -> rules.bankDividend(state, share)).sum();
+        if (amount == 0) return List.of();
+        events.add(new GameEvent.BankDividend(player.getUid(), player.getPosition(), shares.stream().map(Share::id).toList(), amount));
+        events.add(payments.fromBank(player, amount, MoneyReason.BANK_DIVIDEND));
+        return List.copyOf(events);
+    }
+
+    private List<GameEvent> neighbourDividend(GameState state, PlayerState drawer) {
+        if (!hasOtherActivePlayer(state, drawer.getUid())) return List.of();
+        var neighbour = relativePlayer(state, drawer.getUid(), -1);
+        var groups = new Ownership(gameData, state).groupsWithPropertiesOf(drawer.getUid());
+        var shares = new Ownership(gameData, state).sharesOf(neighbour.getUid()).stream()
+                .filter(share -> share.group() != null && groups.contains(share.group())).toList();
+        var multiplier = "FL-16".equals(state.getActiveFinanceNews()) ? 2 : 1;
+        var amount = shares.stream().mapToInt(share -> share.dividend() * multiplier).sum();
+        if (amount == 0) return List.of();
+        var events = new ArrayList<GameEvent>();
+        events.add(new GameEvent.StockTipDividendCharged(drawer.getUid(), neighbour.getUid(),
+                shares.stream().map(Share::id).toList(), amount));
+        events.addAll(payments.charge(state, drawer, neighbour.getUid(), List.of(new Charge(amount, MoneyReason.PLAYER_DIVIDEND))));
+        return List.copyOf(events);
+    }
+
+    private void freeBond(GameState state, PlayerState player, List<GameEvent> events) {
+        var bank = state.getBonds().stream().filter(bond -> bond.getOwner() == null).map(b -> "B:" + b.getNumber()).toList();
+        if (!bank.isEmpty()) { queueChoice(state, player, "PV-24", bank, events); return; }
+        if (!hasOtherActivePlayer(state, player.getUid())) return;
+        var neighbour = relativePlayer(state, player.getUid(), 1);
+        var owned = state.getBonds().stream().filter(bond -> neighbour.getUid().equals(bond.getOwner()))
+                .map(b -> "P:" + neighbour.getUid() + ":" + b.getNumber()).toList();
+        queueChoice(state, player, "PV-24", owned, events);
+    }
+
+    private List<GameEvent> goToJailFromTip(GameState state, PlayerState player, Dice dice) {
+        var events = new ArrayList<GameEvent>();
+        events.addAll(moveTo(state, player, JAIL_SQUARE, dice));
+        return List.copyOf(events);
+    }
+
+    private List<String> transferableAssets(GameState state, PlayerState player, Ownership ownership) {
+        var assets = new ArrayList<String>();
+        ownership.propertiesOf(player.getUid()).stream()
+                .filter(p -> !ownership.ownsCompleteGroup(player.getUid(), gameData.titleDeed(p.getSquare()).group()))
+                .map(p -> "P:" + p.getSquare()).forEach(assets::add);
+        ownership.sharesOf(player.getUid()).stream()
+                .filter(s -> !ownership.ownsCompleteGroup(player.getUid(), s.group()))
+                .map(s -> "S:" + s.id()).forEach(assets::add);
+        return assets;
+    }
+
+    private List<String> fireOptions(List<PropertyState> built) {
+        var squares = built.stream().map(PropertyState::getSquare).toList();
+        if (squares.size() <= 1) return squares.stream().map(String::valueOf).toList();
+        var options = new ArrayList<String>();
+        for (int i = 0; i < squares.size(); i++) {
+            for (int j = i + 1; j < squares.size(); j++) options.add(squares.get(i) + "," + squares.get(j));
+        }
+        return options;
+    }
+
+    private List<String> shareSwapOptions(GameState state, PlayerState player, Ownership ownership) {
+        var options = new ArrayList<String>();
+        var myShares = ownership.sharesOf(player.getUid()).stream()
+                .filter(s -> !ownership.ownsCompleteGroup(player.getUid(), s.group())).toList();
+        for (var mine : myShares) {
+            for (var other : state.getPlayers()) {
+                if (other.isOut() || other.getUid().equals(player.getUid())) continue;
+                ownership.sharesOf(other.getUid()).stream().filter(s -> s.value() == mine.value()
+                                && !ownership.ownsCompleteGroup(other.getUid(), s.group()))
+                        .forEach(s -> options.add(mine.id() + "|" + other.getUid() + "|" + s.id()));
+            }
+        }
+        return options;
+    }
+
+    private void transferAsset(GameState state, PlayerState from, PlayerState to, String asset) {
+        var parts = asset.split(":");
+        if (parts[0].equals("P")) state.property(Integer.parseInt(parts[1])).setOwner(to.getUid());
+        else state.share(parts[1]).setOwner(to.getUid());
+    }
+
+    private String assetOwner(GameState state, String asset) {
+        var parts = asset.split(":");
+        return parts[0].equals("P") ? state.property(Integer.parseInt(parts[1])).getOwner()
+                : state.share(parts[1]).getOwner();
+    }
+
+    private void startCompulsoryAuction(GameState state, PlayerState seller, String asset, List<GameEvent> events) {
+        var turnOrder = state.getTurnOrder();
+        var sellerIndex = turnOrder.indexOf(seller.getUid());
+        var order = IntStream.range(1, turnOrder.size())
+                .mapToObj(i -> turnOrder.get((sellerIndex + i) % turnOrder.size()))
+                .filter(uid -> !state.player(uid).orElseThrow().isOut()).toList();
+        if (order.isEmpty()) return;
+        var minimum = rules.compulsorySaleMinimumBid(state, asset);
+        state.getPendingDecisions().add(new PendingDecision.AssetAuction(seller.getUid(), asset, minimum, order, 0, List.of()));
+        events.add(new GameEvent.AssetAuctionStarted(seller.getUid(), asset, minimum, order));
+    }
+
+    List<GameEvent> bidAsset(GameState state, PlayerState bidder, int amount) {
+        var auction = (PendingDecision.AssetAuction) state.getPendingDecisions().removeFirst();
+        var bids = new ArrayList<>(auction.bids());
+        bids.add(new PendingDecision.Bid(bidder.getUid(), amount));
+        var nextIndex = auction.index() + 1;
+        if (nextIndex < auction.order().size()) {
+            state.getPendingDecisions().addFirst(new PendingDecision.AssetAuction(auction.seller(), auction.asset(),
+                    auction.minimumBid(), auction.order(), nextIndex, bids));
+            return List.of();
+        }
+        var winner = bids.stream().filter(bid -> bid.amount() > 0)
+                .sorted(java.util.Comparator.comparingInt(PendingDecision.Bid::amount).reversed()
+                        .thenComparingInt(bid -> auction.order().indexOf(bid.player())))
+                .findFirst();
+        if (winner.isEmpty()) return List.of(new GameEvent.AssetAuctionCompleted(auction.seller(), auction.asset(), 0, null, bids));
+        var winningBid = winner.orElseThrow();
+        var seller = state.player(auction.seller()).orElseThrow();
+        var buyer = state.player(winningBid.player()).orElseThrow();
+        transferAsset(state, seller, buyer, auction.asset());
+        var payment = payments.transfer(buyer, seller, winningBid.amount(), MoneyReason.ASSET_AUCTION);
+        return List.of(payment, new GameEvent.AssetAuctionCompleted(seller.getUid(), auction.asset(),
+                winningBid.amount(), buyer.getUid(), bids));
+    }
+
+    private PlayerState relativePlayer(GameState state, String uid, int direction) {
+        var order = state.getTurnOrder();
+        var start = order.indexOf(uid);
+        for (int i = 1; i < order.size(); i++) {
+            var index = (start + direction * i + order.size() * i) % order.size();
+            var candidate = state.player(order.get(index)).orElseThrow();
+            if (!candidate.isOut()) return candidate;
+        }
+        throw new IllegalStateException("No other active player");
+    }
+
+    private boolean hasOtherActivePlayer(GameState state, String uid) {
+        return state.getPlayers().stream().anyMatch(candidate -> !candidate.isOut() && !candidate.getUid().equals(uid));
+    }
+
+    private void returnSharesByPercent(GameState state, PlayerState player, int dividendPercent, List<GameEvent> events) {
+        var ownership = new Ownership(gameData, state);
+        var shares = ownership.sharesOf(player.getUid()).stream().filter(share -> share.dividendPercent() == dividendPercent
+                && !ownership.ownsCompleteGroup(player.getUid(), share.group())).toList();
+        for (var share : shares) {
+            state.share(share.id()).setOwner(null);
+            events.add(new GameEvent.ShareLost(player.getUid(), share.id()));
+        }
+    }
+
+    private List<GameEvent> payPerShareClass(GameState state, PlayerState player) {
+        var shares = new Ownership(gameData, state).sharesOf(player.getUid());
+        var charges = shares.stream().map(share -> new Charge(switch (share.dividendPercent()) {
+            case 20, 25 -> 5_000;
+            case 30, 40 -> 10_000;
+            case 50 -> 15_000;
+            default -> 0;
+        }, MoneyReason.STOCK_TIP)).filter(charge -> charge.amount() > 0).toList();
+        return charges.isEmpty() ? List.of() : payments.charge(state, player, null, charges);
+    }
+
+    private List<GameEvent> chargeStockTipPlayers(GameState state, PlayerState drawer,
+                                                   java.util.function.ToIntFunction<PlayerState> amount) {
+        var events = new ArrayList<GameEvent>();
+        var order = state.getTurnOrder();
+        var start = order.indexOf(drawer.getUid());
+        for (int i = 0; i < order.size(); i++) {
+            var target = state.player(order.get((start + i) % order.size())).orElseThrow();
+            if (target.isOut()) continue;
+            var due = amount.applyAsInt(target);
+            if (due > 0) events.addAll(payments.charge(state, target, null, List.of(new Charge(due, MoneyReason.STOCK_TIP))));
+        }
+        return List.copyOf(events);
+    }
+
+    private List<GameEvent> bondOneWins(GameState state, PlayerState drawer) {
+        var bond = state.bond(1);
+        var owner = bond.getOwner();
+        if (owner == null) return List.of();
+        bond.setOwner(null);
+        var events = new ArrayList<GameEvent>();
+        events.add(new GameEvent.BondOneWon(drawer.getUid(), owner, 25_000));
+        if (owner.equals(drawer.getUid())) events.add(payments.fromBank(drawer, 25_000, MoneyReason.BOND_PRIZE));
+        else events.addAll(payments.charge(state, drawer, owner, List.of(new Charge(25_000, MoneyReason.BOND_PRIZE))));
         return List.copyOf(events);
     }
 
@@ -549,12 +1043,20 @@ public class GameEngine {
 
     /** Square 1: interest on every loan. Square 36 affects the player again. */
     List<GameEvent> bankExit(GameState state, PlayerState player, Square square, Dice dice) {
+        return bankExit(state, player, square, dice, true);
+    }
+
+    List<GameEvent> bankExit(GameState state, PlayerState player, Square square, Dice dice, boolean drawTip) {
         player.setJailExemption(false);
+        var events = new ArrayList<GameEvent>();
         if (player.getLoans() == 0) {
-            return List.of();
+            if (drawTip) events.addAll(drawStockTip(state, player, dice));
+            return List.copyOf(events);
         }
         var interest = new Charge(player.getLoans() * rules.loanInterest(state), MoneyReason.LOAN_INTEREST);
-        return payments.charge(state, player, null, List.of(interest));
+        events.addAll(payments.charge(state, player, null, List.of(interest)));
+        if (drawTip) events.addAll(drawStockTip(state, player, dice));
+        return List.copyOf(events);
     }
 
     /** Square 34: the player rolls both dice, car or not, and the bank pays a reward by the pips */
@@ -586,6 +1088,7 @@ public class GameEngine {
         var die = dice.roll();
         var missedTurns = (die + 1) / 2;
         player.setMissedTurns(missedTurns);
+        player.setMissedTurnsInJail(true);
         return List.of(new JailRoll(player.getUid(), die, missedTurns));
     }
 
@@ -680,10 +1183,10 @@ public class GameEngine {
         return bonds.grandBondDraw(state, drawer, dice);
     }
 
-    List<GameEvent> endTurn(GameState state, PlayerState player) {
+    List<GameEvent> endTurn(GameState state, PlayerState player, Dice dice) {
         var events = new ArrayList<GameEvent>();
         events.add(new TurnEnded(player.getUid()));
-        events.addAll(passTurn(state));
+        events.addAll(passTurn(state, dice));
         return List.copyOf(events);
     }
 
@@ -691,13 +1194,15 @@ public class GameEngine {
      * Starts the next player's turn. Players with turns to miss in jail are skipped, one missed turn each (R6); a player whose last
      * missed turn passes has left jail.
      */
-    static List<GameEvent> passTurn(GameState state) {
+    List<GameEvent> passTurn(GameState state, Dice dice) {
         var events = new ArrayList<GameEvent>();
         var next = state.player(nextPlayer(state)).orElseThrow();
         while (next.getMissedTurns() > 0) {
             next.setMissedTurns(next.getMissedTurns() - 1);
             if (next.getMissedTurns() == 0) {
-                next.setJailExemption(true);
+                if (next.isMissedTurnsInJail()) next.setJailExemption(true);
+                next.setMissedTurnsInJail(false);
+                if (next.getHeldStockTips().contains("PV-29")) next.setTransportNewsDue(true);
             }
             events.add(new TurnSkipped(next.getUid(), next.getMissedTurns()));
             state.setCurrentPlayer(next.getUid());
@@ -705,8 +1210,16 @@ public class GameEngine {
         }
         state.setCurrentPlayer(next.getUid());
         state.setPhase(TurnPhase.BEFORE_ROLL);
+        next.setNoMovementRollThisTurn(false);
         state.setBoughtThisTurn(false);
         events.add(new TurnStarted(next.getUid()));
+        if (next.isTransportNewsDue()) {
+            next.setTransportNewsDue(false);
+            next.getHeldStockTips().remove("PV-29");
+            state.getStockTipDeck().addLast("PV-29");
+            events.add(new GameEvent.StockTipUsed(next.getUid(), "PV-29"));
+            events.addAll(financeNews(state, next, gameData.square(next.getPosition()), dice));
+        }
         return List.copyOf(events);
     }
 
@@ -744,14 +1257,22 @@ public class GameEngine {
         var payment = payments.toBank(player, rules.propertyPrice(state, deed(square)), MoneyReason.PROPERTY_PURCHASE);
         state.property(square).setOwner(player.getUid());
         state.setBoughtThisTurn(true);
-        return List.of(payment, new PropertyBought(player.getUid(), square));
+        var events = new ArrayList<GameEvent>();
+        events.add(payment);
+        events.add(new PropertyBought(player.getUid(), square));
+        events.addAll(consumePurchaseCertificate(state, player, true));
+        return List.copyOf(events);
     }
 
     List<GameEvent> buyShare(GameState state, PlayerState player, String id) {
         var payment = payments.toBank(player, rules.sharePrice(state, share(id)), MoneyReason.SHARE_PURCHASE);
         state.share(id).setOwner(player.getUid());
         state.setBoughtThisTurn(true);
-        return List.of(payment, new ShareBought(player.getUid(), id));
+        var events = new ArrayList<GameEvent>();
+        events.add(payment);
+        events.add(new ShareBought(player.getUid(), id));
+        events.addAll(consumePurchaseCertificate(state, player, false));
+        return List.copyOf(events);
     }
 
     List<GameEvent> mortgage(GameState state, PlayerState player, int square) {
@@ -790,7 +1311,24 @@ public class GameEngine {
             state.property(square).setBuilt(true);
             events.add(new PropertyBuilt(player.getUid(), square, deed.building().industrial()));
         }
+        var permit = buildingPermit(state, player);
+        if (permit != null) events.addAll(consumeHeldTip(state, player, permit));
         return List.copyOf(events);
+    }
+
+    private String buildingPermit(GameState state, PlayerState player) {
+        var onProject = rules.canBuildAtProject(state, player);
+        var hasProjectPermit = player.getHeldStockTips().contains("PV-01");
+        var hasSinglePermit = player.getHeldStockTips().contains("PV-07");
+        if ("FL-12".equals(state.getActiveFinanceNews())) {
+            if (onProject && hasProjectPermit) return "PV-01";
+            return hasSinglePermit ? "PV-07" : null;
+        }
+        if (state.getPhase() == TurnPhase.AFTER_ROLL) {
+            if (onProject && hasProjectPermit) return "PV-01";
+            return hasSinglePermit ? "PV-07" : null;
+        }
+        return !onProject && hasSinglePermit ? "PV-07" : null;
     }
 
     List<GameEvent> buyCar(PlayerState player) {
@@ -824,7 +1362,7 @@ public class GameEngine {
      * dropped, so their creditors get nothing. Loans are cancelled and the car goes back to the bank. If it was the player's turn,
      * the turn passes on.
      */
-    List<GameEvent> declareBankruptcy(GameState state, PlayerState player) {
+    List<GameEvent> declareBankruptcy(GameState state, PlayerState player, Dice dice) {
         var decision = (RaiseFunds) state.getPendingDecisions().removeFirst();
         state.getPendingDecisions().removeIf(pending -> pending.player().equals(player.getUid()));
         var events = new ArrayList<GameEvent>();
@@ -845,12 +1383,16 @@ public class GameEngine {
         var shares = state.getShares().stream().filter(share -> player.getUid().equals(share.getOwner())).toList();
         shares.forEach(share -> share.setOwner(null));
         var returnedBonds = bonds.returnOwnedBy(state, player.getUid());
+        var heldTips = List.copyOf(player.getHeldStockTips());
+        state.getStockTipDeck().addAll(heldTips);
+        player.getHeldStockTips().clear();
+        if (!heldTips.isEmpty()) events.add(new GameEvent.HeldStockTipsReturned(player.getUid(), heldTips));
         if (!properties.isEmpty() || !shares.isEmpty() || !returnedBonds.isEmpty()) {
             events.add(new AssetsReturned(player.getUid(), properties.stream().map(PropertyState::getSquare).toList(),
                     shares.stream().map(ShareState::getId).toList(), returnedBonds));
         }
         if (player.getUid().equals(state.getCurrentPlayer())) {
-            events.addAll(passTurn(state));
+            events.addAll(passTurn(state, dice));
         }
         return List.copyOf(events);
     }

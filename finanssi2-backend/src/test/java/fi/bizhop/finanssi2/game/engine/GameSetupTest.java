@@ -90,6 +90,18 @@ class GameSetupTest {
     }
 
     @Test
+    void testStockTipDeckIsShuffled() {
+        var state = lobby("a", "b");
+        new GameSetup(gameData).start(state, new ScriptedDice(6, 6, 1, 1), new Random(1));
+
+        var deck = state.getStockTipDeck();
+        var expected = IntStream.rangeClosed(1, 41).mapToObj(i -> String.format("PV-%02d", i)).toList();
+        assertEquals(new HashSet<>(expected), new HashSet<>(deck));
+        assertEquals(41, deck.size());
+        assertTrue(!deck.equals(expected), "deck in file order");
+    }
+
+    @Test
     void testPlayerCount() {
         var setup = new GameSetup(gameData);
         var alone = lobby("a");

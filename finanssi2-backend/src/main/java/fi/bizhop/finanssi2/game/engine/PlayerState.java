@@ -3,6 +3,9 @@ package fi.bizhop.finanssi2.game.engine;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 public class PlayerState {
@@ -22,8 +25,14 @@ public class PlayerState {
     boolean out;
     // Turns still to skip in jail (square 24)
     int missedTurns;
+    boolean missedTurnsInJail = true;
     // Left jail and not on square 1 since: square 36 doesn't affect the player
     boolean jailExemption;
+    boolean bailRollPending;
+    boolean transportNewsDue;
+    boolean noMovementRollThisTurn;
+    // Held Stock Tip card ids, in acquisition order.
+    List<String> heldStockTips = new ArrayList<>();
 
     public PlayerState(String uid, String name, String photoUrl, int piece) {
         this.uid = uid;

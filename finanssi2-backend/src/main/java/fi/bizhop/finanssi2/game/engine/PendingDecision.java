@@ -13,7 +13,7 @@ import java.util.Objects;
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.SIMPLE_NAME, property = "type")
 public sealed interface PendingDecision permits PendingDecision.RaiseFunds, PendingDecision.BondOffer, PendingDecision.BondAuction,
-        PendingDecision.NewsDirection {
+        PendingDecision.NewsDirection, PendingDecision.StockTipChoice, PendingDecision.AssetAuction {
     String player();
 
     /**
@@ -47,4 +47,17 @@ public sealed interface PendingDecision permits PendingDecision.RaiseFunds, Pend
     record Bid(String player, int amount) {}
 
     record NewsDirection(String player, String card) implements PendingDecision {}
+
+    record StockTipChoice(String player, String card, List<String> options) implements PendingDecision {
+        public StockTipChoice { options = List.copyOf(options); }
+    }
+
+    record AssetAuction(String seller, String asset, int minimumBid, List<String> order, int index, @JsonIgnore List<Bid> bids)
+            implements PendingDecision {
+        public AssetAuction {
+            order = List.copyOf(order);
+            bids = List.copyOf(bids);
+        }
+        @Override public String player() { return order.get(index); }
+    }
 }

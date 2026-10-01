@@ -51,7 +51,7 @@ public final class EngineTests {
     record Snapshot(String currentPlayer, TurnPhase phase, List<String> turnOrder, List<PlayerSnapshot> players,
                     List<PendingDecision> pendingDecisions, GameSettings settings, List<PropertySnapshot> properties,
                     List<ShareSnapshot> shares, List<BondSnapshot> bonds, boolean boughtThisTurn, List<String> financeNewsDeck,
-                    String activeFinanceNews) {
+                    String activeFinanceNews, List<String> stockTipDeck) {
         static Snapshot of(GameState state) {
             return new Snapshot(state.getCurrentPlayer(), state.getPhase(), List.copyOf(state.getTurnOrder()),
                     state.getPlayers().stream().map(PlayerSnapshot::of).toList(),
@@ -59,16 +59,22 @@ public final class EngineTests {
                     state.getProperties().stream().map(PropertySnapshot::of).toList(),
                     state.getShares().stream().map(ShareSnapshot::of).toList(),
                     state.getBonds().stream().map(BondSnapshot::of).toList(), state.isBoughtThisTurn(),
-                    List.copyOf(state.getFinanceNewsDeck()), state.getActiveFinanceNews());
+                    List.copyOf(state.getFinanceNewsDeck()), state.getActiveFinanceNews(), List.copyOf(state.getStockTipDeck()));
         }
     }
 
     record PlayerSnapshot(String uid, String name, String photoUrl, int piece, int cash, int position,
-                          boolean car, int loans, boolean out, int missedTurns, boolean jailExemption) {
+                          boolean car, int loans, boolean out, int missedTurns, boolean missedTurnsInJail,
+                          boolean jailExemption, boolean bailRollPending,
+                          boolean transportNewsDue,
+                          boolean noMovementRollThisTurn,
+                          List<String> heldStockTips) {
         static PlayerSnapshot of(PlayerState player) {
             return new PlayerSnapshot(player.getUid(), player.getName(), player.getPhotoUrl(), player.getPiece(),
                     player.getCash(), player.getPosition(), player.isCar(), player.getLoans(), player.isOut(),
-                    player.getMissedTurns(), player.isJailExemption());
+                    player.getMissedTurns(), player.isMissedTurnsInJail(), player.isJailExemption(), player.isBailRollPending(),
+                    player.isTransportNewsDue(), player.isNoMovementRollThisTurn(),
+                    List.copyOf(player.getHeldStockTips()));
         }
     }
 

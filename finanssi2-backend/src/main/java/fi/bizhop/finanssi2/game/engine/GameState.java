@@ -28,6 +28,8 @@ public class GameState {
     // Card ids in draw order. Hidden from clients, who would otherwise know the cards in advance.
     @JsonIgnore
     List<String> financeNewsDeck = new ArrayList<>();
+    @JsonIgnore
+    List<String> stockTipDeck = new ArrayList<>();
     // The current lasting Finance News card, if any.
     String activeFinanceNews;
 

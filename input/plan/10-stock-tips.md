@@ -1,5 +1,8 @@
 # 10 Stock Tips
 
+Status: done. All 41 transcribed Stock Tip cards have an effect, including held cards and pending choices. The deck is shuffled at
+game setup, draws on square 1 and Stock Tip squares, and returns held cards to the bottom on use or bankruptcy.
+
 The Stock Tip deck: 41 cards transcribed from the physical game into `input/data/porssivihjeet.json` (ids PV-01 … PV-41, in photo
 order). The rules list 42, but one is missing from the set (D6 in [open-questions.md](open-questions.md)), so the game uses 41. Many
 cards share an effect, so the step builds reusable effect primitives and maps card ids to them.

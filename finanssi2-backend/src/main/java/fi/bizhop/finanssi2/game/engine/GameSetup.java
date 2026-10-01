@@ -78,6 +78,10 @@ public class GameSetup {
         Collections.shuffle(financeNews, random);
         state.setFinanceNewsDeck(financeNews);
 
+        var stockTips = new ArrayList<>(gameData.cards(Deck.STOCK_TIP).stream().map(Card::id).toList());
+        Collections.shuffle(stockTips, random);
+        state.setStockTipDeck(stockTips);
+
         events.add(new GameEvent.GameStarted(turnOrder, STARTING_CASH));
         events.add(new GameEvent.TurnStarted(turnOrder.getFirst()));
         return List.copyOf(events);

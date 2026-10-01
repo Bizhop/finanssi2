@@ -60,6 +60,8 @@ Made while implementing. I1–I23 are reviewed and accepted; add new ones at the
 | I31 | FL-04 forced one-step moves use ordinary landing effects, except that landing on a Finance News square does not draw another card; the drawer chooses forward or backward before the forced moves are resolved | 09 |
 | I32 | Under FL-16, square 46 pays the doubled dividend to every active player in turn order, while only the player who landed there gets the bond purchase offer | 09 |
 | I33 | FL-19 moves affected players directly to square 1, ignores intervening squares, and awards the square 34 reward when that square lies along the forward route | 09 |
+| I34 | Stock Tips have their own shuffled hidden draw-order list; held cards are stored publicly on the player, stay out of the deck until used, and return to the bottom on use or bankruptcy | 10 |
+| I35 | Stock Tip choices are stored as pending decisions with their allowed options; compulsory-sale bids stay hidden until every active bidder has responded | 10 |
 
 ## Decided
 

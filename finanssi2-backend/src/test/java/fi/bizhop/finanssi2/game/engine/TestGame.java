@@ -92,7 +92,7 @@ public class TestGame {
 
     /** In jail with the given turns still to skip */
     public TestGame missedTurns(String uid, int turns) {
-        return player(uid, player -> player.setMissedTurns(turns));
+        return player(uid, player -> { player.setMissedTurns(turns); player.setMissedTurnsInJail(true); });
     }
 
     /** Left jail and not on square 1 since */
