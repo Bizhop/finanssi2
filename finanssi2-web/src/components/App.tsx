@@ -4,6 +4,7 @@ import { Box, Container, Divider, Paper, Stack } from "@mui/material"
 import FrontPage from "./FrontPage.tsx"
 import Header from "./Header.tsx"
 import Games from "./Games.tsx"
+import GameRoom from "./GameRoom.tsx"
 
 const NotFound = () => (
     <Box sx={{ flexGrow: 1 }}>
@@ -15,6 +16,7 @@ const MyRoutes = () => (
     <Routes>
         <Route path="/" element={<FrontPage />} />
         <Route path="/games" element={<Games />} />
+        <Route path="/games/:id" element={<GameRoom />} />
         <Route path="*" element={<NotFound />} />
     </Routes>
 )

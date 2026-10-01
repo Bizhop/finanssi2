@@ -1,0 +1,313 @@
+import { useCallback, useEffect, useState } from "react"
+import { Link, useParams } from "react-router"
+import {
+    Alert,
+    Avatar,
+    Box,
+    Button,
+    Card,
+    CardContent,
+    CircularProgress,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    Divider,
+    Grid,
+    Paper,
+    Stack,
+    TextField,
+    Typography,
+} from "@mui/material"
+import { toast } from "react-toastify"
+
+import { useCurrentUser } from "./CurrentUserContext.tsx"
+import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
+import { Game, GameBoardData, GameView, gameApi } from "./gameApi.ts"
+
+type GameLogEntry = { id: string; seq: number; time: number; type: string; event: Record<string, unknown> }
+type GameUpdate = { version: number; events: GameLogEntry[] }
+
+const apiError = (reason: unknown) => reason instanceof Error ? reason.message : "The request failed"
+
+const GameRoom = () => {
+    const { id } = useParams()
+    const { user } = useCurrentUser()
+    const connected = useStompConnected()
+    const [view, setView] = useState<GameView | null>(null)
+    const [board, setBoard] = useState<GameBoardData | null>(null)
+    const [events, setEvents] = useState<GameLogEntry[]>([])
+    const [error, setError] = useState<string | null>(null)
+    const [commandBusy, setCommandBusy] = useState(false)
+    const [bid, setBid] = useState("0")
+    const [choiceOpen, setChoiceOpen] = useState(false)
+    const [endGameOpen, setEndGameOpen] = useState(false)
+    const [meetingGroup, setMeetingGroup] = useState("")
+    const [meetingFee, setMeetingFee] = useState(20000)
+
+    const refresh = useCallback(async () => {
+        if (!user || !id) return
+        try {
+            const latest = await gameApi<GameView>(user, `/api/games/${id}`)
+            setView(latest)
+            setError(null)
+        } catch (reason) {
+            setError(apiError(reason))
+        }
+    }, [id, user])
+
+    const refreshEvents = useCallback(async (after = 0) => {
+        if (!user || !id) return
+        try {
+            const latest = await gameApi<GameLogEntry[]>(user, `/api/games/${id}/events?after=${after}`)
+            setEvents((current) => [...new Map([...current, ...latest].map((entry) => [entry.seq, entry])).values()].sort((a, b) => a.seq - b.seq))
+        } catch (reason) {
+            toast(apiError(reason), { type: "error" })
+        }
+    }, [id, user])
+
+    useEffect(() => {
+        void refresh()
+        void refreshEvents()
+        if (user) void gameApi<GameBoardData>(user, "/api/game-data").then(setBoard).catch((reason) => setError(apiError(reason)))
+    }, [refresh, refreshEvents, user])
+
+    const receiveUpdate = useCallback((body: string) => {
+        try {
+            const update = JSON.parse(body) as GameUpdate
+            const currentSequence = events.at(-1)?.seq ?? 0
+            const hasGap = update.events.some((entry, index) => entry.seq > currentSequence + index + 1)
+            if (hasGap) void refreshEvents(currentSequence)
+            else setEvents((current) => [...new Map([...current, ...update.events].map((entry) => [entry.seq, entry])).values()].sort((a, b) => a.seq - b.seq))
+            // State is not included in broadcasts, so reload it after every event update.
+            void refresh()
+        } catch (reason) {
+            console.error("Invalid game update", reason)
+            void refresh()
+            void refreshEvents(events.at(-1)?.seq ?? 0)
+        }
+    }, [events, refresh, refreshEvents])
+
+    useStompSubscription(`/topic/games/${id}`, receiveUpdate)
+
+    useEffect(() => {
+        if (connected) {
+            void refresh()
+            void refreshEvents(events.at(-1)?.seq ?? 0)
+        }
+    }, [connected])
+
+    const sendCommand = async (command: Record<string, unknown>) => {
+        if (!user || !id) return
+        setCommandBusy(true)
+        try {
+            await gameApi(user, `/api/games/${id}/commands`, { method: "POST", body: JSON.stringify(command) })
+            await refresh()
+            await refreshEvents(events.at(-1)?.seq ?? 0)
+        } catch (reason) {
+            toast(apiError(reason), { type: "error" })
+            await refresh()
+        } finally {
+            setCommandBusy(false)
+        }
+    }
+
+    if (!user) return <Alert severity="info" sx={{ mt: 2 }}>Sign in to open this game.</Alert>
+    if (!view && !error) return <Box sx={{ display: "flex", justifyContent: "center", p: 5 }}><CircularProgress /></Box>
+    if (error && !view) return <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>
+    if (!view) return null
+
+    const { game, allowedCommands } = view
+    const currentPlayer = game.state.players.find((player) => player.uid === game.state.currentPlayer)
+    const pending = game.state.pendingDecisions[0]
+    const decisionActor = pending?.player === user.uid
+    const squareByNumber = new Map(board?.squares.map((square) => [square.square, square]) ?? [])
+    const propertyBySquare = new Map(game.state.properties.map((property) => [property.square, property]))
+    const simpleCommands = ["Roll", "EndTurn", "BuyCar", "SellCar", "TakeLoan", "RepayLoan", "Pay", "DeclareBankruptcy", "Pass", "Resign"]
+    const commands = pending
+        ? allowedCommands.filter((command) => command === "Resign")
+        : allowedCommands.filter((command) => simpleCommands.includes(command))
+
+    return (
+        <Stack spacing={2} sx={{ flex: 1, minHeight: 0, py: 2, overflowY: "auto" }}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <Box>
+                    <Typography variant="h5">Game {game.id.slice(-6)}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        {game.status === "LOBBY" ? "Waiting for players" : game.status === "FINISHED" ? "Finished" : `Turn: ${currentPlayer?.name ?? "—"}`}
+                    </Typography>
+                </Box>
+                <Button component={Link} to="/games">All games</Button>
+            </Stack>
+            {error && <Alert severity="warning">{error}</Alert>}
+            <Grid container spacing={2}>
+                <Grid size={{ xs: 12, lg: 8 }}>
+                    <Box sx={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(72px, 1fr))", gap: 0.75 }}>
+                        {(board?.squares ?? Array.from({ length: 46 }, (_, index) => ({ square: index + 1, name: "Loading…", type: "", group: null, price: null, text: null })))
+                            .map((square) => {
+                                const property = propertyBySquare.get(square.square)
+                                const tokens = game.state.players.filter((player) => !player.out && player.position === square.square)
+                                const owner = game.state.players.find((player) => player.uid === property?.owner)
+                                return (
+                                    <Paper key={square.square} variant="outlined" sx={{ minHeight: 94, p: 0.75, borderTop: `4px solid ${property?.owner ? "#7355aa" : "#d7dce2"}` }}>
+                                        <Typography variant="caption" color="text.secondary">{square.square}</Typography>
+                                        <Typography variant="caption" display="block" sx={{ lineHeight: 1.15, minHeight: 28 }}>{square.name}</Typography>
+                                        {owner && <Typography variant="caption" color="primary">{owner.name}{property?.built ? " · built" : ""}{property?.mortgaged ? " · mortgaged" : ""}</Typography>}
+                                        <Stack direction="row" spacing={0.25} sx={{ mt: 0.5 }}>
+                                            {tokens.map((player) => <Avatar key={player.uid} src={player.photoUrl ?? undefined} sx={{ width: 22, height: 22, bgcolor: `hsl(${player.piece * 61} 58% 44%)` }}>{player.name.slice(0, 1)}</Avatar>)}
+                                        </Stack>
+                                    </Paper>
+                                )
+                            })}
+                    </Box>
+                </Grid>
+                <Grid size={{ xs: 12, lg: 4 }}>
+                    <Stack spacing={1.5}>
+                        {game.state.players.map((player) => (
+                            <Card key={player.uid} variant="outlined" sx={{ opacity: player.out ? 0.55 : 1 }}>
+                                <CardContent>
+                                    <Stack direction="row" spacing={1.25} alignItems="center">
+                                        <Avatar src={player.photoUrl ?? undefined}>{player.name.slice(0, 1)}</Avatar>
+                                        <Box sx={{ flex: 1 }}>
+                                            <Typography fontWeight={player.uid === game.state.currentPlayer ? 700 : 400}>{player.name}{player.uid === user.uid ? " (you)" : ""}</Typography>
+                                            <Typography variant="body2">€{player.cash.toLocaleString()} · {player.loans} loan{player.loans === 1 ? "" : "s"}{player.car ? " · car" : ""}</Typography>
+                                            <Typography variant="caption" color="text.secondary">Square {player.position}{player.out ? " · out" : ""}</Typography>
+                                        </Box>
+                                    </Stack>
+                                </CardContent>
+                            </Card>
+                        ))}
+                        {game.state.activeFinanceNews && <Card variant="outlined"><CardContent><Typography fontWeight={700}>Active Finance News</Typography><CardChapters card={board?.financeNews.find((item) => item.id === game.state.activeFinanceNews)} fallback={game.state.activeFinanceNews} /></CardContent></Card>}
+                        {game.state.finished && <Alert severity="success">{game.state.winner ? `${game.state.players.find((p) => p.uid === game.state.winner)?.name} wins.` : "The game was closed without a winner."}</Alert>}
+                    </Stack>
+                </Grid>
+            </Grid>
+            {pending && <Alert severity="warning">Waiting for {game.state.players.find((player) => player.uid === pending.player)?.name ?? "a player"} to resolve {pending.type.replace(/([A-Z])/g, " $1").trim()}.</Alert>}
+            {decisionActor && pending && <Stack direction="row" spacing={1} flexWrap="wrap">
+                <Typography sx={{ width: "100%" }} fontWeight={600}>Your decision</Typography>
+                {decisionCommands(pending, allowedCommands, sendCommand, bid, setBid, () => setChoiceOpen(true), game.state.properties, game.state.shares, game.state.bonds, board)}
+            </Stack>}
+            {commands.length > 0 && <Stack direction="row" spacing={1} flexWrap="wrap">
+                <Typography sx={{ width: "100%" }} fontWeight={600}>Actions</Typography>
+                {commands.map((command) => <Button key={command} variant={command === "Roll" ? "contained" : "outlined"} disabled={commandBusy}
+                    onClick={() => void sendCommand({ type: command })}>{commandLabel(command)}</Button>)}
+            </Stack>}
+            {game.status === "RUNNING" && !pending && game.state.currentPlayer === user.uid && <Stack spacing={1.25}>
+                <Typography variant="h6">Your assets and actions</Typography>
+                {allowedCommands.includes("BuyProperty") && propertyBySquare.get(currentPlayer?.position ?? -1)?.owner === null && <Button onClick={() => void sendCommand({ type: "BuyProperty", square: currentPlayer?.position })}>Buy {squareByNumber.get(currentPlayer?.position ?? -1)?.name ?? "property"}</Button>}
+                {allowedCommands.includes("BuyShare") && <Stack direction="row" spacing={1} flexWrap="wrap">{game.state.shares.filter((share) => !share.owner).map((share) => <Button key={share.id} onClick={() => void sendCommand({ type: "BuyShare", share: share.id })}>Buy {share.id} (€{board?.shares.find((item) => item.id === share.id)?.value.toLocaleString() ?? "?"})</Button>)}</Stack>}
+                {allowedCommands.includes("Mortgage") && <Stack direction="row" spacing={1} flexWrap="wrap">{game.state.properties.filter((property) => property.owner === user.uid && !property.mortgaged && !property.built && board?.titleDeeds.find((deed) => deed.square === property.square)?.mortgage != null).map((property) => <Button key={property.square} onClick={() => void sendCommand({ type: "Mortgage", square: property.square })}>Mortgage {squareByNumber.get(property.square)?.name}</Button>)}</Stack>}
+                {allowedCommands.includes("Redeem") && <Stack direction="row" spacing={1} flexWrap="wrap">{game.state.properties.filter((property) => property.owner === user.uid && property.mortgaged).map((property) => <Button key={property.square} onClick={() => void sendCommand({ type: "Redeem", square: property.square })}>Redeem {squareByNumber.get(property.square)?.name}</Button>)}</Stack>}
+                {allowedCommands.includes("SellBackProperty") && <Stack direction="row" spacing={1} flexWrap="wrap">{game.state.properties.filter((property) => property.owner === user.uid && !property.mortgaged && board?.titleDeeds.find((deed) => deed.square === property.square)?.buyBack?.[property.built ? "built" : "unbuilt"] != null).map((property) => <Button key={property.square} onClick={() => void sendCommand({ type: "SellBackProperty", square: property.square })}>Sell {squareByNumber.get(property.square)?.name}</Button>)}</Stack>}
+                {allowedCommands.includes("SellBackShare") && <Stack direction="row" spacing={1} flexWrap="wrap">{game.state.shares.filter((share) => share.owner === user.uid).map((share) => <Button key={share.id} onClick={() => void sendCommand({ type: "SellBackShare", share: share.id })}>Sell {share.id}</Button>)}</Stack>}
+                {allowedCommands.includes("Build") && game.state.properties.filter((property) => property.owner === user.uid && !property.built && !property.mortgaged && board?.titleDeeds.some((deed) => deed.square === property.square && deed.building)).map((property) => <Button key={property.square} onClick={() => void sendCommand({ type: "Build", squares: [property.square] })}>Build on {squareByNumber.get(property.square)?.name ?? property.square}</Button>)}
+                {allowedCommands.includes("CallShareholdersMeeting") && <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                    <TextField select size="small" label="Takeover group" value={meetingGroup} onChange={(event) => setMeetingGroup(event.target.value)} SelectProps={{ native: true }}>
+                        <option value="">Choose…</option>{(board?.groups ?? []).map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+                    </TextField>
+                    <TextField select size="small" label="Brokerage fee" value={meetingFee} onChange={(event) => setMeetingFee(Number(event.target.value))} SelectProps={{ native: true }}>
+                        {[20000, 30000, 40000, 50000, 60000, 70000, 80000, 90000, 100000, 110000, 120000].map((fee) => <option key={fee} value={fee}>€{fee.toLocaleString()}</option>)}
+                    </TextField>
+                    <Button disabled={!meetingGroup} onClick={() => void sendCommand({ type: "CallShareholdersMeeting", group: meetingGroup, brokerageFee: meetingFee })}>Call meeting</Button>
+                </Stack>}
+                {currentPlayer?.heldStockTips.length > 0 && <Stack spacing={0.5}><Typography fontWeight={600}>Held Stock Tips</Typography>{currentPlayer.heldStockTips.map((id) => <Card key={id} variant="outlined"><CardContent><Stack direction="row" justifyContent="space-between" alignItems="center"><Box><Typography fontWeight={600}>{id}</Typography><CardChapters card={board?.stockTips.find((item) => item.id === id)} fallback={id} /></Box>{id === "PV-25" && allowedCommands.includes("UseHeldStockTip") && <Button onClick={() => void sendCommand({ type: "UseHeldStockTip", card: id })}>Use</Button>}</Stack></CardContent></Card>)}</Stack>}
+            </Stack>}
+            <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 6 }}><Typography variant="h6">Properties and shares</Typography>{game.state.properties.filter((p) => p.owner).map((p) => <Typography key={p.square} variant="body2">{squareByNumber.get(p.square)?.name ?? `Square ${p.square}`} — {game.state.players.find((pl) => pl.uid === p.owner)?.name}{p.built ? " · built" : ""}{p.mortgaged ? " · mortgaged" : ""}</Typography>)}{game.state.shares.filter((s) => s.owner).map((s) => <Typography key={s.id} variant="body2">{s.id} — {game.state.players.find((pl) => pl.uid === s.owner)?.name}</Typography>)}</Grid>
+                <Grid size={{ xs: 12, md: 6 }}><Typography variant="h6">Bonds and held Stock Tips</Typography>{game.state.bonds.filter((b) => b.owner).map((b) => <Typography key={b.number} variant="body2">Bond {b.number} — {game.state.players.find((p) => p.uid === b.owner)?.name}</Typography>)}{game.state.players.map((p) => p.heldStockTips.length > 0 && <Typography key={p.uid} variant="body2">{p.name}: {p.heldStockTips.join(", ")}</Typography>)}</Grid>
+            </Grid>
+            {game.state.finished && game.state.finalStandings.length > 0 && <><Typography variant="h6">Final standings</Typography>{[...game.state.finalStandings].sort((a, b) => b.netWorth - a.netWorth).map((standing, index) => <Typography key={standing.player}>{index + 1}. {game.state.players.find((p) => p.uid === standing.player)?.name ?? standing.player} — €{standing.netWorth.toLocaleString()} net worth (€{standing.cash.toLocaleString()} cash)</Typography>)}</>}
+            {allowedCommands.includes("EndGame") && <Button color="error" onClick={() => setEndGameOpen(true)}>End game</Button>}
+            <Divider />
+            <Typography variant="h6">Recent events</Typography>
+            <Stack spacing={0.5}>
+                {events.slice(-12).reverse().map((entry) => <Typography key={entry.seq} variant="body2" color="text.secondary">{entry.seq}. {entry.type}</Typography>)}
+            </Stack>
+            <Dialog open={choiceOpen} onClose={() => setChoiceOpen(false)}>
+                <DialogTitle>Choose a Stock Tip effect</DialogTitle>
+                <DialogContent>
+                    <Stack spacing={1} sx={{ pt: 1 }}>
+                        {pending?.type === "StockTipChoice" && <CardChapters card={board?.stockTips.find((item) => item.id === pending.card)} fallback={String(pending.card ?? "Stock Tip")} />}
+                        {Array.isArray(pending?.options) && pending.options.map((option) => (
+                            <Button key={String(option)} disabled={commandBusy} onClick={() => {
+                                setChoiceOpen(false)
+                                void sendCommand({ type: "ChooseStockTipOption", option })
+                            }}>{String(option)}</Button>
+                        ))}
+                    </Stack>
+                </DialogContent>
+                <DialogActions><Button onClick={() => setChoiceOpen(false)}>Cancel</Button></DialogActions>
+            </Dialog>
+            <Dialog open={endGameOpen} onClose={() => setEndGameOpen(false)}>
+                <DialogTitle>End this game?</DialogTitle>
+                <DialogContent>The game will be closed without a winner.</DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setEndGameOpen(false)}>Cancel</Button>
+                    <Button color="error" disabled={commandBusy} onClick={() => {
+                        setEndGameOpen(false)
+                        void sendCommand({ type: "EndGame" })
+                    }}>End game</Button>
+                </DialogActions>
+            </Dialog>
+        </Stack>
+    )
+}
+
+const CardChapters = ({ card, fallback }: { card: GameBoardData["financeNews"][number] | undefined; fallback: string }) => <Stack spacing={0.25}>{card?.chapters.map((chapter, index) => <Typography key={index} variant="body2" fontWeight={chapter.type === "header" ? 700 : undefined} fontStyle={chapter["font-style"] === "italic" ? "italic" : undefined}>{chapter.text}</Typography>) ?? <Typography variant="body2">{fallback}</Typography>}</Stack>
+
+const commandLabel = (command: string) => ({
+    EndTurn: "End turn",
+    BuyCar: "Buy car",
+    SellCar: "Sell car",
+    TakeLoan: "Take loan",
+    RepayLoan: "Repay loan",
+    DeclareBankruptcy: "Declare bankruptcy",
+}[command] ?? command)
+
+const decisionCommands = (
+    pending: Game["state"]["pendingDecisions"][number],
+    allowed: string[],
+    send: (command: Record<string, unknown>) => Promise<void>,
+    bid: string,
+    setBid: (value: string) => void,
+    openChoice: () => void,
+    properties: Game["state"]["properties"],
+    shares: Game["state"]["shares"],
+    bonds: Game["state"]["bonds"],
+    board: GameBoardData | null,
+) => {
+    switch (pending.type) {
+        case "RaiseFunds":
+            return <>
+                {allowed.includes("TakeLoan") && <Button onClick={() => void send({ type: "TakeLoan" })}>Take loan</Button>}
+                {allowed.includes("SellCar") && <Button onClick={() => void send({ type: "SellCar" })}>Sell car</Button>}
+                {allowed.includes("Mortgage") && properties.filter((property) => property.owner === pending.player && !property.mortgaged && !property.built && board?.titleDeeds.find((deed) => deed.square === property.square)?.mortgage != null).map((property) => <Button key={`mortgage-${property.square}`} onClick={() => void send({ type: "Mortgage", square: property.square })}>Mortgage {board?.squares.find((square) => square.square === property.square)?.name ?? property.square}</Button>)}
+                {allowed.includes("SellBackProperty") && properties.filter((property) => property.owner === pending.player && !property.mortgaged && board?.titleDeeds.find((deed) => deed.square === property.square)?.buyBack?.[property.built ? "built" : "unbuilt"] != null).map((property) => <Button key={`sell-${property.square}`} onClick={() => void send({ type: "SellBackProperty", square: property.square })}>Sell {board?.squares.find((square) => square.square === property.square)?.name ?? property.square}</Button>)}
+                {allowed.includes("SellBackShare") && shares.filter((share) => share.owner === pending.player).map((share) => <Button key={share.id} onClick={() => void send({ type: "SellBackShare", share: share.id })}>Sell {share.id}</Button>)}
+                {allowed.includes("Pay") && <Button onClick={() => void send({ type: "Pay" })}>Pay now</Button>}
+                {allowed.includes("DeclareBankruptcy") && <Button color="error" onClick={() => void send({ type: "DeclareBankruptcy" })}>Declare bankruptcy</Button>}
+            </>
+        case "BondOffer":
+            return <>
+                {allowed.includes("BuyBond") && bonds.filter((bond) => !bond.owner).map((bond) => <Button key={bond.number} onClick={() => void send({ type: "BuyBond", number: bond.number })}>Buy bond {bond.number}</Button>)}
+                <Button onClick={() => void send({ type: "Pass" })}>Pass</Button>
+            </>
+        case "BondAuction":
+        case "AssetAuction":
+            return <>
+                <TextField size="small" label="Bid" type="number" value={bid} onChange={(event) => setBid(event.target.value)} />
+                <Button disabled={Number(bid) < 0} onClick={() => void send({ type: pending.type === "BondAuction" ? "BidBond" : "BidAsset", amount: Number(bid) })}>Submit bid / pass</Button>
+            </>
+        case "NewsDirection":
+            return <>
+                <Button onClick={() => void send({ type: "ChooseNewsDirection", forward: true })}>Forward</Button>
+                <Button onClick={() => void send({ type: "ChooseNewsDirection", forward: false })}>Backward</Button>
+            </>
+        case "StockTipChoice":
+            return <Button onClick={openChoice}>Choose card option</Button>
+        default:
+            return null
+    }
+}
+
+export default GameRoom

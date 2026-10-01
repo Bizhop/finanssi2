@@ -1,9 +1,32 @@
-# 13 Frontend (outline)
+# 13 Frontend
 
-Detail this step once the backend steps are done, and split it into several files like the backend steps. The backend exposes
-everything needed: game state, events, `allowedCommands` per user and the per-game topic.
+Status: implementation complete; review remains. The games lobby supports listing, creating, joining, leaving, configuring and
+starting games. The game room loads live state and static board data, renders the board and player assets, supports the backend's
+game commands and pending decisions, and displays card text and final standings. The user has deferred visual work until later.
 
-Likely steps, in order:
+## Substeps
+
+| # | Result | Implementation |
+|---|---|---|
+| 13.1 | Authenticated games lobby with settings and live lobby refresh | Implemented |
+| 13.2 | Game room with state reloads, event log and reconnect refresh | Implemented |
+| 13.3 | Board, players, assets, bonds and held cards | Implemented |
+| 13.4 | Command buttons and dialogs for pending decisions and parameterized actions | Implemented |
+| 13.5 | Finance News and Stock Tips display | Implemented |
+| 13.6 | Dev page with mocked game states | Implemented |
+
+## Review status
+
+- Visual redesign is deferred by the user; the current UI is functional but needs substantial visual work.
+- The dev page at `/game-room.html` previews mocked running and finished states without Google sign-in or a backend. Its mock
+  command endpoint does not simulate state transitions.
+- Live multiplayer play and pending-decision flows still need manual review against the backend. This requires at least two
+  Google-authenticated players; the user plans to try that later.
+- Backend `compileJava` and `bootJar` succeeded here. The user confirmed that a local IntelliJ `clean build` succeeds after clearing
+  a stale compiled `GameRandomConfig.class`.
+- Frontend typechecking and dev-page rendering have not been verified in this environment because Deno is unavailable.
+
+Keep transport and shared API types in `src/components/gameApi.ts`, the games list in `Games.tsx`, and the live room in `GameRoom.tsx`.
 
 1. Games page: list, create, join, start (step 02 API, `/topic/games`); the creator picks the game settings (steps 04 and 10), with
    the house rule "unlimited bank loans" marked as recommended

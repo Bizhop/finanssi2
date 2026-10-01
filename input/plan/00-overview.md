@@ -22,7 +22,7 @@ interpretations in [open-questions.md](open-questions.md) so they stay in one pl
 | 10 | [Stock Tips](10-stock-tips.md) | Stock Tip deck, held cards, all card effects |
 | 11 | [Shareholders' meeting](11-shareholders-meeting.md) | Business group takeover |
 | 12 | [Game end](12-game-end.md) | Win condition, full bankruptcy, finished games |
-| 13 | [Frontend](13-frontend.md) | Outline only; detailed when the backend is in place |
+| 13 | [Frontend](13-frontend.md) | Games lobby and room implemented; visual and live-flow review remain |
 
 After step 03 the game is playable end to end in tests: squares without an implementation only log that the player landed there.
 Each later step replaces some of those placeholders.
@@ -37,7 +37,7 @@ Each later step replaces some of those placeholders.
 | 10 | Done |
 | 11 | Done |
 | 12 | Done |
-| 13 | Planned |
+| 13 | In progress; implementation present, visual and live-flow review deferred |
 
 How to continue a step: read the step file and [open-questions.md](open-questions.md) (decisions R*, B*, D*, I*), implement in
 `game.engine` with tests in the same style as the existing ones (`TestGame`, `EngineTests`, `ScriptedDice`), run

@@ -44,7 +44,7 @@ export const fakeChatMessages = (count: number): FakeChatMessage[] =>
 
 /** Makes the app see a logged-in user; only getIdToken() is used by the app */
 export const fakeLogin = () => {
-    const fakeUser = { email: "tester@example.com", getIdToken: () => Promise.resolve("fake-token") }
+    const fakeUser = { uid: "tester", email: "tester@example.com", displayName: "Maija Meikäläinen", photoURL: null, getIdToken: () => Promise.resolve("fake-token") }
     // deno-lint-ignore no-explicit-any
     const fakeAuth = auth as any
     fakeAuth.onAuthStateChanged = (callback: (user: unknown) => void) => {
