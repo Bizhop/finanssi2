@@ -103,6 +103,10 @@ public sealed interface GameEvent {
     }
 
     record PlayerBankrupt(String player, String creditor) implements GameEvent {}
+    record PlayerResigned(String player) implements GameEvent {}
+    record GameEnded(String winner, List<PlayerStanding> standings) implements GameEvent {
+        public GameEnded { standings = List.copyOf(standings); }
+    }
 
     /** The bankrupt player's properties (unmortgaged) and shares went back to the bank */
     record AssetsReturned(String player, List<Integer> properties, List<String> shares, List<Integer> bonds) implements GameEvent {

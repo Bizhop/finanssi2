@@ -194,8 +194,8 @@ class GameControllerTest {
 
         var forA = get("/" + GAME_ID, "a").getBody();
         assertEquals(GAME_ID, forA.get("game").get("id").asString());
-        assertEquals("[\"BuyCar\",\"Roll\",\"TakeLoan\"]", forA.get("allowedCommands").toString());
-        assertEquals("[]", get("/" + GAME_ID, "b").getBody().get("allowedCommands").toString());
+        assertEquals("[\"BuyCar\",\"EndGame\",\"Resign\",\"Roll\",\"TakeLoan\"]", forA.get("allowedCommands").toString());
+        assertEquals("[\"Resign\"]", get("/" + GAME_ID, "b").getBody().get("allowedCommands").toString());
     }
 
     @Test

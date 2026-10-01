@@ -31,13 +31,15 @@ import java.util.List;
         @JsonSubTypes.Type(GameCommand.UseHeldStockTip.class),
         @JsonSubTypes.Type(GameCommand.BidAsset.class),
         @JsonSubTypes.Type(GameCommand.CallShareholdersMeeting.class),
+        @JsonSubTypes.Type(GameCommand.Resign.class),
+        @JsonSubTypes.Type(GameCommand.EndGame.class),
 })
 public sealed interface GameCommand permits GameCommand.Roll, GameCommand.EndTurn, GameCommand.BuyCar, GameCommand.SellCar,
         GameCommand.TakeLoan, GameCommand.RepayLoan, GameCommand.Pay, GameCommand.DeclareBankruptcy, GameCommand.BuyProperty,
         GameCommand.BuyShare, GameCommand.Mortgage, GameCommand.Redeem, GameCommand.SellBackProperty, GameCommand.SellBackShare,
         GameCommand.Build, GameCommand.BuyBond, GameCommand.Pass, GameCommand.BidBond, GameCommand.ChooseNewsDirection,
         GameCommand.ChooseStockTipOption, GameCommand.UseHeldStockTip, GameCommand.BidAsset,
-        GameCommand.CallShareholdersMeeting {
+        GameCommand.CallShareholdersMeeting, GameCommand.Resign, GameCommand.EndGame {
     record Roll() implements GameCommand {}
 
     record EndTurn() implements GameCommand {}
@@ -84,4 +86,6 @@ public sealed interface GameCommand permits GameCommand.Roll, GameCommand.EndTur
     record UseHeldStockTip(String card) implements GameCommand {}
     record BidAsset(int amount) implements GameCommand {}
     record CallShareholdersMeeting(String group, int brokerageFee) implements GameCommand {}
+    record Resign() implements GameCommand {}
+    record EndGame() implements GameCommand {}
 }

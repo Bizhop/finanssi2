@@ -8,11 +8,14 @@ import fi.bizhop.finanssi2.game.engine.GameCommand.Roll;
 import fi.bizhop.finanssi2.game.engine.GameCommand.SellCar;
 import fi.bizhop.finanssi2.game.engine.GameCommand.TakeLoan;
 import fi.bizhop.finanssi2.game.engine.GameEvent.BankEntranceRoll;
+import fi.bizhop.finanssi2.game.engine.GameEvent.CarSold;
 import fi.bizhop.finanssi2.game.engine.GameEvent.LoanRepaid;
 import fi.bizhop.finanssi2.game.engine.GameEvent.LoanTaken;
 import fi.bizhop.finanssi2.game.engine.GameEvent.MoneyTransferred;
 import fi.bizhop.finanssi2.game.engine.GameEvent.PaymentDue;
 import fi.bizhop.finanssi2.game.engine.GameEvent.PlayerBankrupt;
+import fi.bizhop.finanssi2.game.engine.GameEvent.PropertyMortgaged;
+import fi.bizhop.finanssi2.game.engine.GameEvent.ShareSoldBack;
 import fi.bizhop.finanssi2.game.engine.GameEvent.TurnStarted;
 import fi.bizhop.finanssi2.game.engine.PendingDecision.RaiseFunds;
 import org.junit.jupiter.api.Test;
@@ -25,6 +28,7 @@ import static fi.bizhop.finanssi2.game.engine.EngineTests.roll;
 import static fi.bizhop.finanssi2.game.engine.EngineTests.send;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MoneyAndLoansTest {
@@ -139,7 +143,7 @@ class MoneyAndLoansTest {
 
         assertEquals(new PaymentDue("a", null, 55_000), events.getLast());
         assertEquals(40_000, player(state, "a").getCash());
-        assertEquals(List.of("SellCar"), ENGINE.allowedCommands(state, "a"));
+        assertEquals(List.of("Resign", "SellCar"), ENGINE.allowedCommands(state, "a"));
         assertRejected(RuleViolation.class, state, "a", new TakeLoan());
         assertRejected(RuleViolation.class, state, "a", new Pay());
         // Selling the car raises enough, so bankruptcy is refused
@@ -154,7 +158,7 @@ class MoneyAndLoansTest {
                 new MoneyTransferred("a", null, 5_000, MoneyReason.LOAN_INTEREST)), payment);
         assertEquals(10_000, player(state, "a").getCash());
         assertTrue(state.getPendingDecisions().isEmpty());
-        assertEquals(List.of("EndTurn"), ENGINE.allowedCommands(state, "a"));
+        assertEquals(List.of("EndTurn", "Resign"), ENGINE.allowedCommands(state, "a"));
     }
 
     @Test
@@ -221,14 +225,42 @@ class MoneyAndLoansTest {
         assertEquals("b", state.getCurrentPlayer());
         assertEquals(TurnPhase.BEFORE_ROLL, state.getPhase());
         // The cancelled loan is back in the pool
-        assertTrue(ENGINE.allowedCommands(state, "c").isEmpty());
+        assertEquals(List.of("Resign"), ENGINE.allowedCommands(state, "c"));
         state.setCurrentPlayer("c");
-        assertTrue(ENGINE.allowedCommands(state, "c").contains("TakeLoan"));
+        assertTrue(ENGINE.allowedCommands(state, "c").containsAll(List.of("Resign", "TakeLoan")));
 
         // a is skipped from now on
         state.setPhase(TurnPhase.AFTER_ROLL);
         send(state, "c", new EndTurn());
         assertEquals("b", state.getCurrentPlayer());
+    }
+
+    @Test
+    void bankruptcyLiquidatesLoansCarSharesAndBestPropertyOptionBeforePayingCreditor() {
+        var state = TestGame.players("a", "b").at("a", 45).car("a").owns("a", 3)
+                .ownsShares("a", "OS-KASITEOLLISUUS-1").loans("b", 4).cash("a", 1_000).state();
+        state.bond(1).setOwner("a");
+        player(state, "a").getHeldStockTips().add("PV-01");
+        state.getPendingDecisions().add(new PendingDecision.RaiseFunds("a", "b",
+                List.of(new Charge(200_000, MoneyReason.RENT))));
+
+        var events = send(state, "a", new DeclareBankruptcy());
+
+        assertTrue(events.contains(new LoanTaken("a", 1)));
+        assertTrue(events.contains(new LoanTaken("a", 2)));
+        assertTrue(events.contains(new CarSold("a")));
+        assertTrue(events.contains(new PropertyMortgaged("a", 3)));
+        assertTrue(events.contains(new ShareSoldBack("a", "OS-KASITEOLLISUUS-1")));
+        assertTrue(events.contains(new GameEvent.HeldStockTipsReturned("a", List.of("PV-01"))));
+        assertTrue(events.stream().anyMatch(event -> event instanceof MoneyTransferred transfer
+                && "a".equals(transfer.from()) && "b".equals(transfer.to()) && transfer.reason() == MoneyReason.BANKRUPTCY));
+        assertNull(state.property(3).getOwner());
+        assertFalse(state.property(3).isMortgaged());
+        assertNull(state.share("OS-KASITEOLLISUUS-1").getOwner());
+        assertNull(state.bond(1).getOwner());
+        assertTrue(player(state, "a").isOut());
+        assertEquals(0, player(state, "a").getLoans());
+        assertEquals(0, player(state, "a").getCash());
     }
 
     @Test

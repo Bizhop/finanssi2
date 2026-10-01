@@ -51,7 +51,8 @@ public final class EngineTests {
     record Snapshot(String currentPlayer, TurnPhase phase, List<String> turnOrder, List<PlayerSnapshot> players,
                     List<PendingDecision> pendingDecisions, GameSettings settings, List<PropertySnapshot> properties,
                     List<ShareSnapshot> shares, List<BondSnapshot> bonds, boolean boughtThisTurn, List<String> financeNewsDeck,
-                    String activeFinanceNews, List<String> stockTipDeck) {
+                    String activeFinanceNews, List<String> stockTipDeck, boolean finished, String winner,
+                    List<PlayerStanding> finalStandings) {
         static Snapshot of(GameState state) {
             return new Snapshot(state.getCurrentPlayer(), state.getPhase(), List.copyOf(state.getTurnOrder()),
                     state.getPlayers().stream().map(PlayerSnapshot::of).toList(),
@@ -59,7 +60,8 @@ public final class EngineTests {
                     state.getProperties().stream().map(PropertySnapshot::of).toList(),
                     state.getShares().stream().map(ShareSnapshot::of).toList(),
                     state.getBonds().stream().map(BondSnapshot::of).toList(), state.isBoughtThisTurn(),
-                    List.copyOf(state.getFinanceNewsDeck()), state.getActiveFinanceNews(), List.copyOf(state.getStockTipDeck()));
+                    List.copyOf(state.getFinanceNewsDeck()), state.getActiveFinanceNews(), List.copyOf(state.getStockTipDeck()),
+                    state.isFinished(), state.getWinner(), List.copyOf(state.getFinalStandings()));
         }
     }
 

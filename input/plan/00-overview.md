@@ -36,7 +36,7 @@ Each later step replaces some of those placeholders.
 | 09 | Done as far as possible; remaining integrations deferred to steps 10–11 |
 | 10 | Done |
 | 11 | Done |
-| 12 | In progress |
+| 12 | Done |
 | 13 | Planned |
 
 How to continue a step: read the step file and [open-questions.md](open-questions.md) (decisions R*, B*, D*, I*), implement in

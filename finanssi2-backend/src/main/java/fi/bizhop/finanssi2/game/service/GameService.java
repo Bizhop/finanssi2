@@ -139,14 +139,27 @@ public class GameService {
         if (game.getStatus() != GameStatus.RUNNING) {
             throw new RuleViolation("The game is not running");
         }
-        var events = gameEngine.handle(game.getState(), user.uid(), command, diceSource.forGame(id));
+        List<GameEvent> events;
+        if (command instanceof GameCommand.EndGame) {
+            requireCreator(game, user, "Only the creator can end the game");
+            events = gameEngine.endWithoutWinner(game.getState());
+            game.setStatus(GameStatus.FINISHED);
+        } else {
+            events = gameEngine.handle(game.getState(), user.uid(), command, diceSource.forGame(id));
+            if (game.getState().isFinished()) game.setStatus(GameStatus.FINISHED);
+        }
         return commit(game, events, false).entries();
     }
 
     /** Command types the user may send in the game right now */
     public List<String> allowedCommands(Game game, User user) {
         return switch (game.getStatus()) {
-            case RUNNING -> gameEngine.allowedCommands(game.getState(), user.uid());
+            case RUNNING -> {
+                var allowed = new java.util.ArrayList<>(gameEngine.allowedCommands(game.getState(), user.uid()));
+                if (game.getCreator().equals(user.uid())) allowed.add(GameCommand.EndGame.class.getSimpleName());
+                allowed.sort(String::compareTo);
+                yield List.copyOf(allowed);
+            }
             case LOBBY, FINISHED -> List.of();
         };
     }

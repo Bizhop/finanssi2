@@ -1,5 +1,8 @@
 # 12 Game end
 
+Status: done. The engine now performs complete bankruptcy liquidation, records final standings, detects cash-and-group wins and the
+last-player win, and supports resignation and creator-initiated closure.
+
 Winning, finishing bankruptcy handling, and closing a game.
 
 ## Win condition

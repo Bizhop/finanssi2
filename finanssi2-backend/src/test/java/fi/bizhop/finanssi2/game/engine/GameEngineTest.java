@@ -116,7 +116,7 @@ class GameEngineTest {
         assertRejected(NotYourTurn.class, state, "b", new Roll());
         assertRejected(NotYourTurn.class, state, "b", new SellCar());
         assertRejected(NotYourTurn.class, state, "x", new Roll());
-        assertEquals(List.of(), ENGINE.allowedCommands(state, "b"));
+        assertEquals(List.of("Resign"), ENGINE.allowedCommands(state, "b"));
     }
 
     @Test
@@ -149,7 +149,7 @@ class GameEngineTest {
         assertTrue(state.current().isCar());
         assertEquals(25_000, state.current().getCash());
         assertEquals(TurnPhase.BEFORE_ROLL, state.getPhase());
-        assertEquals(List.of("Roll", "SellCar", "TakeLoan"), ENGINE.allowedCommands(state, "a"));
+        assertEquals(List.of("Resign", "Roll", "SellCar", "TakeLoan"), ENGINE.allowedCommands(state, "a"));
     }
 
     @Test
@@ -181,10 +181,10 @@ class GameEngineTest {
 
     @Test
     void testAllowedCommands() {
-        assertEquals(List.of("BuyCar", "Roll", "TakeLoan"), ENGINE.allowedCommands(TestGame.players("a", "b").state(), "a"));
-        assertEquals(List.of("Roll", "TakeLoan"), ENGINE.allowedCommands(TestGame.players("a", "b").cash("a", 0).state(), "a"));
-        assertEquals(List.of("EndTurn", "TakeLoan"), ENGINE.allowedCommands(TestGame.players("a", "b").afterRoll().state(), "a"));
-        assertEquals(List.of("EndTurn", "RepayLoan", "SellCar", "TakeLoan"),
+        assertEquals(List.of("BuyCar", "Resign", "Roll", "TakeLoan"), ENGINE.allowedCommands(TestGame.players("a", "b").state(), "a"));
+        assertEquals(List.of("Resign", "Roll", "TakeLoan"), ENGINE.allowedCommands(TestGame.players("a", "b").cash("a", 0).state(), "a"));
+        assertEquals(List.of("EndTurn", "Resign", "TakeLoan"), ENGINE.allowedCommands(TestGame.players("a", "b").afterRoll().state(), "a"));
+        assertEquals(List.of("EndTurn", "RepayLoan", "Resign", "SellCar", "TakeLoan"),
                 ENGINE.allowedCommands(TestGame.players("a", "b").car("a").loans("a", 1).afterRoll().state(), "a"));
     }
 }

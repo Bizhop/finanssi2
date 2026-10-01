@@ -32,6 +32,9 @@ public class GameState {
     List<String> stockTipDeck = new ArrayList<>();
     // The current lasting Finance News card, if any.
     String activeFinanceNews;
+    boolean finished;
+    String winner;
+    List<PlayerStanding> finalStandings = new ArrayList<>();
 
     /** The player who may act now: the one addressed by the first pending decision, otherwise the one whose turn it is */
     public String actor() {
@@ -60,6 +63,12 @@ public class GameState {
     /** The player whose turn it is */
     public PlayerState current() {
         return player(currentPlayer).orElseThrow();
+    }
+
+    public void finish(String winner, List<PlayerStanding> standings) {
+        this.finished = true;
+        this.winner = winner;
+        this.finalStandings = List.copyOf(standings);
     }
 
     public Optional<PlayerState> player(String uid) {

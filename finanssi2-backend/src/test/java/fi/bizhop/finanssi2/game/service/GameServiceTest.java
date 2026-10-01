@@ -37,6 +37,7 @@ import java.util.Optional;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -310,10 +311,52 @@ class GameServiceTest {
     }
 
     @Test
+    void creatorCanEndGameWithoutWinnerAndServiceMarksItFinished() {
+        var game = running();
+        saveSucceeds();
+
+        var entries = service().command(GAME_ID, user("a"), new GameCommand.EndGame());
+
+        assertEquals(GameStatus.FINISHED, game.getStatus());
+        assertTrue(game.getState().isFinished());
+        assertNull(game.getState().getWinner());
+        assertEquals("GameEnded", entries.getFirst().type());
+        assertEquals(List.of(), service().allowedCommands(game, user("a")));
+        assertThrows(RuleViolation.class, () -> service().command(GAME_ID, user("a"), new GameCommand.Roll()));
+    }
+
+    @Test
+    void onlyCreatorCanEndGame() {
+        running();
+        assertThrows(NotAllowedException.class, () -> service().command(GAME_ID, user("b"), new GameCommand.EndGame()));
+        verify(gameRepository, never()).save(any());
+    }
+
+    @Test
+    void engineWinMarksPersistedGameFinished() {
+        var game = running();
+        game.getState().getPlayers().stream().filter(player -> player.getUid().equals("a")).findFirst().orElseThrow().setCash(1_000_000);
+        new GameSetup(gameData).initAssets(game.getState(), gameData);
+        for (var group : List.of("KASITEOLLISUUS", "PALVELUYHTIO")) {
+            gameData.group(group).properties().forEach(square -> game.getState().property(square).setOwner("a"));
+            gameData.sharesOf(group).forEach(share -> game.getState().share(share.id()).setOwner("a"));
+        }
+        game.getState().setPhase(fi.bizhop.finanssi2.game.engine.TurnPhase.AFTER_ROLL);
+        saveSucceeds();
+
+        var entries = service().command(GAME_ID, user("a"), new GameCommand.EndTurn());
+
+        assertEquals(GameStatus.FINISHED, game.getStatus());
+        assertTrue(game.getState().isFinished());
+        assertEquals("a", game.getState().getWinner());
+        assertEquals("GameEnded", entries.getLast().type());
+    }
+
+    @Test
     void testAllowedCommands() {
         var game = running();
-        assertEquals(List.of("BuyCar", "Roll", "TakeLoan"), service().allowedCommands(game, user("a")));
-        assertEquals(List.of(), service().allowedCommands(game, user("b")));
+        assertEquals(List.of("BuyCar", "EndGame", "Resign", "Roll", "TakeLoan"), service().allowedCommands(game, user("a")));
+        assertEquals(List.of("Resign"), service().allowedCommands(game, user("b")));
         assertEquals(List.of(), service().allowedCommands(lobby("a", "b"), user("a")));
     }
 
