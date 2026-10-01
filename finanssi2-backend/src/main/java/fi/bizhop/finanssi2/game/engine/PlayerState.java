@@ -20,6 +20,10 @@ public class PlayerState {
     int loans;
     // Out of the game (bankrupt); skipped in turn order
     boolean out;
+    // Turns still to skip in jail (square 24)
+    int missedTurns;
+    // Left jail and not on square 1 since: square 36 doesn't affect the player
+    boolean jailExemption;
 
     public PlayerState(String uid, String name, String photoUrl, int piece) {
         this.uid = uid;

@@ -22,7 +22,7 @@ All decided (R1–R44 under "Decided").
 
 ## Implementation decisions
 
-Made while implementing. I1–I18 are reviewed and accepted; add new ones at the end for review.
+Made while implementing. I1–I23 are reviewed and accepted; add new ones at the end for review.
 
 | # | Decision | Step |
 |---|---|---|
@@ -44,6 +44,11 @@ Made while implementing. I1–I18 are reviewed and accepted; add new ones at the
 | I16 | Selling back is two commands, `SellBackProperty(square)` and `SellBackShare(share)`, instead of one with either parameter | 05 |
 | I17 | The "can still raise funds" check counts, for each unmortgaged property, the larger of its mortgage and buy-back value, and every share's buy-back value. Mortgaged properties add nothing, since redeeming is not allowed while raising funds | 05 |
 | I18 | Building is not a purchase: it doesn't use up the one purchase per turn. Each building is its own payment and `PropertyBuilt` event. Building pieces are not counted, since there are enough for every property | 06 |
+| I19 | A payment charged while the player already has one pending is queued even if the cash covers it, and needs its own `Pay` (no automatic payment once the earlier one is settled). Bankruptcy drops the player's other queued payments | 07 |
+| I20 | Landing in jail and rolling for missed turns is in effect the last thing in the turn, since optional actions come before rolling; the player ends the turn as usual (`EndTurn`), and the missed turns start with their next turn. Each skipped turn is a `TurnSkipped` event when the turn passes; when everyone left is in jail, turns are skipped until someone may play | 07 |
+| I21 | Square 36 sends the player to jail by a move to 24 (`PieceMoved`, `LandedOn 24`, `JailRoll`). An exempt player gets a `JailExempt` event and rolls no die | 07 |
+| I22 | Square 41 counts groups where the payer owns a property, mortgaged or not. Each shareholder owed something gets a `PlayerDividendCharged` event listing the shares; shareholders owed nothing get no event | 07 |
+| I23 | Dividend and share crash squares with nothing to pay emit no events beyond `LandedOn`. Square 46 pays its dividend before the (step 08) bond purchase | 07 |
 
 ## Decided
 
@@ -103,4 +108,5 @@ Made while implementing. I1–I18 are reviewed and accepted; add new ones at the
 | R44 | "Ei koske … yritysryhmissä" on Stock Tips | Means complete groups (rules text): assets in a complete group the affected player owns are exempt; for swaps and transfers, both sides' | 10 |
 | R32 | "Pakkomyynti" auction | The player chooses the asset; the other players bid as on square 38 (R8); no bids, no sale. Minimum bid is a game setting (L3): none by default (the rules), or the house rule "half the nominal price" | 04, 08, 10 |
 | L1 | Total bank loan limit | Game setting: official 6 loans in total (default), or house rule "unlimited bank loans" (still 3 per player), which the frontend recommends. Under the official limit the first players get the loans, and with them the money for early purchases, whose returns outweigh the small interest | 02, 04, 13 |
+| R45 | A bankrupt player's assets | All go back to the bank: properties, shares, bonds and the car; loans are cancelled | 04, 05, 08, 12 |
 | L3 | House rule: minimum bid in the "Pakkomyynti" auction | Game setting next to the loan limit. Official (default): no minimum. House rule: bids start at half the nominal price (deed price plus building price if built, or the share price) | 04, 10 |

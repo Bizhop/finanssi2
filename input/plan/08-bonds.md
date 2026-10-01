@@ -23,6 +23,31 @@ Twelve bonds, numbered 1–12, 500 each. A player holds any number; bonds cannot
   when the bank has none), "Obligaatiovoitto!" pays 25 000 on bond 1 and returns it, and "Pakkomyynti" auctions an asset with the
   square 38 bid mechanism. Keep bond ownership changes and the bidding in one place each.
 
+## Implementation notes
+
+Starting points in `game.engine` (steps 03–07):
+
+- **Bond state**: a `BondState(number, owner)` list on `GameState`, created in `GameSetup.initAssets` next to properties and shares
+  (`BOND_COUNT`, `BOND_PRICE`, `SMALL_DRAW_PRIZES`, `GRAND_DRAW_PRIZES` are in `GameConstants`). Add it to `EngineTests.Snapshot` so
+  `assertRejected` covers it, and to the `GameMongoTests` round trip. Keep ownership changes in one helper (a `Bonds` class or
+  methods on `Ownership`) for the Stock Tips in step 10.
+- **Square handlers**: square 45 is `SMALL_BOND_DRAW` (with `bondPurchase: true`), 46 is `BOND_PURCHASE_AND_DIVIDEND`
+  (`bondPurchaseAndDividend` pays the dividend, then emits a `NotImplemented` placeholder for the purchase: replace that), 38 is
+  `BOND_AUCTION`. Register handlers in the `GameEngine` constructor.
+- **Decisions**: `PendingDecision` is a sealed interface with only `RaiseFunds` so far; `GameEngine.decisionCommands` switches over
+  it, and `validate` casts the first decision to `RaiseFunds` for `Pay` and `DeclareBankruptcy` (check the type instead). The bond
+  offer needs something to run when it resolves (the small or grand draw), so give the decision a field for what follows, rather
+  than running the draw in the handler. New commands go in `GameCommand`, `TIMING` (as `DECISION`) and `candidateCommands`
+  (one `BuyBond` per number; for a bid with an amount, add one representative value so `allowedCommands` lists it, see I15).
+- **Order with payments**: a bond offer and a `RaiseFunds` can be pending at once; `Payments.charge` only waits for the player's
+  pending `RaiseFunds` (I19), so other decision types don't hold payments back.
+- **Sealed bids** (R8): the decision queue lets one player act at a time, so bidding goes in turn order from the current player; keep
+  the bids out of API responses (`@JsonIgnore`, as the decks, I6) until the last bid is in, then emit them in one event.
+- **Money**: `Payments.toBank` for purchases and winning bids, `fromBank` for prizes; new `MoneyReason`s `BOND_PURCHASE`,
+  `BOND_PRIZE`. Prizes and the bond price go through `Rules`, so step 09 can change them.
+- **Bankruptcy**: `declareBankruptcy` returns properties and shares to the bank; bonds go back too (R45: all assets of a bankrupt
+  player return to the bank), listed in `AssetsReturned`.
+
 ## Tests
 
 - Buying on 45 and 46, passing, no bonds left

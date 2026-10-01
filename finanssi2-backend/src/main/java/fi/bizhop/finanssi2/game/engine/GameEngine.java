@@ -21,7 +21,13 @@ import fi.bizhop.finanssi2.game.engine.GameCommand.Roll;
 import fi.bizhop.finanssi2.game.engine.GameCommand.SellCar;
 import fi.bizhop.finanssi2.game.engine.GameCommand.TakeLoan;
 import fi.bizhop.finanssi2.game.engine.GameEvent.AssetsReturned;
+import fi.bizhop.finanssi2.game.engine.GameEvent.BankDividend;
 import fi.bizhop.finanssi2.game.engine.GameEvent.BankEntranceRoll;
+import fi.bizhop.finanssi2.game.engine.GameEvent.GoToJailRoll;
+import fi.bizhop.finanssi2.game.engine.GameEvent.JailExempt;
+import fi.bizhop.finanssi2.game.engine.GameEvent.JailRoll;
+import fi.bizhop.finanssi2.game.engine.GameEvent.PlayerDividendCharged;
+import fi.bizhop.finanssi2.game.engine.GameEvent.TurnSkipped;
 import fi.bizhop.finanssi2.game.engine.GameEvent.PropertyBought;
 import fi.bizhop.finanssi2.game.engine.GameEvent.PropertyBuilt;
 import fi.bizhop.finanssi2.game.engine.GameEvent.PropertyMortgaged;
@@ -101,6 +107,7 @@ public class GameEngine {
     static final int REPAY_LOAN_SQUARE = 43;
     static final int BRANCH_OFFICE_SQUARE = 11;
     static final int HEAD_OFFICE_FIRST_SQUARE = 35;
+    static final int JAIL_SQUARE = 24;
 
     final GameData gameData;
     final Rules rules;
@@ -116,6 +123,13 @@ public class GameEngine {
         squareHandlers.put(SquareType.BANK_ENTRANCE, this::bankEntrance);
         squareHandlers.put(SquareType.REPAY_LOAN, this::repayLoanSquare);
         squareHandlers.put(SquareType.PROPERTY, this::property);
+        squareHandlers.put(SquareType.MOVE_TO, this::moveToSquare);
+        squareHandlers.put(SquareType.JAIL, this::jail);
+        squareHandlers.put(SquareType.GO_TO_JAIL_CHANCE, this::goToJailChance);
+        squareHandlers.put(SquareType.BANK_DIVIDEND, this::bankDividend);
+        squareHandlers.put(SquareType.PLAYER_DIVIDEND, this::playerDividend);
+        squareHandlers.put(SquareType.SHARE_CRASH, this::shareCrash);
+        squareHandlers.put(SquareType.BOND_PURCHASE_AND_DIVIDEND, this::bondPurchaseAndDividend);
         candidateCommands = new ArrayList<>(SIMPLE_COMMANDS);
         for (var deed : gameData.titleDeeds()) {
             candidateCommands.addAll(List.of(new BuyProperty(deed.square()), new Mortgage(deed.square()), new Redeem(deed.square()),
@@ -350,6 +364,19 @@ public class GameEngine {
         return position;
     }
 
+    /**
+     * Moves the piece straight to the target, which takes effect as a landing (R3). Squares on the way have no effect and mandatory
+     * stops do not apply (R4).
+     */
+    List<GameEvent> moveTo(GameState state, PlayerState player, int target, Dice dice) {
+        var events = new ArrayList<GameEvent>();
+        var from = player.getPosition();
+        player.setPosition(target);
+        events.add(new PieceMoved(player.getUid(), from, target));
+        events.addAll(land(state, player, dice));
+        return events;
+    }
+
     List<GameEvent> land(GameState state, PlayerState player, Dice dice) {
         var events = new ArrayList<GameEvent>();
         var square = gameData.square(player.getPosition());
@@ -362,8 +389,9 @@ public class GameEngine {
         return List.of(new NotImplemented(player.getUid(), square.number(), square.type()));
     }
 
-    /** Square 1: interest on every loan */
+    /** Square 1: interest on every loan. Square 36 affects the player again. */
     List<GameEvent> bankExit(GameState state, PlayerState player, Square square, Dice dice) {
+        player.setJailExemption(false);
         if (player.getLoans() == 0) {
             return List.of();
         }
@@ -389,17 +417,118 @@ public class GameEngine {
                 new Charge(rules.loanInterest(state), MoneyReason.LOAN_INTEREST)));
     }
 
-    List<GameEvent> endTurn(GameState state, PlayerState player) {
-        return List.of(new TurnEnded(player.getUid()), passTurn(state));
+    /** Squares 2, 37 and 44 */
+    List<GameEvent> moveToSquare(GameState state, PlayerState player, Square square, Dice dice) {
+        return moveTo(state, player, square.target(), dice);
     }
 
-    /** Starts the next player's turn */
-    static GameEvent passTurn(GameState state) {
-        var next = nextPlayer(state);
-        state.setCurrentPlayer(next);
+    /** Square 24: one die for the turns to miss, 1–2 one, 3–4 two, 5–6 three */
+    List<GameEvent> jail(GameState state, PlayerState player, Square square, Dice dice) {
+        var die = dice.roll();
+        var missedTurns = (die + 1) / 2;
+        player.setMissedTurns(missedTurns);
+        return List.of(new JailRoll(player.getUid(), die, missedTurns));
+    }
+
+    /** Square 36: one die, 1–2 goes to jail. Not for a player who has left jail and not been on square 1 since. */
+    List<GameEvent> goToJailChance(GameState state, PlayerState player, Square square, Dice dice) {
+        if (player.isJailExemption()) {
+            return List.of(new JailExempt(player.getUid()));
+        }
+        var events = new ArrayList<GameEvent>();
+        var die = dice.roll();
+        var jailed = die <= 2;
+        events.add(new GoToJailRoll(player.getUid(), die, jailed));
+        if (jailed) {
+            events.addAll(moveTo(state, player, JAIL_SQUARE, dice));
+        }
+        return events;
+    }
+
+    /** Squares 16, 28, 39 and 42: the printed dividend of the player's shares, on 39 and 42 only those of the square's class */
+    List<GameEvent> bankDividend(GameState state, PlayerState player, Square square, Dice dice) {
+        var shares = new Ownership(gameData, state).sharesOf(player.getUid()).stream()
+                .filter(share -> square.shareClass() == null || share.dividendPercent() == square.shareClass())
+                .toList();
+        var amount = shares.stream().mapToInt(share -> rules.bankDividend(state, share)).sum();
+        if (amount == 0) {
+            return List.of();
+        }
+        return List.of(
+                new BankDividend(player.getUid(), square.number(), shares.stream().map(Share::id).toList(), amount),
+                payments.fromBank(player, amount, MoneyReason.BANK_DIVIDEND));
+    }
+
+    /**
+     * Square 41: each other player gets the square's percent of their share capital in the groups where the player owns a property.
+     * Charged one by one in turn order from the player.
+     */
+    List<GameEvent> playerDividend(GameState state, PlayerState player, Square square, Dice dice) {
+        var ownership = new Ownership(gameData, state);
+        var groups = ownership.groupsWithPropertiesOf(player.getUid());
+        var events = new ArrayList<GameEvent>();
+        var order = state.getTurnOrder();
+        var index = order.indexOf(player.getUid());
+        for (int i = 1; i < order.size(); i++) {
+            var shareholder = state.player(order.get((index + i) % order.size())).orElseThrow();
+            if (shareholder.isOut()) {
+                continue;
+            }
+            var shares = ownership.sharesOf(shareholder.getUid()).stream().filter(share -> groups.contains(share.group())).toList();
+            var amount = rules.playerDividend(state, square, shares.stream().mapToInt(Share::value).sum());
+            if (amount > 0) {
+                events.add(new PlayerDividendCharged(player.getUid(), shareholder.getUid(), square.number(),
+                        shares.stream().map(Share::id).toList(), amount));
+                events.addAll(payments.charge(state, player, shareholder.getUid(), List.of(new Charge(amount, MoneyReason.PLAYER_DIVIDEND))));
+            }
+        }
+        return events;
+    }
+
+    /** Square 35: the square's percent of the share capital outside complete groups, fund shares included */
+    List<GameEvent> shareCrash(GameState state, PlayerState player, Square square, Dice dice) {
+        var amount = rules.shareCrash(state, square, new Ownership(gameData, state).shareCapitalOutsideCompleteGroups(player.getUid()));
+        if (amount == 0) {
+            return List.of();
+        }
+        return payments.charge(state, player, null, List.of(new Charge(amount, MoneyReason.SHARE_CRASH)));
+    }
+
+    /** Square 46: dividend on all shares as on 16 and 28; the bond purchase comes with step 08 */
+    List<GameEvent> bondPurchaseAndDividend(GameState state, PlayerState player, Square square, Dice dice) {
+        var events = new ArrayList<>(bankDividend(state, player, square, dice));
+        events.add(new NotImplemented(player.getUid(), square.number(), square.type()));
+        return events;
+    }
+
+    List<GameEvent> endTurn(GameState state, PlayerState player) {
+        var events = new ArrayList<GameEvent>();
+        events.add(new TurnEnded(player.getUid()));
+        events.addAll(passTurn(state));
+        return events;
+    }
+
+    /**
+     * Starts the next player's turn. Players with turns to miss in jail are skipped, one missed turn each (R6); a player whose last
+     * missed turn passes has left jail.
+     */
+    static List<GameEvent> passTurn(GameState state) {
+        var events = new ArrayList<GameEvent>();
+        var next = state.player(nextPlayer(state)).orElseThrow();
+        while (next.getMissedTurns() > 0) {
+            next.setMissedTurns(next.getMissedTurns() - 1);
+            if (next.getMissedTurns() == 0) {
+                next.setJailExemption(true);
+            }
+            events.add(new TurnSkipped(next.getUid(), next.getMissedTurns()));
+            state.setCurrentPlayer(next.getUid());
+            next = state.player(nextPlayer(state)).orElseThrow();
+        }
+        state.setCurrentPlayer(next.getUid());
         state.setPhase(TurnPhase.BEFORE_ROLL);
         state.setBoughtThisTurn(false);
-        return new TurnStarted(next);
+        events.add(new TurnStarted(next.getUid()));
+        return events;
     }
 
     /** The next player in turn order who is still in the game */
@@ -514,11 +643,13 @@ public class GameEngine {
     }
 
     /**
-     * The creditor gets the player's cash and the rest of the debt is written off (R13). Loans are cancelled and the car goes back
-     * to the bank. If it was the player's turn, the turn passes on.
+     * The creditor gets the player's cash and the rest of the debt is written off (R13); the player's other pending payments are
+     * dropped, so their creditors get nothing. Loans are cancelled and the car goes back to the bank. If it was the player's turn,
+     * the turn passes on.
      */
     List<GameEvent> declareBankruptcy(GameState state, PlayerState player) {
         var decision = (RaiseFunds) state.getPendingDecisions().removeFirst();
+        state.getPendingDecisions().removeIf(pending -> pending.player().equals(player.getUid()));
         var events = new ArrayList<GameEvent>();
         if (player.getCash() > 0) {
             var creditor = decision.creditor() == null ? null : state.player(decision.creditor()).orElseThrow();
@@ -548,7 +679,7 @@ public class GameEngine {
             events.add(new AssetsReturned(player.getUid(), properties, shares));
         }
         if (player.getUid().equals(state.getCurrentPlayer())) {
-            events.add(passTurn(state));
+            events.addAll(passTurn(state));
         }
         return events;
     }

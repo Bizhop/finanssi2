@@ -63,7 +63,7 @@ class GameEngineTest {
 
     @Test
     void testOneDieInsideBank() {
-        for (var start : List.of(34, 35, 45)) {
+        for (var start : List.of(34, 37, 45)) {
             var state = TestGame.players("a", "b").car("a").at("a", start).state();
             assertEquals(new DiceRolled("a", List.of(1)), roll(state, 1).getFirst(), "from " + start);
         }

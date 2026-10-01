@@ -16,6 +16,12 @@ public enum MoneyReason {
     PROPERTY_SALE,
     SHARE_SALE,
     CONSTRUCTION,
+    // Squares 16, 28, 39, 42 and 46
+    BANK_DIVIDEND,
+    // Square 41
+    PLAYER_DIVIDEND,
+    // Square 35
+    SHARE_CRASH,
     // What a bankrupt player had, to their creditor
     BANKRUPTCY
 }

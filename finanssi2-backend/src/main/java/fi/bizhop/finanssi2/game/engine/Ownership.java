@@ -4,6 +4,9 @@ import fi.bizhop.finanssi2.game.data.GameData;
 import fi.bizhop.finanssi2.game.data.Share;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /** Who owns what, and what follows from it: complete business groups and share capital */
 public class Ownership {
@@ -24,6 +27,14 @@ public class Ownership {
                 .filter(share -> uid.equals(share.getOwner()))
                 .map(share -> gameData.share(share.getId()))
                 .toList();
+    }
+
+    /** Groups in which the player owns at least one property; Pysäköintitalo is in no group */
+    public Set<String> groupsWithPropertiesOf(String uid) {
+        return propertiesOf(uid).stream()
+                .map(property -> gameData.titleDeed(property.getSquare()).group())
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
     }
 
     /** All properties and all shares of the group. Fund shares belong to no group, so never make one complete. */

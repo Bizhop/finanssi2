@@ -72,4 +72,25 @@ public sealed interface GameEvent {
     record PropertyBuilt(String player, int square, boolean industrial) implements GameEvent {}
 
     record TurnEnded(String player) implements GameEvent {}
+
+    /** Roll on landing in jail (square 24): {@code missedTurns} turns are skipped */
+    record JailRoll(String player, int die, int missedTurns) implements GameEvent {}
+
+    /** Roll on square 36: on 1–2 the player goes to jail */
+    record GoToJailRoll(String player, int die, boolean jailed) implements GameEvent {}
+
+    /** Square 36 does not affect a player who has left jail and not been on square 1 since */
+    record JailExempt(String player) implements GameEvent {}
+
+    /** A turn the player missed in jail; {@code remaining}: turns still to skip */
+    record TurnSkipped(String player, int remaining) implements GameEvent {}
+
+    /** The bank's dividend on the listed shares, paid by {@link MoneyTransferred} */
+    record BankDividend(String player, int square, List<String> shares, int amount) implements GameEvent {}
+
+    /**
+     * Dividend the player owes another player on square 41, for the listed shares, paid by {@link MoneyTransferred} or due by
+     * {@link PaymentDue}
+     */
+    record PlayerDividendCharged(String player, String shareholder, int square, List<String> shares, int amount) implements GameEvent {}
 }

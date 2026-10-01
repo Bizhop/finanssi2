@@ -2,6 +2,7 @@ package fi.bizhop.finanssi2.game.engine;
 
 import fi.bizhop.finanssi2.game.data.GameData;
 import fi.bizhop.finanssi2.game.data.Share;
+import fi.bizhop.finanssi2.game.data.Square;
 import fi.bizhop.finanssi2.game.data.SquareType;
 import fi.bizhop.finanssi2.game.data.TitleDeed;
 
@@ -100,5 +101,20 @@ public class Rules {
     /** What the bank pays for the share */
     public int shareBuyBack(GameState state, Share share) {
         return share.buyBack();
+    }
+
+    /** The bank's dividend on a share (squares 16, 28, 39, 42 and 46): the dividend printed on it */
+    public int bankDividend(GameState state, Share share) {
+        return share.dividend();
+    }
+
+    /** Square 41: the dividend owed to another player, the square's percent of that player's share capital in the counted groups */
+    public int playerDividend(GameState state, Square square, int shareCapital) {
+        return shareCapital * square.percent() / 100;
+    }
+
+    /** Square 35: the square's percent of the share capital outside complete groups, to the bank */
+    public int shareCrash(GameState state, Square square, int shareCapital) {
+        return shareCapital * square.percent() / 100;
     }
 }

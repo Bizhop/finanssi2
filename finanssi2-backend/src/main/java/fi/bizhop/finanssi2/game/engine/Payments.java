@@ -35,11 +35,14 @@ public class Payments {
 
     /**
      * A payment the player must make: made now if the cash covers it, otherwise a {@link RaiseFunds} decision is queued and the
-     * payment is made when the player pays it. {@code creditor} is null for the bank.
+     * payment is made when the player pays it. A player who already has a payment pending gets the new one queued too, so payments
+     * are made in order. {@code creditor} is null for the bank.
      */
     public List<GameEvent> charge(GameState state, PlayerState player, String creditor, List<Charge> charges) {
         var decision = new RaiseFunds(player.getUid(), creditor, charges);
-        if (player.getCash() >= decision.amount()) {
+        var paymentPending = state.getPendingDecisions().stream()
+                .anyMatch(pending -> pending instanceof RaiseFunds && pending.player().equals(player.getUid()));
+        if (!paymentPending && player.getCash() >= decision.amount()) {
             return settle(state, decision);
         }
         state.getPendingDecisions().add(decision);
