@@ -25,5 +25,6 @@ public enum MoneyReason {
     // What a bankrupt player had, to their creditor
     BANKRUPTCY,
     BOND_PURCHASE,
-    BOND_PRIZE
+    BOND_PRIZE,
+    FINANCE_NEWS
 }

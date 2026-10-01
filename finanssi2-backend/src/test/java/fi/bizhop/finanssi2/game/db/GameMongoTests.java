@@ -89,7 +89,12 @@ abstract class GameMongoTests {
         gameService.changeSettings(id, user("a"), new GameSettings(LoanLimit.UNLIMITED));
         when(diceSource.forGame(any())).thenReturn(new ScriptedDice(6, 6, 1, 1, 4));
         gameService.start(id, user("a"));
-        // Two loans, then from square 1 to 5; a Finance News square does nothing yet
+        // Fix the next card so this persistence test does not depend on the shuffled deck.
+        var started = gameService.get(id);
+        started.getState().getFinanceNewsDeck().remove("FL-05");
+        started.getState().getFinanceNewsDeck().addFirst("FL-05");
+        gameRepository.save(started);
+        // Two loans, then from square 1 to 5 and draw the no-immediate-effect card.
         gameService.command(id, user("a"), new GameCommand.TakeLoan());
         gameService.command(id, user("a"), new GameCommand.TakeLoan());
         gameService.command(id, user("a"), new GameCommand.Roll());
@@ -116,7 +121,7 @@ abstract class GameMongoTests {
         assertEquals(new GameEvent.SettingsChanged(new GameSettings(LoanLimit.UNLIMITED)), log.get(2).event());
         assertEquals(new GameEvent.DiceRolled("it-a", List.of(4)),
                 log.stream().filter(entry -> entry.type().equals("DiceRolled")).findFirst().orElseThrow().event());
-        assertEquals(List.of("NotImplemented"), gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(id, log.size() - 1)
+        assertEquals(List.of("FinanceNewsDrawn"), gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(id, log.size() - 1)
                 .stream().map(GameLogEntry::type).toList());
     }
 

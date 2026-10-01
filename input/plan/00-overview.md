@@ -18,7 +18,7 @@ interpretations in [open-questions.md](open-questions.md) so they stay in one pl
 | 06 | [Construction](06-construction.md) | Buildings and industrial plants, built rent |
 | 07 | [Special squares and jail](07-special-squares-and-jail.md) | Every fixed-effect square on the board |
 | 08 | [Bonds](08-bonds.md) | Bond purchase, small and grand draws, auction |
-| 09 | [Finance News](09-finance-news.md) | News deck, active card, all 21 card effects |
+| 09 | [Finance News](09-finance-news.md) | News deck and effects implemented as far as possible before Stock Tips and shareholders' meetings; remaining integrations belong to steps 10–11 |
 | 10 | [Stock Tips](10-stock-tips.md) | Stock Tip deck, held cards, all card effects |
 | 11 | [Shareholders' meeting](11-shareholders-meeting.md) | Business group takeover |
 | 12 | [Game end](12-game-end.md) | Win condition, full bankruptcy, finished games |
@@ -33,7 +33,8 @@ Each later step replaces some of those placeholders.
 |---|---|
 | 01–07 | Done; each step is its own commit (`backend: plan step NN, ...`) |
 | 08 | Done |
-| 09–13 | Planned |
+| 09 | Done as far as possible; remaining integrations deferred to steps 10–11 |
+| 10–13 | Planned |
 
 How to continue a step: read the step file and [open-questions.md](open-questions.md) (decisions R*, B*, D*, I*), implement in
 `game.engine` with tests in the same style as the existing ones (`TestGame`, `EngineTests`, `ScriptedDice`), run

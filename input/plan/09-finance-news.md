@@ -56,6 +56,8 @@ Interpretations are recorded in open-questions.md (R15, R17, R18, R23, R24). FL-
 - One test class per card, using the "given table, when landing on 5, then events" style from step 03
 - Interaction checks where two rules touch: FL-06 with a car, FL-17 for the Bensiiniyhtiö owner, FL-16 on square 46
 
-## Done when
+## Completion boundary
 
-All 21 cards work and every ongoing effect is applied through `Rules`.
+Step 09 is complete as far as possible before Stock Tips and shareholders' meetings are implemented. Finance News draws, the card effects
+independent of those later systems, and the agreed cross-player movement and dividend behavior are implemented. FL-10's Stock Tip draw,
+the Stock Tip exceptions on FL-09, FL-12 and FL-21, and FL-15's shareholders' meeting restriction are completed with steps 10–11.

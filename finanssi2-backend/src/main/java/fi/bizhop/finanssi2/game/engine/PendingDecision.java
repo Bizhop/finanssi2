@@ -12,7 +12,8 @@ import java.util.Objects;
  * first decision in the queue may act, and only with the commands that decision allows.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.SIMPLE_NAME, property = "type")
-public sealed interface PendingDecision permits PendingDecision.RaiseFunds, PendingDecision.BondOffer, PendingDecision.BondAuction {
+public sealed interface PendingDecision permits PendingDecision.RaiseFunds, PendingDecision.BondOffer, PendingDecision.BondAuction,
+        PendingDecision.NewsDirection {
     String player();
 
     /**
@@ -44,4 +45,6 @@ public sealed interface PendingDecision permits PendingDecision.RaiseFunds, Pend
     }
 
     record Bid(String player, int amount) {}
+
+    record NewsDirection(String player, String card) implements PendingDecision {}
 }

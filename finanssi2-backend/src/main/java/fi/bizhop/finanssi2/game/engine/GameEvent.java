@@ -37,6 +37,8 @@ public sealed interface GameEvent {
 
     record LandedOn(String player, int square) implements GameEvent {}
 
+    record FinanceNewsDrawn(String player, String card, String replaced) implements GameEvent {}
+
     /** Landed on a square whose effect is not implemented yet */
     record NotImplemented(String player, int square, SquareType squareType) implements GameEvent {}
 

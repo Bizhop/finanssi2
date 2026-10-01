@@ -50,7 +50,8 @@ public final class EngineTests {
     /** Immutable values of every state field; no dependency on generated toString or equals methods. */
     record Snapshot(String currentPlayer, TurnPhase phase, List<String> turnOrder, List<PlayerSnapshot> players,
                     List<PendingDecision> pendingDecisions, GameSettings settings, List<PropertySnapshot> properties,
-                    List<ShareSnapshot> shares, List<BondSnapshot> bonds, boolean boughtThisTurn, List<String> financeNewsDeck) {
+                    List<ShareSnapshot> shares, List<BondSnapshot> bonds, boolean boughtThisTurn, List<String> financeNewsDeck,
+                    String activeFinanceNews) {
         static Snapshot of(GameState state) {
             return new Snapshot(state.getCurrentPlayer(), state.getPhase(), List.copyOf(state.getTurnOrder()),
                     state.getPlayers().stream().map(PlayerSnapshot::of).toList(),
@@ -58,7 +59,7 @@ public final class EngineTests {
                     state.getProperties().stream().map(PropertySnapshot::of).toList(),
                     state.getShares().stream().map(ShareSnapshot::of).toList(),
                     state.getBonds().stream().map(BondSnapshot::of).toList(), state.isBoughtThisTurn(),
-                    List.copyOf(state.getFinanceNewsDeck()));
+                    List.copyOf(state.getFinanceNewsDeck()), state.getActiveFinanceNews());
         }
     }
 

@@ -26,11 +26,12 @@ import java.util.List;
         @JsonSubTypes.Type(GameCommand.BuyBond.class),
         @JsonSubTypes.Type(GameCommand.Pass.class),
         @JsonSubTypes.Type(GameCommand.BidBond.class),
+        @JsonSubTypes.Type(GameCommand.ChooseNewsDirection.class),
 })
 public sealed interface GameCommand permits GameCommand.Roll, GameCommand.EndTurn, GameCommand.BuyCar, GameCommand.SellCar,
         GameCommand.TakeLoan, GameCommand.RepayLoan, GameCommand.Pay, GameCommand.DeclareBankruptcy, GameCommand.BuyProperty,
         GameCommand.BuyShare, GameCommand.Mortgage, GameCommand.Redeem, GameCommand.SellBackProperty, GameCommand.SellBackShare,
-        GameCommand.Build, GameCommand.BuyBond, GameCommand.Pass, GameCommand.BidBond {
+        GameCommand.Build, GameCommand.BuyBond, GameCommand.Pass, GameCommand.BidBond, GameCommand.ChooseNewsDirection {
     record Roll() implements GameCommand {}
 
     record EndTurn() implements GameCommand {}
@@ -72,4 +73,5 @@ public sealed interface GameCommand permits GameCommand.Roll, GameCommand.EndTur
     record BuyBond(int number) implements GameCommand {}
     record Pass() implements GameCommand {}
     record BidBond(int amount) implements GameCommand {}
+    record ChooseNewsDirection(boolean forward) implements GameCommand {}
 }

@@ -39,6 +39,7 @@ class GameEngineTest {
     @Test
     void testOneDieWithoutCar() {
         var state = TestGame.players("a", "b").state();
+        state.getFinanceNewsDeck().add("FL-05");
 
         var events = roll(state, 4);
 
@@ -46,7 +47,7 @@ class GameEngineTest {
                 new DiceRolled("a", List.of(4)),
                 new PieceMoved("a", 1, 5),
                 new LandedOn("a", 5),
-                new NotImplemented("a", 5, SquareType.FINANCE_NEWS)), events);
+                new GameEvent.FinanceNewsDrawn("a", "FL-05", null)), events);
         assertEquals(5, state.current().getPosition());
         assertEquals(TurnPhase.AFTER_ROLL, state.getPhase());
     }

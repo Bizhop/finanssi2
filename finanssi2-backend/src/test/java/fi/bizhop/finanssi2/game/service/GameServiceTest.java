@@ -288,7 +288,7 @@ class GameServiceTest {
         var entries = service(4).command(GAME_ID, user("a"), new GameCommand.Roll());
 
         assertEquals(5, game.getState().current().getPosition());
-        assertEquals(List.of("DiceRolled", "PieceMoved", "LandedOn", "NotImplemented"),
+        assertEquals(List.of("DiceRolled", "PieceMoved", "LandedOn", "FinanceNewsDrawn"),
                 entries.stream().map(GameLogEntry::type).toList());
         assertEquals(entries, savedEntries());
         verify(messagingService).send("/topic/games/" + GAME_ID, new GameUpdate(GAME_ID, 4, entries));

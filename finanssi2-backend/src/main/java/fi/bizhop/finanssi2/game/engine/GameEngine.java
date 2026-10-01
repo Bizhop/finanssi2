@@ -96,7 +96,8 @@ public class GameEngine {
             Map.entry(Build.class, Timing.BEFORE_ROLL),
             Map.entry(GameCommand.BuyBond.class, Timing.DECISION),
             Map.entry(GameCommand.Pass.class, Timing.DECISION),
-            Map.entry(GameCommand.BidBond.class, Timing.DECISION));
+            Map.entry(GameCommand.BidBond.class, Timing.DECISION),
+            Map.entry(GameCommand.ChooseNewsDirection.class, Timing.DECISION));
 
     /** Commands allowed while a decision of this type is pending, in or out of turn */
     static Set<Class<? extends GameCommand>> decisionCommands(PendingDecision decision) {
@@ -104,6 +105,7 @@ public class GameEngine {
             case RaiseFunds ignored -> Set.of(TakeLoan.class, SellCar.class, Mortgage.class, SellBackProperty.class, SellBackShare.class, Pay.class, DeclareBankruptcy.class);
             case PendingDecision.BondOffer ignored -> Set.of(GameCommand.BuyBond.class, GameCommand.Pass.class);
             case PendingDecision.BondAuction ignored -> Set.of(GameCommand.BidBond.class);
+            case PendingDecision.NewsDirection ignored -> Set.of(GameCommand.ChooseNewsDirection.class);
         };
     }
 
@@ -134,7 +136,8 @@ public class GameEngine {
                 new BuyShare(share.id()), new SellBackShare(share.id())));
         var bondCommands = Stream.concat(
                 IntStream.rangeClosed(1, BOND_COUNT).mapToObj(number -> (GameCommand) new GameCommand.BuyBond(number)),
-                Stream.of(new GameCommand.Pass(), new GameCommand.BidBond(0)));
+                Stream.of(new GameCommand.Pass(), new GameCommand.BidBond(0), new GameCommand.ChooseNewsDirection(true),
+                        new GameCommand.ChooseNewsDirection(false)));
         candidateCommands = Stream.of(SIMPLE_COMMANDS.stream(), propertyCommands, shareCommands, bondCommands)
                 .flatMap(commands -> commands)
                 .toList();
@@ -155,7 +158,8 @@ public class GameEngine {
             case BOND_PURCHASE_AND_DIVIDEND -> this::bondPurchaseAndDividend;
             case SMALL_BOND_DRAW -> bonds::smallBondDraw;
             case BOND_AUCTION -> bonds::bondAuction;
-            case FINANCE_NEWS, STOCK_TIP, BRANCH_OFFICE, CONSTRUCTION -> GameEngine::notImplemented;
+            case FINANCE_NEWS -> this::financeNews;
+            case STOCK_TIP, BRANCH_OFFICE, CONSTRUCTION -> GameEngine::notImplemented;
         };
     }
 
@@ -181,6 +185,7 @@ public class GameEngine {
             case GameCommand.BuyBond buy -> bonds.buyBond(state, player, buy.number(), dice);
             case GameCommand.Pass ignored -> bonds.passBond(state, dice);
             case GameCommand.BidBond bid -> bonds.bidBond(state, player, bid.amount(), dice);
+            case GameCommand.ChooseNewsDirection choose -> chooseNewsDirection(state, player, choose.forward(), dice);
         };
     }
 
@@ -221,6 +226,7 @@ public class GameEngine {
             }
             case SellCar ignored -> require(player.isCar(), "You have no car");
             case TakeLoan ignored -> {
+                require(!rules.loansStopped(state), "No new loans while Finance News is active");
                 require(player.getPosition() != REPAY_LOAN_SQUARE, "No new loans on square " + REPAY_LOAN_SQUARE);
                 require(rules.loansAvailable(state, player) > 0, "No loans available");
             }
@@ -242,12 +248,14 @@ public class GameEngine {
                 var deed = deed(buy.square());
                 requirePurchase(state, player);
                 require(state.property(deed.square()).getOwner() == null, "The property is not for sale");
+                require(!rules.propertiesTradingStopped(state), "The bank is not selling properties");
                 require(player.getCash() >= rules.propertyPrice(state, deed), "Not enough cash");
             }
             case BuyShare buy -> {
                 var share = share(buy.share());
                 requirePurchase(state, player);
                 require(state.share(share.id()).getOwner() == null, "The share is not for sale");
+                require(!rules.shareTradingStopped(state), "The bank is not selling shares");
                 require(player.getCash() >= rules.sharePrice(state, share), "Not enough cash");
             }
             case Mortgage mortgage -> {
@@ -291,6 +299,8 @@ public class GameEngine {
             case GameCommand.Pass ignored -> require(pending.getFirst() instanceof PendingDecision.BondOffer, "No bond offer");
             case GameCommand.BidBond bid -> require(pending.getFirst() instanceof PendingDecision.BondAuction
                     && bid.amount() >= 0 && bid.amount() % BOND_PRICE == 0 && bid.amount() <= player.getCash(), "Invalid bid");
+            case GameCommand.ChooseNewsDirection ignored -> require(pending.getFirst() instanceof PendingDecision.NewsDirection,
+                    "No Finance News direction to choose");
         }
     }
 
@@ -368,7 +378,10 @@ public class GameEngine {
         var roll = rollDice(dice, rules.movementDice(state, player));
         events.add(new DiceRolled(player.getUid(), roll));
         var from = player.getPosition();
-        var to = moveForward(from, roll.stream().mapToInt(Integer::intValue).sum());
+        var pips = "FL-06".equals(state.getActiveFinanceNews()) ? roll.stream().mapToInt(Integer::intValue).min().orElse(0)
+                : roll.stream().mapToInt(Integer::intValue).sum();
+        if ("FL-16".equals(state.getActiveFinanceNews())) pips *= 2;
+        var to = moveForward(from, pips);
         player.setPosition(to);
         events.add(new PieceMoved(player.getUid(), from, to));
         events.addAll(land(state, player, dice));
@@ -406,15 +419,132 @@ public class GameEngine {
     }
 
     List<GameEvent> land(GameState state, PlayerState player, Dice dice) {
+        return land(state, player, dice, true);
+    }
+
+    List<GameEvent> land(GameState state, PlayerState player, Dice dice, boolean drawFinanceNews) {
         var events = new ArrayList<GameEvent>();
         var square = gameData.square(player.getPosition());
         events.add(new LandedOn(player.getUid(), square.number()));
-        events.addAll(squareHandler(square.type()).land(state, player, square, dice));
+        if (drawFinanceNews || square.type() != SquareType.FINANCE_NEWS) {
+            events.addAll(squareHandler(square.type()).land(state, player, square, dice));
+        }
         return List.copyOf(events);
     }
 
     static List<GameEvent> notImplemented(GameState state, PlayerState player, Square square, Dice dice) {
         return List.of(new NotImplemented(player.getUid(), square.number(), square.type()));
+    }
+
+    /** Draw a Finance News card, replacing the previous active card and preserving the shuffled deck order. */
+    List<GameEvent> financeNews(GameState state, PlayerState player, Square square, Dice dice) {
+        if (state.getFinanceNewsDeck().isEmpty()) return List.of();
+        var deck = state.getFinanceNewsDeck();
+        var id = deck.removeFirst();
+        deck.addLast(id);
+        var replaced = state.getActiveFinanceNews();
+        state.setActiveFinanceNews(switch (id) {
+            case "FL-01", "FL-05", "FL-06", "FL-08", "FL-09", "FL-10", "FL-11", "FL-12", "FL-14", "FL-15",
+                    "FL-16", "FL-17", "FL-20", "FL-21" -> id;
+            default -> null;
+        });
+        var events = new ArrayList<GameEvent>();
+        events.add(new GameEvent.FinanceNewsDrawn(player.getUid(), id, replaced));
+        if (id.equals("FL-02") || id.equals("FL-03")) events.addAll(grandBondDraw(state, player, dice));
+        if (id.equals("FL-01")) events.addAll(chargePlayers(state, player, p -> p.isCar() ? 5_000 : 0));
+        if (id.equals("FL-07")) events.addAll(chargePlayers(state, player, p -> roundUp500(p.getCash(), 2)));
+        if (id.equals("FL-13")) events.addAll(chargePlayers(state, player, p -> roundUp500(
+                Math.min(p.getCash(), 100_000) / 10 + Math.max(0, p.getCash() - 100_000) / 4, 1)));
+        if (id.equals("FL-04")) state.getPendingDecisions().add(new PendingDecision.NewsDirection(player.getUid(), id));
+        if (id.equals("FL-10")) {
+            for (var uid : List.copyOf(state.getTurnOrder())) {
+                var standing = state.player(uid).orElseThrow();
+                if (!standing.isOut() && standing.getPosition() == 34) events.addAll(moveTo(state, standing, 1, dice));
+            }
+        }
+        if (id.equals("FL-19")) events.addAll(energyTax(state, player, dice));
+        if (id.equals("FL-18")) {
+            for (var shareholder : state.getTurnOrder()) {
+                var recipient = state.player(shareholder).orElseThrow();
+                if (recipient.isOut()) continue;
+                var dividendEvents = bankDividend(state, recipient, gameData.square(46), dice);
+                events.addAll(dividendEvents);
+            }
+        }
+        return List.copyOf(events);
+    }
+
+    List<GameEvent> chooseNewsDirection(GameState state, PlayerState drawer, boolean forward, Dice dice) {
+        var decision = (PendingDecision.NewsDirection) state.getPendingDecisions().removeFirst();
+        var events = new ArrayList<GameEvent>();
+        var from = drawer.getPosition();
+        var to = from;
+        var direction = forward ? 1 : -1;
+        for (int i = 0; i < 3; i++) {
+            to = (to - 1 + direction + SQUARE_COUNT) % SQUARE_COUNT + 1;
+            if (gameData.square(to).mandatoryStop()) break;
+        }
+        drawer.setPosition(to);
+        events.add(new PieceMoved(drawer.getUid(), from, to));
+        events.addAll(land(state, drawer, dice, false));
+        var order = state.getTurnOrder();
+        var index = order.indexOf(drawer.getUid());
+        for (int i = 1; i < order.size(); i++) {
+            var other = state.player(order.get((index + i) % order.size())).orElseThrow();
+            if (!other.isOut() && other.getMissedTurns() == 0) events.addAll(moveOneStep(state, other, true, dice));
+        }
+        return List.copyOf(events);
+    }
+
+    private List<GameEvent> moveOneStep(GameState state, PlayerState player, boolean forward, Dice dice) {
+        var from = player.getPosition();
+        var to = forward ? from % SQUARE_COUNT + 1 : (from + SQUARE_COUNT - 2) % SQUARE_COUNT + 1;
+        player.setPosition(to);
+        var events = new ArrayList<GameEvent>();
+        events.add(new PieceMoved(player.getUid(), from, to));
+        events.addAll(land(state, player, dice, false));
+        return List.copyOf(events);
+    }
+
+    private List<GameEvent> energyTax(GameState state, PlayerState drawer, Dice dice) {
+        var events = new ArrayList<GameEvent>();
+        var order = state.getTurnOrder();
+        var index = order.indexOf(drawer.getUid());
+        for (int i = 0; i < order.size(); i++) {
+            var target = state.player(order.get((index + i) % order.size())).orElseThrow();
+            if (target.isOut()) continue;
+            var built = state.getProperties().stream().filter(p -> target.getUid().equals(p.getOwner()) && p.isBuilt()).toList();
+            if (built.isEmpty()) continue;
+            var passedBankEntrance = target.getPosition() < 34;
+            var amount = built.stream().mapToInt(p -> List.of(26, 27, 29, 30, 32, 33).contains(p.getSquare()) ? 30_000 : 20_000).sum();
+            events.addAll(moveTo(state, target, 1, dice));
+            if (passedBankEntrance) {
+                var roll = rollDice(dice, 2);
+                events.add(new BankEntranceRoll(target.getUid(), roll));
+                events.add(payments.fromBank(target, rules.bankEntranceReward(state, roll), MoneyReason.BANK_ENTRANCE_REWARD));
+            }
+            events.addAll(payments.charge(state, target, null, List.of(new Charge(amount, MoneyReason.FINANCE_NEWS))));
+        }
+        return List.copyOf(events);
+    }
+
+    private List<GameEvent> chargePlayers(GameState state, PlayerState drawer, java.util.function.ToIntFunction<PlayerState> amount) {
+        var result = new ArrayList<GameEvent>();
+        var order = state.getTurnOrder();
+        var start = order.indexOf(drawer.getUid());
+        for (int i = 0; i < order.size(); i++) {
+            var target = state.player(order.get((start + i) % order.size())).orElseThrow();
+            if (target.isOut()) continue;
+            var due = amount.applyAsInt(target);
+            if (due > 0) result.addAll(payments.charge(state, target, null,
+                    List.of(new Charge(due, MoneyReason.FINANCE_NEWS))));
+        }
+        return result;
+    }
+
+    private static int roundUp500(int amount, int divisor) {
+        var value = (amount + divisor - 1) / divisor;
+        return ((value + 499) / 500) * 500;
     }
 
     /** Square 1: interest on every loan. Square 36 affects the player again. */
@@ -429,6 +559,7 @@ public class GameEngine {
 
     /** Square 34: the player rolls both dice, car or not, and the bank pays a reward by the pips */
     List<GameEvent> bankEntrance(GameState state, PlayerState player, Square square, Dice dice) {
+        if ("FL-10".equals(state.getActiveFinanceNews())) return moveTo(state, player, 1, dice);
         var roll = rollDice(dice, 2);
         return List.of(
                 new BankEntranceRoll(player.getUid(), roll),
@@ -527,7 +658,17 @@ public class GameEngine {
 
     /** Square 46: dividend on all shares as on 16 and 28; the bond purchase comes with step 08 */
     List<GameEvent> bondPurchaseAndDividend(GameState state, PlayerState player, Square square, Dice dice) {
-        var events = new ArrayList<>(bankDividend(state, player, square, dice));
+        var events = new ArrayList<GameEvent>();
+        if ("FL-16".equals(state.getActiveFinanceNews())) {
+            var order = state.getTurnOrder();
+            var index = order.indexOf(player.getUid());
+            for (int i = 0; i < order.size(); i++) {
+                var recipient = state.player(order.get((index + i) % order.size())).orElseThrow();
+                if (!recipient.isOut()) events.addAll(bankDividend(state, recipient, square, dice));
+            }
+        } else {
+            events.addAll(bankDividend(state, player, square, dice));
+        }
         if (bonds.available(state)) {
             state.getPendingDecisions().add(new PendingDecision.BondOffer(player.getUid(), BondContinuation.NONE));
         }
