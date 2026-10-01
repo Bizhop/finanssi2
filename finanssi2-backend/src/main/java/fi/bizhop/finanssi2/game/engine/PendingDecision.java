@@ -4,13 +4,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * Input the game waits for before play continues, possibly from a player whose turn it is not. Only the addressed player of the
  * first decision in the queue may act, and only with the commands that decision allows.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.SIMPLE_NAME, property = "type")
-public sealed interface PendingDecision {
+public sealed interface PendingDecision permits PendingDecision.RaiseFunds, PendingDecision.BondOffer, PendingDecision.BondAuction {
     String player();
 
     /**
@@ -27,4 +28,12 @@ public sealed interface PendingDecision {
             return charges.stream().mapToInt(Charge::amount).sum();
         }
     }
+
+    record BondOffer(String player, int after) implements PendingDecision {}
+
+    record BondAuction(String player, List<String> order, int index, @JsonIgnore List<Bid> bids) implements PendingDecision {
+        public BondAuction { order = List.copyOf(order); bids = List.copyOf(bids); }
+    }
+
+    record Bid(String player, int amount) {}
 }

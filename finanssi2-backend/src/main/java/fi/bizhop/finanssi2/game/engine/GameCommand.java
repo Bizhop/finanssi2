@@ -23,8 +23,14 @@ import java.util.List;
         @JsonSubTypes.Type(GameCommand.SellBackProperty.class),
         @JsonSubTypes.Type(GameCommand.SellBackShare.class),
         @JsonSubTypes.Type(GameCommand.Build.class),
+        @JsonSubTypes.Type(GameCommand.BuyBond.class),
+        @JsonSubTypes.Type(GameCommand.Pass.class),
+        @JsonSubTypes.Type(GameCommand.BidBond.class),
 })
-public sealed interface GameCommand {
+public sealed interface GameCommand permits GameCommand.Roll, GameCommand.EndTurn, GameCommand.BuyCar, GameCommand.SellCar,
+        GameCommand.TakeLoan, GameCommand.RepayLoan, GameCommand.Pay, GameCommand.DeclareBankruptcy, GameCommand.BuyProperty,
+        GameCommand.BuyShare, GameCommand.Mortgage, GameCommand.Redeem, GameCommand.SellBackProperty, GameCommand.SellBackShare,
+        GameCommand.Build, GameCommand.BuyBond, GameCommand.Pass, GameCommand.BidBond {
     record Roll() implements GameCommand {}
 
     record EndTurn() implements GameCommand {}
@@ -62,4 +68,8 @@ public sealed interface GameCommand {
             squares = squares == null ? List.of() : List.copyOf(squares);
         }
     }
+
+    record BuyBond(int number) implements GameCommand {}
+    record Pass() implements GameCommand {}
+    record BidBond(int amount) implements GameCommand {}
 }

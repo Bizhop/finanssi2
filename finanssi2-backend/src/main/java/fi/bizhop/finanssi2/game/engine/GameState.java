@@ -20,6 +20,7 @@ public class GameState {
     // Title deeds in board order and shares, with their owners; created at game start
     List<PropertyState> properties = new ArrayList<>();
     List<ShareState> shares = new ArrayList<>();
+    List<BondState> bonds = new ArrayList<>();
     // The current player has bought a property or share this turn (one purchase per turn)
     boolean boughtThisTurn;
     // Oldest first; play waits until it is empty

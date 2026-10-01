@@ -51,7 +51,7 @@ public sealed interface GameEvent {
     record PlayerBankrupt(String player, String creditor) implements GameEvent {}
 
     /** The bankrupt player's properties (unmortgaged) and shares went back to the bank */
-    record AssetsReturned(String player, List<Integer> properties, List<String> shares) implements GameEvent {}
+    record AssetsReturned(String player, List<Integer> properties, List<String> shares, List<Integer> bonds) implements GameEvent {}
 
     record PropertyBought(String player, int square) implements GameEvent {}
 
@@ -84,6 +84,10 @@ public sealed interface GameEvent {
 
     /** A turn the player missed in jail; {@code remaining}: turns still to skip */
     record TurnSkipped(String player, int remaining) implements GameEvent {}
+
+    record BondBought(String player, int number) implements GameEvent {}
+    record BondDrawn(int number, int prize, String winner) implements GameEvent {}
+    record BondAuctionCompleted(int amount, String winner, int number, List<PendingDecision.Bid> bids) implements GameEvent {}
 
     /** The bank's dividend on the listed shares, paid by {@link MoneyTransferred} */
     record BankDividend(String player, int square, List<String> shares, int amount) implements GameEvent {}

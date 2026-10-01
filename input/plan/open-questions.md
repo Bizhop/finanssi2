@@ -50,6 +50,9 @@ Made while implementing. I1–I23 are reviewed and accepted; add new ones at the
 | I21 | Square 36 sends the player to jail by a move to 24 (`PieceMoved`, `LandedOn 24`, `JailRoll`). An exempt player gets a `JailExempt` event and rolls no die | 07 |
 | I22 | Square 41 counts groups where the payer owns a property, mortgaged or not. Each shareholder owed something gets a `PlayerDividendCharged` event listing the shares; shareholders owed nothing get no event | 07 |
 | I23 | Dividend and share crash squares with nothing to pay emit no events beyond `LandedOn`. Square 46 pays its dividend before the (step 08) bond purchase | 07 |
+| I24 | Bond purchases and auctions are pending decisions; square 45 queues its draw behind its purchase offer, while square 46 only offers a purchase | 08 |
+| I25 | Bond auction bids stay hidden until all eligible players have bid; ties follow the current turn order | 08 |
+| I26 | A bond draw records each winning number and prize, including unowned bonds; owned winning bonds return to the bank | 08 |
 
 ## Decided
 

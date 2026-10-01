@@ -81,6 +81,7 @@ abstract class GameMongoTests {
 
         // A pending decision is stored with its type
         var game = gameService.get(id);
+        game.getState().getBonds().getFirst().setOwner("it-a");
         game.getState().getPendingDecisions().add(
                 new PendingDecision.RaiseFunds("it-a", null, List.of(new Charge(10_000, MoneyReason.LOAN_INTEREST))));
         var saved = gameRepository.save(game);
@@ -90,6 +91,7 @@ abstract class GameMongoTests {
         assertEquals(game.getState(), loaded.getState());
         assertEquals(LoanLimit.UNLIMITED, loaded.getState().getSettings().loanLimit());
         assertEquals(21, loaded.getState().getFinanceNewsDeck().size());
+        assertEquals("it-a", loaded.getState().getBonds().getFirst().getOwner());
         assertInstanceOf(PendingDecision.RaiseFunds.class, loaded.getState().getPendingDecisions().getFirst());
 
         var log = gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(id, 0);

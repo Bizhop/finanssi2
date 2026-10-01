@@ -69,8 +69,7 @@ class SpecialSquaresTest {
                 new PieceMoved("a", 37, 46),
                 new LandedOn("a", 46),
                 new BankDividend("a", 46, List.of("OS-KASITEOLLISUUS-1"), 10_000),
-                new MoneyTransferred(null, "a", 10_000, MoneyReason.BANK_DIVIDEND),
-                new NotImplemented("a", 46, SquareType.BOND_PURCHASE_AND_DIVIDEND)), events.subList(3, events.size()));
+                new MoneyTransferred(null, "a", 10_000, MoneyReason.BANK_DIVIDEND)), events.subList(3, events.size()));
         assertEquals(46, player(state, "a").getPosition());
     }
 

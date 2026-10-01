@@ -26,6 +26,8 @@ public class GameSetup {
     public static void initAssets(GameState state, GameData gameData) {
         state.setProperties(new ArrayList<>(gameData.titleDeeds().stream().map(deed -> new PropertyState(deed.square())).toList()));
         state.setShares(new ArrayList<>(gameData.shares().stream().map(share -> new ShareState(share.id(), null)).toList()));
+        state.setBonds(new ArrayList<>(java.util.stream.IntStream.rangeClosed(1, fi.bizhop.finanssi2.game.data.GameConstants.BOND_COUNT)
+                .mapToObj(number -> new BondState(number, null)).toList()));
     }
 
     public List<GameEvent> start(GameState state, Dice dice, RandomGenerator random) {

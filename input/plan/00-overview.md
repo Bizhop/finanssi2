@@ -32,7 +32,7 @@ Each later step replaces some of those placeholders.
 | Step | Status |
 |---|---|
 | 01–07 | Done; each step is its own commit (`backend: plan step NN, ...`) |
-| 08 | Next: [08-bonds.md](08-bonds.md) has implementation notes pointing to the existing code |
+| 08 | Done |
 | 09–13 | Planned |
 
 How to continue a step: read the step file and [open-questions.md](open-questions.md) (decisions R*, B*, D*, I*), implement in

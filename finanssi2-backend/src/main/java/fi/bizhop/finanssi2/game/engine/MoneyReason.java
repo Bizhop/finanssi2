@@ -23,5 +23,7 @@ public enum MoneyReason {
     // Square 35
     SHARE_CRASH,
     // What a bankrupt player had, to their creditor
-    BANKRUPTCY
+    BANKRUPTCY,
+    BOND_PURCHASE,
+    BOND_PRIZE
 }

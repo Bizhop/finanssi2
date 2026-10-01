@@ -307,7 +307,7 @@ class PropertiesAndSharesTest {
         assertEquals(List.of(
                 new MoneyTransferred("a", "b", 25_000, MoneyReason.BANKRUPTCY),
                 new PlayerBankrupt("a", "b"),
-                new AssetsReturned("a", List.of(3), List.of()),
+                new AssetsReturned("a", List.of(3), List.of(), List.of()),
                 new TurnStarted("b")), events);
         assertNull(state.property(3).getOwner());
         assertFalse(state.property(3).isMortgaged());
