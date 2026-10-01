@@ -54,12 +54,12 @@ class ChatServiceTest {
 
         var toSave = ArgumentCaptor.forClass(ChatMessage.class);
         verify(chatRepository).save(toSave.capture());
-        assertNull(toSave.getValue().getId());
-        assertEquals("tester@example.com", saved.getUsername());
-        assertEquals("Tester Example", saved.getName());
-        assertEquals("Hello", saved.getMessage());
-        assertEquals("https://example.com/photo.png", saved.getPhotoUrl());
-        assertEquals("66f9a1b2c3d4e5f607182940", saved.getId());
+        assertNull(toSave.getValue().id());
+        assertEquals("tester@example.com", saved.username());
+        assertEquals("Tester Example", saved.name());
+        assertEquals("Hello", saved.message());
+        assertEquals("https://example.com/photo.png", saved.photoUrl());
+        assertEquals("66f9a1b2c3d4e5f607182940", saved.id());
         // Clients need the id, so the broadcast message must be the saved one
         verify(messagingService).send("/topic/chat", saved);
     }

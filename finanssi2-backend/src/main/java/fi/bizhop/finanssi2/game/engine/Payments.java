@@ -61,6 +61,6 @@ public class Payments {
                 events.add(new LoanRepaid(player.getUid(), player.getLoans()));
             }
         }
-        return events;
+        return List.copyOf(events);
     }
 }

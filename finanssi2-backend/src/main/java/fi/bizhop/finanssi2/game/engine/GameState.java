@@ -44,6 +44,11 @@ public class GameState {
                 .orElseThrow(() -> new IllegalArgumentException("No share " + id));
     }
 
+    public BondState bond(int number) {
+        return bonds.stream().filter(bond -> bond.getNumber() == number).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("No bond " + number));
+    }
+
     public int totalLoans() {
         return players.stream().mapToInt(PlayerState::getLoans).sum();
     }

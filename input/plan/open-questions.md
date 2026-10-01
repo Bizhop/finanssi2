@@ -53,6 +53,9 @@ Made while implementing. I1–I23 are reviewed and accepted; add new ones at the
 | I24 | Bond purchases and auctions are pending decisions; square 45 queues its draw behind its purchase offer, while square 46 only offers a purchase | 08 |
 | I25 | Bond auction bids stay hidden until all eligible players have bid; ties follow the current turn order | 08 |
 | I26 | A bond draw records each winning number and prize, including unowned bonds; owned winning bonds return to the bank | 08 |
+| I27 | Bond purchases, auctions, draws and returns are centralized in `Bonds`, with prices and prize lists supplied by `Rules`. Offer continuations use an enum while preserving the API's numeric codes; legacy numeric MongoDB values remain readable | 08 |
+| I28 | State and new events are saved atomically in the game document before archival to the separate log. Event ids are `gameId:seq` so partial archival can be retried without duplicates. Event reads merge unarchived events with the log; reads and later changes retry archival. A log failure does not reject a command whose state is already saved. The next successful state save discards only batches confirmed archived | 02 |
+| I29 | Rejected-command checks use immutable typed snapshots of every state field, preserving player order and deck contents. A coverage check requires new state fields to be added to their snapshots | 03 |
 
 ## Decided
 

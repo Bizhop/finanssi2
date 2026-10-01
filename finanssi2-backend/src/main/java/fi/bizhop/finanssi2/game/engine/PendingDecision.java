@@ -1,10 +1,11 @@
 package fi.bizhop.finanssi2.game.engine;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.util.List;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.util.Objects;
 
 /**
  * Input the game waits for before play continues, possibly from a player whose turn it is not. Only the addressed player of the
@@ -29,10 +30,17 @@ public sealed interface PendingDecision permits PendingDecision.RaiseFunds, Pend
         }
     }
 
-    record BondOffer(String player, int after) implements PendingDecision {}
+    record BondOffer(String player, BondContinuation after) implements PendingDecision {
+        public BondOffer {
+            Objects.requireNonNull(after, "Bond continuation is required");
+        }
+    }
 
     record BondAuction(String player, List<String> order, int index, @JsonIgnore List<Bid> bids) implements PendingDecision {
-        public BondAuction { order = List.copyOf(order); bids = List.copyOf(bids); }
+        public BondAuction {
+            order = List.copyOf(order);
+            bids = List.copyOf(bids);
+        }
     }
 
     record Bid(String player, int amount) {}

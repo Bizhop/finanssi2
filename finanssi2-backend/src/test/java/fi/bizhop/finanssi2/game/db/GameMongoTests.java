@@ -1,5 +1,8 @@
 package fi.bizhop.finanssi2.game.db;
 
+import fi.bizhop.finanssi2.db.ChatMessage;
+import fi.bizhop.finanssi2.db.ChatRepository;
+import fi.bizhop.finanssi2.game.engine.BondContinuation;
 import fi.bizhop.finanssi2.game.engine.Charge;
 import fi.bizhop.finanssi2.game.engine.GameCommand;
 import fi.bizhop.finanssi2.game.engine.GameEvent;
@@ -18,8 +21,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +35,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -42,6 +51,12 @@ abstract class GameMongoTests {
     GameRepository gameRepository;
     @Autowired
     GameLogRepository gameLogRepository;
+    @Autowired
+    ChatRepository chatRepository;
+    @Autowired
+    MongoTemplate mongoTemplate;
+    @Autowired
+    ObjectMapper objectMapper;
     @MockitoBean
     MessagingService messagingService;
     @MockitoBean
@@ -143,5 +158,72 @@ abstract class GameMongoTests {
 
         assertTrue(gameRepository.findById(id).isEmpty());
         assertTrue(gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(id, 0).isEmpty());
+    }
+
+    @Test
+    void testAuctionBidsSurvivePersistenceAndStayHiddenInJson() {
+        var id = create("a").getId();
+        var game = gameService.get(id);
+        var offer = new PendingDecision.BondOffer("it-a", BondContinuation.GRAND_DRAW);
+        var auction = new PendingDecision.BondAuction("it-b", List.of("it-a", "it-b"), 1,
+                List.of(new PendingDecision.Bid("it-a", 1_000)));
+        game.getState().getPendingDecisions().addAll(List.of(offer, auction));
+        gameRepository.save(game);
+
+        var loaded = gameService.get(id);
+        assertEquals(List.of(offer, auction), loaded.getState().getPendingDecisions());
+        var json = objectMapper.readTree(objectMapper.writeValueAsString(loaded));
+        assertFalse(json.has("unarchivedEvents"));
+        var decisions = json.get("state").get("pendingDecisions");
+        assertEquals(2, decisions.get(0).get("after").asInt());
+        assertFalse(decisions.get(1).has("bids"));
+    }
+
+    @Test
+    void testLegacyIntegerBondContinuationsStillLoad() {
+        var id = create("a").getId();
+        var game = gameService.get(id);
+        game.getState().getPendingDecisions().add(new PendingDecision.BondOffer("it-a", BondContinuation.SMALL_DRAW));
+        gameRepository.save(game);
+        mongoTemplate.updateFirst(Query.query(Criteria.where("_id").is(id)),
+                new Update().set("state.pendingDecisions.0.after", 1), Game.class);
+
+        assertEquals(new PendingDecision.BondOffer("it-a", BondContinuation.SMALL_DRAW),
+                gameService.get(id).getState().getPendingDecisions().getFirst());
+    }
+
+    @Test
+    void testDurableEventsRecoverFromPartialArchiveWithoutDuplicates() {
+        var id = create("a").getId();
+        var game = gameService.get(id);
+        var second = GameLogEntry.of(id, 2, 1000, new GameEvent.SettingsChanged(GameSettings.DEFAULT));
+        var third = GameLogEntry.of(id, 3, 1000, new GameEvent.SettingsChanged(new GameSettings(LoanLimit.UNLIMITED)));
+        game.setLastEventSeq(3);
+        game.setUnarchivedEvents(List.of(second, third));
+        gameRepository.save(game);
+        gameLogRepository.save(second); // Only part of the archive made it before an interruption.
+        var stored = gameService.get(id);
+        assertEquals(List.of(second, third), stored.getUnarchivedEvents());
+
+        assertEquals(List.of(second, third), gameService.events(id, 1));
+        assertEquals(List.of(second, third), gameService.events(id, 1));
+        assertEquals(3, gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(id, 0).size());
+        assertEquals(stored.getVersion(), gameService.get(id).getVersion());
+
+        gameService.changeSettings(id, user("a"), GameSettings.DEFAULT);
+        assertEquals(List.of(4), gameService.get(id).getUnarchivedEvents().stream().map(GameLogEntry::seq).toList());
+        assertEquals(4, gameService.events(id, 0).size());
+    }
+
+    @Test
+    void testChatRecordGetsGeneratedIdAndRoundTrips() {
+        var message = new ChatMessage(null, "test@example.com", null, "Hello", 1000, null);
+        var saved = chatRepository.save(message);
+        assertNotNull(saved.id());
+        try {
+            assertEquals(message.withId(saved.id()), chatRepository.findById(saved.id()).orElseThrow());
+        } finally {
+            chatRepository.deleteById(saved.id());
+        }
     }
 }

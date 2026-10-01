@@ -9,9 +9,12 @@ import fi.bizhop.finanssi2.game.data.TitleDeed;
 import java.util.List;
 
 import static fi.bizhop.finanssi2.game.data.GameConstants.BANK_ENTRANCE_REWARD_PER_PIP;
+import static fi.bizhop.finanssi2.game.data.GameConstants.BOND_PRICE;
+import static fi.bizhop.finanssi2.game.data.GameConstants.GRAND_DRAW_PRIZES;
 import static fi.bizhop.finanssi2.game.data.GameConstants.LOAN_COUNT;
 import static fi.bizhop.finanssi2.game.data.GameConstants.LOAN_INTEREST;
 import static fi.bizhop.finanssi2.game.data.GameConstants.MAX_LOANS_PER_PLAYER;
+import static fi.bizhop.finanssi2.game.data.GameConstants.SMALL_DRAW_PRIZES;
 
 /**
  * Rule values that cards and settings can change. Callers ask here instead of using the constants, so Finance News, Stock Tips and
@@ -33,10 +36,11 @@ public class Rules {
 
     /** How many more loans the player may take, by the per-player limit and the bank's total under the game's settings */
     public int loansAvailable(GameState state, PlayerState player) {
-        var available = MAX_LOANS_PER_PLAYER - player.getLoans();
-        if (state.getSettings().loanLimit() == LoanLimit.OFFICIAL) {
-            available = Math.min(available, LOAN_COUNT - state.totalLoans());
-        }
+        var perPlayer = MAX_LOANS_PER_PLAYER - player.getLoans();
+        var available = switch (state.getSettings().loanLimit()) {
+            case OFFICIAL -> Math.min(perPlayer, LOAN_COUNT - state.totalLoans());
+            case UNLIMITED -> perPlayer;
+        };
         return Math.max(0, available);
     }
 
@@ -47,6 +51,18 @@ public class Rules {
 
     public int bankEntranceReward(GameState state, List<Integer> roll) {
         return roll.stream().mapToInt(Integer::intValue).sum() * BANK_ENTRANCE_REWARD_PER_PIP;
+    }
+
+    public int bondPrice(GameState state) {
+        return BOND_PRICE;
+    }
+
+    public List<Integer> smallBondPrizes(GameState state) {
+        return SMALL_DRAW_PRIZES;
+    }
+
+    public List<Integer> grandBondPrizes(GameState state) {
+        return GRAND_DRAW_PRIZES;
     }
 
     /** What the bank sells a property for */

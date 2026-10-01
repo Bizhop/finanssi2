@@ -27,17 +27,22 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.dao.DataAccessResourceFailureException;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -111,6 +116,7 @@ class GameServiceTest {
         saveSucceeds();
 
         var game = service().create(user("a"));
+        var id = game.getId();
 
         assertEquals(GameStatus.LOBBY, game.getStatus());
         assertEquals("a", game.getCreator());
@@ -118,10 +124,10 @@ class GameServiceTest {
         assertEquals(new PlayerState("a", "Player a", "https://example.com/a.png", 0), player);
         var entries = savedEntries();
         assertEquals(1, entries.size());
-        assertEquals(new GameLogEntry(null, GAME_ID, 1, entries.getFirst().time(), "PlayerJoined",
-                new GameEvent.PlayerJoined("a", "Player a", 0)), entries.getFirst());
-        verify(messagingService).send("/topic/games/" + GAME_ID, new GameUpdate(GAME_ID, 0, entries));
-        verify(messagingService).send("/topic/games", new LobbyChange(GAME_ID, game));
+        assertEquals(GameLogEntry.of(id, 1, entries.getFirst().time(), new GameEvent.PlayerJoined("a", "Player a", 0)),
+                entries.getFirst());
+        verify(messagingService).send("/topic/games/" + id, new GameUpdate(id, 0, entries));
+        verify(messagingService).send("/topic/games", new LobbyChange(id, game));
     }
 
     @Test
@@ -316,5 +322,106 @@ class GameServiceTest {
         when(gameRepository.findById("missing")).thenReturn(Optional.empty());
         assertThrows(GameNotFoundException.class, () -> service().events("missing", 0));
         verify(gameLogRepository, never()).findByGameIdAndSeqGreaterThanOrderBySeq(eq("missing"), any(Integer.class));
+    }
+
+    @Test
+    void testArchiveFailureKeepsEventsWithSavedStateAndAcceptsChange() {
+        var game = lobby("a");
+        when(gameRepository.save(any())).thenAnswer(invocation -> {
+            var document = invocation.<Game>getArgument(0);
+            assertEquals(2, document.getLastEventSeq());
+            assertEquals(2, document.getState().getPlayers().size());
+            assertEquals(List.of(new GameEvent.PlayerJoined("b", "Player b", 1)),
+                    document.getUnarchivedEvents().stream().map(GameLogEntry::event).toList());
+            document.setVersion(4L);
+            return document;
+        });
+        when(gameLogRepository.saveAll(anyList())).thenThrow(new DataAccessResourceFailureException("log unavailable"));
+
+        assertEquals(game, service().join(GAME_ID, user("b")));
+
+        assertEquals(1, game.getUnarchivedEvents().size());
+        verify(messagingService).send("/topic/games/" + GAME_ID, new GameUpdate(GAME_ID, 4, game.getUnarchivedEvents()));
+    }
+
+    @Test
+    void testEventReadsMergeDurableEventsAfterFailedArchiveWithoutDuplicates() {
+        var game = lobby("a", "b");
+        var first = GameLogEntry.of(GAME_ID, 1, 1000, new GameEvent.PlayerJoined("a", "Player a", 0));
+        var second = GameLogEntry.of(GAME_ID, 2, 1000, new GameEvent.PlayerJoined("b", "Player b", 1));
+        var third = GameLogEntry.of(GAME_ID, 3, 2000, new GameEvent.SettingsChanged(game.getState().getSettings()));
+        game.setUnarchivedEvents(List.of(second, third));
+        when(gameLogRepository.saveAll(anyList())).thenThrow(new DataAccessResourceFailureException("partial log write"));
+        when(gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(GAME_ID, 0)).thenReturn(List.of(first, second));
+        when(gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(GAME_ID, 2)).thenReturn(List.of());
+
+        assertEquals(List.of(first, second, third), service().events(GAME_ID, 0));
+        assertEquals(List.of(third), service().events(GAME_ID, 2));
+        assertEquals(3L, game.getVersion());
+    }
+
+    @Test
+    void testLaterChangeRetainsOlderEventsWhenArchivalStillFails() {
+        var game = lobby("a");
+        when(gameRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(gameLogRepository.saveAll(anyList())).thenThrow(new DataAccessResourceFailureException("log unavailable"));
+        var service = service();
+        service.join(GAME_ID, user("b"));
+        var earlier = game.getUnarchivedEvents().getFirst();
+
+        service.join(GAME_ID, user("c"));
+
+        assertEquals(List.of(2, 3), game.getUnarchivedEvents().stream().map(GameLogEntry::seq).toList());
+        assertEquals(earlier, game.getUnarchivedEvents().getFirst());
+    }
+
+    @Test
+    void testLaterChangeDiscardsOnlySuccessfullyArchivedEvents() {
+        var game = lobby("a");
+        when(gameRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(gameLogRepository.saveAll(anyList())).thenThrow(new DataAccessResourceFailureException("log unavailable"));
+        var service = service();
+        service.join(GAME_ID, user("b"));
+        var earlier = game.getUnarchivedEvents().getFirst();
+        var batches = new ArrayList<List<GameLogEntry>>();
+        doAnswer(invocation -> {
+            var batch = List.copyOf(invocation.<List<GameLogEntry>>getArgument(0));
+            batches.add(batch);
+            return batch;
+        }).when(gameLogRepository).saveAll(anyList());
+
+        service.join(GAME_ID, user("c"));
+
+        assertEquals(List.of(earlier), batches.getFirst());
+        assertEquals(List.of(3), game.getUnarchivedEvents().stream().map(GameLogEntry::seq).toList());
+        assertEquals(game.getUnarchivedEvents(), batches.getLast());
+    }
+
+    @Test
+    void testPartialArchiveIsRetriedWithStableIds() {
+        var game = lobby("a", "b");
+        when(gameRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        var log = new LinkedHashMap<String, GameLogEntry>();
+        when(gameLogRepository.saveAll(anyList())).thenAnswer(invocation -> {
+            var batch = invocation.<List<GameLogEntry>>getArgument(0);
+            log.put(batch.getFirst().id(), batch.getFirst());
+            throw new DataAccessResourceFailureException("failed after first event");
+        });
+        var service = service(6, 6, 1, 1);
+        service.start(GAME_ID, user("a"));
+        assertEquals(1, log.size());
+        assertEquals(4, game.getUnarchivedEvents().size());
+        doAnswer(invocation -> {
+            var batch = invocation.<List<GameLogEntry>>getArgument(0);
+            batch.forEach(entry -> log.put(entry.id(), entry));
+            return batch;
+        }).when(gameLogRepository).saveAll(anyList());
+        when(gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(GAME_ID, 2))
+                .thenAnswer(invocation -> List.copyOf(log.values()));
+
+        assertEquals(game.getUnarchivedEvents(), service.events(GAME_ID, 2));
+        assertEquals(game.getUnarchivedEvents(), service.events(GAME_ID, 2));
+        assertEquals(4, log.size());
+        assertTrue(log.values().stream().allMatch(entry -> entry.id().equals(GAME_ID + ":" + entry.seq())));
     }
 }

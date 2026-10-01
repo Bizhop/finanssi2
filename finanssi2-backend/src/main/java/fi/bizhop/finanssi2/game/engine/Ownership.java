@@ -34,7 +34,7 @@ public class Ownership {
         return propertiesOf(uid).stream()
                 .map(property -> gameData.titleDeed(property.getSquare()).group())
                 .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     /** All properties and all shares of the group. Fund shares belong to no group, so never make one complete. */

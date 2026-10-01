@@ -8,7 +8,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.random.RandomGenerator;
+import java.util.stream.IntStream;
 
+import static fi.bizhop.finanssi2.game.data.GameConstants.BOND_COUNT;
 import static fi.bizhop.finanssi2.game.data.GameConstants.MAX_PLAYERS;
 import static fi.bizhop.finanssi2.game.data.GameConstants.MIN_PLAYERS;
 import static fi.bizhop.finanssi2.game.data.GameConstants.START_SQUARE;
@@ -24,10 +26,9 @@ public class GameSetup {
 
     /** Every property and share, owned by the bank */
     public static void initAssets(GameState state, GameData gameData) {
-        state.setProperties(new ArrayList<>(gameData.titleDeeds().stream().map(deed -> new PropertyState(deed.square())).toList()));
-        state.setShares(new ArrayList<>(gameData.shares().stream().map(share -> new ShareState(share.id(), null)).toList()));
-        state.setBonds(new ArrayList<>(java.util.stream.IntStream.rangeClosed(1, fi.bizhop.finanssi2.game.data.GameConstants.BOND_COUNT)
-                .mapToObj(number -> new BondState(number, null)).toList()));
+        state.setProperties(gameData.titleDeeds().stream().map(deed -> new PropertyState(deed.square())).toList());
+        state.setShares(gameData.shares().stream().map(share -> new ShareState(share.id(), null)).toList());
+        state.setBonds(IntStream.rangeClosed(1, BOND_COUNT).mapToObj(number -> new BondState(number, null)).toList());
     }
 
     public List<GameEvent> start(GameState state, Dice dice, RandomGenerator random) {
@@ -60,10 +61,7 @@ public class GameSetup {
         // Play proceeds clockwise, which is join order, from the starter
         var uids = players.stream().map(PlayerState::getUid).toList();
         var starter = uids.indexOf(contenders.getFirst());
-        var turnOrder = new ArrayList<String>();
-        for (int i = 0; i < uids.size(); i++) {
-            turnOrder.add(uids.get((starter + i) % uids.size()));
-        }
+        var turnOrder = IntStream.range(0, uids.size()).mapToObj(i -> uids.get((starter + i) % uids.size())).toList();
         state.setTurnOrder(turnOrder);
         state.setCurrentPlayer(turnOrder.getFirst());
         state.setPhase(TurnPhase.BEFORE_ROLL);
@@ -80,8 +78,8 @@ public class GameSetup {
         Collections.shuffle(financeNews, random);
         state.setFinanceNewsDeck(financeNews);
 
-        events.add(new GameEvent.GameStarted(List.copyOf(turnOrder), STARTING_CASH));
+        events.add(new GameEvent.GameStarted(turnOrder, STARTING_CASH));
         events.add(new GameEvent.TurnStarted(turnOrder.getFirst()));
-        return events;
+        return List.copyOf(events);
     }
 }

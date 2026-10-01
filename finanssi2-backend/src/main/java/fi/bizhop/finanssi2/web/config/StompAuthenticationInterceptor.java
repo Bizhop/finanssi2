@@ -7,7 +7,6 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageDeliveryException;
-import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
@@ -28,20 +27,21 @@ public class StompAuthenticationInterceptor implements ChannelInterceptor {
         if (accessor == null || accessor.getCommand() == null) {
             return message;
         }
-        switch (accessor.getCommand()) {
+        return switch (accessor.getCommand()) {
             case CONNECT, STOMP -> {
                 var token = tokenVerifier.verifyAuthorizationHeader(accessor.getFirstNativeHeader("Authorization"))
                         .orElseThrow(() -> new MessageDeliveryException("Missing, invalid or expired Firebase ID token"));
                 // Remembered for the rest of the session, so later frames carry it too
                 accessor.setUser(new FirebaseAuthenticationToken(token));
+                yield message;
             }
             case SUBSCRIBE, SEND -> {
                 if (accessor.getUser() == null) {
                     throw new MessageDeliveryException("Not authenticated");
                 }
+                yield message;
             }
-            default -> {}
-        }
-        return message;
+            case DISCONNECT, UNSUBSCRIBE, ACK, NACK, BEGIN, COMMIT, ABORT, CONNECTED, RECEIPT, MESSAGE, ERROR -> message;
+        };
     }
 }

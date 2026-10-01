@@ -13,4 +13,13 @@ public record GameAssets(
         Map<String, Integer> groupShareCapital,
         List<Card> financeNews,
         List<Card> stockTips) {
+    public GameAssets {
+        squares = List.copyOf(squares);
+        groups = List.copyOf(groups);
+        titleDeeds = List.copyOf(titleDeeds);
+        shares = List.copyOf(shares);
+        groupShareCapital = Map.copyOf(groupShareCapital);
+        financeNews = List.copyOf(financeNews);
+        stockTips = List.copyOf(stockTips);
+    }
 }

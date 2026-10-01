@@ -70,12 +70,18 @@ Decisions that apply across all steps:
   the state, changes the state and returns events (`DiceRolled`, `RentPaid`, ...). A rejected command changes nothing and returns an
   error that the API reports as `409 Conflict` with a reason.
 - **State is one MongoDB document per game**, with `@Version` optimistic locking so two concurrent commands cannot both apply. The
-  engine works on the loaded copy; a failed command is simply not saved. Events are stored in a separate collection for the game log.
+  engine works on the loaded copy; a failed command is simply not saved. New events are saved atomically with state in a hidden
+  `unarchivedEvents` field, then copied to the separate game log. Stable event ids (`gameId:seq`) make partial log writes safe to
+  retry. Event reads retry archival and merge the stored batch with the log without duplicates; later changes also retry archival
+  and discard only batches successfully archived before that state save. This works with standalone MongoDB and needs no transaction
+  or extra game version increment. Archival failure does not reject an already saved command.
 - **Randomness is injected.** Dice go through a `Dice` interface: `SecureRandom` in production, scripted values in tests. Decks are
   shuffled once at game start and stored in the state in draw order. Every roll is recorded in an event.
 - **Pending decisions.** Some rules need input from a player other than the one whose turn it is (bond purchases in turn order,
   auction bids, raising funds for a tax). The state holds a queue of pending decisions; while it is not empty only the addressed
   player may act, and only with the commands that decision allows.
+- **Bonds.** `Bonds` owns purchases, auctions, draws and returns to the bank. Prices and prize lists go through `Rules`. Offer
+  continuations use `BondContinuation`; the API keeps the existing numeric codes and old numeric MongoDB values still load.
 - **Rule values go through one place.** Dice count, rent, prices, dividends and loan limits are computed by a `Rules` component, not
   inline. Steps 03–08 implement the plain rules; steps 09–10 make it take the active Finance News card and held Stock Tips into
   account without touching the callers.
@@ -83,5 +89,6 @@ Decisions that apply across all steps:
 - **Players** are identified by Firebase uid (`User.uid()`), with name and photo copied from `User` when joining.
 - **All game information is public**, as it is on the physical table, so one topic per game (`/topic/games/{id}`) is enough.
   Commands go in over REST, following the chat's pattern (REST POST in, STOMP broadcast out).
-- **Tests.** The engine is covered by unit tests with scripted dice; services and controllers follow `ChatServiceTest` and
-  `ChatControllerTest`. Every step ends with `bash -l -c "./gradlew test --console=plain"` passing (see `finanssi2-backend/CLAUDE.md`).
+- **Tests.** The engine is covered by unit tests with scripted dice; rejected commands compare typed snapshots of every state field,
+  including player order and the deck. Services and controllers follow `ChatServiceTest` and `ChatControllerTest`. Every step ends
+  with `bash -l -c "./gradlew test --console=plain"` passing (see `finanssi2-backend/AGENTS.md`).

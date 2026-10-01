@@ -6,8 +6,6 @@ import fi.bizhop.finanssi2.game.data.GameDataConfig;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -49,16 +47,45 @@ public final class EngineTests {
         assertEquals(before, Snapshot.of(state));
     }
 
-    /** A deep copy of the state, for checking that a rejected command changed nothing */
-    record Snapshot(String currentPlayer, TurnPhase phase, List<String> turnOrder, Set<String> players,
-                    List<PendingDecision> pendingDecisions, GameSettings settings, List<String> properties, List<String> shares, List<String> bonds,
-                    boolean boughtThisTurn) {
+    /** Immutable values of every state field; no dependency on generated toString or equals methods. */
+    record Snapshot(String currentPlayer, TurnPhase phase, List<String> turnOrder, List<PlayerSnapshot> players,
+                    List<PendingDecision> pendingDecisions, GameSettings settings, List<PropertySnapshot> properties,
+                    List<ShareSnapshot> shares, List<BondSnapshot> bonds, boolean boughtThisTurn, List<String> financeNewsDeck) {
         static Snapshot of(GameState state) {
             return new Snapshot(state.getCurrentPlayer(), state.getPhase(), List.copyOf(state.getTurnOrder()),
-                    state.getPlayers().stream().map(PlayerState::toString).collect(Collectors.toSet()),
+                    state.getPlayers().stream().map(PlayerSnapshot::of).toList(),
                     List.copyOf(state.getPendingDecisions()), state.getSettings(),
-                    state.getProperties().stream().map(PropertyState::toString).toList(),
-                    state.getShares().stream().map(ShareState::toString).toList(), state.getBonds().stream().map(BondState::toString).toList(), state.isBoughtThisTurn());
+                    state.getProperties().stream().map(PropertySnapshot::of).toList(),
+                    state.getShares().stream().map(ShareSnapshot::of).toList(),
+                    state.getBonds().stream().map(BondSnapshot::of).toList(), state.isBoughtThisTurn(),
+                    List.copyOf(state.getFinanceNewsDeck()));
+        }
+    }
+
+    record PlayerSnapshot(String uid, String name, String photoUrl, int piece, int cash, int position,
+                          boolean car, int loans, boolean out, int missedTurns, boolean jailExemption) {
+        static PlayerSnapshot of(PlayerState player) {
+            return new PlayerSnapshot(player.getUid(), player.getName(), player.getPhotoUrl(), player.getPiece(),
+                    player.getCash(), player.getPosition(), player.isCar(), player.getLoans(), player.isOut(),
+                    player.getMissedTurns(), player.isJailExemption());
+        }
+    }
+
+    record PropertySnapshot(int square, String owner, boolean mortgaged, boolean built) {
+        static PropertySnapshot of(PropertyState property) {
+            return new PropertySnapshot(property.getSquare(), property.getOwner(), property.isMortgaged(), property.isBuilt());
+        }
+    }
+
+    record ShareSnapshot(String id, String owner) {
+        static ShareSnapshot of(ShareState share) {
+            return new ShareSnapshot(share.getId(), share.getOwner());
+        }
+    }
+
+    record BondSnapshot(int number, String owner) {
+        static BondSnapshot of(BondState bond) {
+            return new BondSnapshot(bond.getNumber(), bond.getOwner());
         }
     }
 }

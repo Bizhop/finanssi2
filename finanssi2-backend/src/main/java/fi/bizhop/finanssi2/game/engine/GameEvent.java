@@ -13,13 +13,25 @@ public sealed interface GameEvent {
     record PlayerLeft(String player) implements GameEvent {}
 
     /** A player's roll for the starting order; tied highest rollers roll again in the next round */
-    record StartingRoll(String player, int round, List<Integer> dice) implements GameEvent {}
+    record StartingRoll(String player, int round, List<Integer> dice) implements GameEvent {
+        public StartingRoll {
+            dice = List.copyOf(dice);
+        }
+    }
 
-    record GameStarted(List<String> turnOrder, int startingCash) implements GameEvent {}
+    record GameStarted(List<String> turnOrder, int startingCash) implements GameEvent {
+        public GameStarted {
+            turnOrder = List.copyOf(turnOrder);
+        }
+    }
 
     record TurnStarted(String player) implements GameEvent {}
 
-    record DiceRolled(String player, List<Integer> dice) implements GameEvent {}
+    record DiceRolled(String player, List<Integer> dice) implements GameEvent {
+        public DiceRolled {
+            dice = List.copyOf(dice);
+        }
+    }
 
     record PieceMoved(String player, int from, int to) implements GameEvent {}
 
@@ -46,12 +58,22 @@ public sealed interface GameEvent {
     record PaymentDue(String player, String creditor, int amount) implements GameEvent {}
 
     /** Roll for the square 34 reward */
-    record BankEntranceRoll(String player, List<Integer> dice) implements GameEvent {}
+    record BankEntranceRoll(String player, List<Integer> dice) implements GameEvent {
+        public BankEntranceRoll {
+            dice = List.copyOf(dice);
+        }
+    }
 
     record PlayerBankrupt(String player, String creditor) implements GameEvent {}
 
     /** The bankrupt player's properties (unmortgaged) and shares went back to the bank */
-    record AssetsReturned(String player, List<Integer> properties, List<String> shares, List<Integer> bonds) implements GameEvent {}
+    record AssetsReturned(String player, List<Integer> properties, List<String> shares, List<Integer> bonds) implements GameEvent {
+        public AssetsReturned {
+            properties = List.copyOf(properties);
+            shares = List.copyOf(shares);
+            bonds = List.copyOf(bonds);
+        }
+    }
 
     record PropertyBought(String player, int square) implements GameEvent {}
 
@@ -87,14 +109,26 @@ public sealed interface GameEvent {
 
     record BondBought(String player, int number) implements GameEvent {}
     record BondDrawn(int number, int prize, String winner) implements GameEvent {}
-    record BondAuctionCompleted(int amount, String winner, int number, List<PendingDecision.Bid> bids) implements GameEvent {}
+    record BondAuctionCompleted(int amount, String winner, int number, List<PendingDecision.Bid> bids) implements GameEvent {
+        public BondAuctionCompleted {
+            bids = List.copyOf(bids);
+        }
+    }
 
     /** The bank's dividend on the listed shares, paid by {@link MoneyTransferred} */
-    record BankDividend(String player, int square, List<String> shares, int amount) implements GameEvent {}
+    record BankDividend(String player, int square, List<String> shares, int amount) implements GameEvent {
+        public BankDividend {
+            shares = List.copyOf(shares);
+        }
+    }
 
     /**
      * Dividend the player owes another player on square 41, for the listed shares, paid by {@link MoneyTransferred} or due by
      * {@link PaymentDue}
      */
-    record PlayerDividendCharged(String player, String shareholder, int square, List<String> shares, int amount) implements GameEvent {}
+    record PlayerDividendCharged(String player, String shareholder, int square, List<String> shares, int amount) implements GameEvent {
+        public PlayerDividendCharged {
+            shares = List.copyOf(shares);
+        }
+    }
 }

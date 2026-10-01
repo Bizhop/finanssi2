@@ -1,6 +1,6 @@
 package fi.bizhop.finanssi2.game.data;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -109,13 +109,10 @@ public final class GameData {
     }
 
     static <T, K> Map<K, T> indexUnique(List<T> items, Function<T, K> key, String what) {
-        var index = new LinkedHashMap<K, T>();
-        for (var item : items) {
-            if (index.put(key.apply(item), item) != null) {
-                throw new InvalidGameDataException("Duplicate " + what + " " + key.apply(item));
-            }
-        }
-        return index;
+        var index = items.stream().collect(Collectors.toMap(key, Function.identity(), (first, duplicate) -> {
+            throw new InvalidGameDataException("Duplicate " + what + " " + key.apply(duplicate));
+        }, LinkedHashMap::new));
+        return Collections.unmodifiableMap(index);
     }
 
     static void check(boolean condition, String message) {
@@ -130,7 +127,6 @@ public final class GameData {
             check(numbers.contains(number), "Square " + number + " is missing");
         }
         check(squares.size() == SQUARE_COUNT, "Expected " + SQUARE_COUNT + " squares, got " + squares.size());
-        var industrial = new ArrayList<Integer>();
         for (var square : squares) {
             check(square.type() != null && square.name() != null, "Square " + square.number() + " has no type or name");
             if (square.type() == SquareType.MOVE_TO) {
@@ -143,10 +139,8 @@ public final class GameData {
                 check(square.group() == null && square.price() == null,
                         "Square " + square.number() + " is not a property but has a group or price");
             }
-            if (square.industrial()) {
-                industrial.add(square.number());
-            }
         }
+        var industrial = squares.stream().filter(Square::industrial).map(Square::number).toList();
         check(industrial.equals(INDUSTRIAL_SQUARES), "Industrial squares must be " + INDUSTRIAL_SQUARES + ", got " + industrial);
     }
 
@@ -162,11 +156,9 @@ public final class GameData {
                 check(listed.add(number), "Square " + number + " is listed in more than one group");
             }
         }
-        for (var square : squares.values()) {
-            if (square.group() != null) {
-                check(listed.contains(square.number()), "Property " + square.number() + " is not listed in group " + square.group());
-            }
-        }
+        squares.values().stream().filter(square -> square.group() != null)
+                .forEach(square -> check(listed.contains(square.number()),
+                        "Property " + square.number() + " is not listed in group " + square.group()));
     }
 
     void validateTitleDeeds() {
@@ -175,7 +167,6 @@ public final class GameData {
             check((square.type() == SquareType.PROPERTY) == (deed != null),
                     "Square " + square.number() + (deed == null ? " has no title deed" : " is not a property but has a title deed"));
         }
-        var ungrouped = 0;
         for (var deed : titleDeeds.values()) {
             var square = squares.get(deed.square());
             var at = "Title deed " + deed.id() + ": ";
@@ -183,7 +174,6 @@ public final class GameData {
                     at + "name, price or group differs from square " + deed.square());
             if (deed.group() == null) {
                 // Pysäköintitalo: no building, a parking fee instead of rent
-                ungrouped++;
                 check(deed.building() == null && deed.rent() == null && isMoney(deed.parkingFee()),
                         at + "a property without a group must have a parking fee and no building or rent");
             } else {
@@ -209,15 +199,15 @@ public final class GameData {
                 checkByState(deed.buyBack(), at + "buy-back");
             }
         }
+        var ungrouped = titleDeeds.values().stream().filter(deed -> deed.group() == null).count();
         check(ungrouped == 1, "Expected exactly one property without a group, got " + ungrouped);
     }
 
     /** At least one state has a value and every value is money */
     static void checkByState(ByState values, String what) {
         check(values.unbuilt() != null || values.built() != null, what + " has no values");
-        for (var value : Stream.of(values.unbuilt(), values.built()).filter(Objects::nonNull).toList()) {
-            check(isMoney(value), what + " has an invalid value " + value);
-        }
+        Stream.of(values.unbuilt(), values.built()).filter(Objects::nonNull)
+                .forEach(value -> check(isMoney(value), what + " has an invalid value " + value));
     }
 
     void validateShares(Map<String, Integer> groupShareCapital) {

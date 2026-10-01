@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(collection = "game_events")
 public record GameLogEntry(@Id String id, String gameId, int seq, long time, String type, GameEvent event) {
     public static GameLogEntry of(String gameId, int seq, long time, GameEvent event) {
-        return new GameLogEntry(null, gameId, seq, time, event.getClass().getSimpleName(), event);
+        // Replaying a game document's unarchived events must update the same log documents, even after a partial batch write.
+        return new GameLogEntry(gameId + ":" + seq, gameId, seq, time, event.getClass().getSimpleName(), event);
     }
 }
