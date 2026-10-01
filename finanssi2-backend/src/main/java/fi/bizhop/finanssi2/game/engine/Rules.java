@@ -2,6 +2,7 @@ package fi.bizhop.finanssi2.game.engine;
 
 import fi.bizhop.finanssi2.game.data.GameData;
 import fi.bizhop.finanssi2.game.data.Share;
+import fi.bizhop.finanssi2.game.data.SquareType;
 import fi.bizhop.finanssi2.game.data.TitleDeed;
 
 import java.util.List;
@@ -85,6 +86,15 @@ public class Rules {
     /** What the bank pays for the property; null when the bank does not buy it back in its current state */
     public Integer propertyBuyBack(GameState state, TitleDeed deed, PropertyState property) {
         return deed.buyBack() == null ? null : deed.buyBack().get(property.isBuilt());
+    }
+
+    /** Whether the player may build now: while standing on a Rakennusprojekti Oy square (17 or 40) */
+    public boolean canBuild(GameState state, PlayerState player) {
+        return gameData.square(player.getPosition()).type() == SquareType.CONSTRUCTION;
+    }
+
+    public int buildingPrice(GameState state, TitleDeed deed) {
+        return deed.building().price();
     }
 
     /** What the bank pays for the share */

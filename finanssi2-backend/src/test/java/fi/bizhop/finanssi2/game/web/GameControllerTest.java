@@ -218,6 +218,10 @@ class GameControllerTest {
         assertEquals(HttpStatus.CONFLICT, command("{\"type\": \"EndTurn\"}", "a").getStatusCode());
         assertEquals(HttpStatus.BAD_REQUEST, command("{\"type\": \"Cheat\"}", "a").getStatusCode());
         assertEquals(HttpStatus.BAD_REQUEST, command("{}", "a").getStatusCode());
+        // Commands with parameters parse; the rules then reject them (not on square 11 or 17)
+        assertEquals(HttpStatus.CONFLICT, command("{\"type\": \"BuyProperty\", \"square\": 3}", "a").getStatusCode());
+        assertEquals(HttpStatus.CONFLICT, command("{\"type\": \"BuyShare\", \"share\": \"OS-KEMIA-1\"}", "a").getStatusCode());
+        assertEquals(HttpStatus.CONFLICT, command("{\"type\": \"Build\", \"squares\": [3, 4]}", "a").getStatusCode());
     }
 
     @Test

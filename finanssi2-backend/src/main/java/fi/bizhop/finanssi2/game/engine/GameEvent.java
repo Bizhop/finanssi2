@@ -68,5 +68,8 @@ public sealed interface GameEvent {
 
     record ShareSoldBack(String player, String share) implements GameEvent {}
 
+    /** {@code industrial}: an industrial plant rather than another building */
+    record PropertyBuilt(String player, int square, boolean industrial) implements GameEvent {}
+
     record TurnEnded(String player) implements GameEvent {}
 }

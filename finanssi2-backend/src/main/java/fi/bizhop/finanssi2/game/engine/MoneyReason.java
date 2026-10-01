@@ -15,6 +15,7 @@ public enum MoneyReason {
     REDEMPTION,
     PROPERTY_SALE,
     SHARE_SALE,
+    CONSTRUCTION,
     // What a bankrupt player had, to their creditor
     BANKRUPTCY
 }

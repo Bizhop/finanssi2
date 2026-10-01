@@ -27,6 +27,19 @@ interpretations in [open-questions.md](open-questions.md) so they stay in one pl
 After step 03 the game is playable end to end in tests: squares without an implementation only log that the player landed there.
 Each later step replaces some of those placeholders.
 
+## Progress
+
+| Step | Status |
+|---|---|
+| 01–06 | Done; each step is its own commit (`backend: plan step NN, ...`) |
+| 07 | Next: [07-special-squares-and-jail.md](07-special-squares-and-jail.md) has implementation notes pointing to the existing code |
+| 08–13 | Planned |
+
+How to continue a step: read the step file and [open-questions.md](open-questions.md) (decisions R*, B*, D*, I*), implement in
+`game.engine` with tests in the same style as the existing ones (`TestGame`, `EngineTests`, `ScriptedDice`), run
+`bash -l -c "./gradlew test --console=plain"` in `finanssi2-backend`, record new implementation choices as I-entries for review,
+then mark the step done here. Commit only when the developer asks.
+
 ## Assets
 
 Source material is in `input/`: the rules, the board photo and the 2026-09-30 photos of the cards. Data transcribed from them is in

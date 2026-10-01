@@ -36,6 +36,20 @@ public class Ownership {
         return properties && shares;
     }
 
+    /** The player's industrial plants (squares 26, 27, 29, 30, 32, 33) */
+    public long plantCount(String uid) {
+        return builtPropertiesOf(uid).stream().filter(property -> gameData.titleDeed(property.getSquare()).building().industrial()).count();
+    }
+
+    /** The player's buildings other than industrial plants */
+    public long otherBuildingCount(String uid) {
+        return builtPropertiesOf(uid).size() - plantCount(uid);
+    }
+
+    List<PropertyState> builtPropertiesOf(String uid) {
+        return propertiesOf(uid).stream().filter(PropertyState::isBuilt).toList();
+    }
+
     /** Sum of the prices of the player's shares */
     public int shareCapital(String uid) {
         return sharesOf(uid).stream().mapToInt(Share::value).sum();

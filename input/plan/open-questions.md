@@ -20,9 +20,9 @@ All decided (B1–B3 under "Decided").
 
 All decided (R1–R44 under "Decided").
 
-## Implementation decisions to review
+## Implementation decisions
 
-Made while implementing; change them if they don't fit.
+Made while implementing. I1–I18 are reviewed and accepted; add new ones at the end for review.
 
 | # | Decision | Step |
 |---|---|---|
@@ -43,6 +43,7 @@ Made while implementing; change them if they don't fit.
 | I15 | `allowedCommands` now checks every command with every parameter value (each property and share) but still returns only the command types. The frontend will likely want the concrete options (which squares can be bought or mortgaged); extend the response then | 05 |
 | I16 | Selling back is two commands, `SellBackProperty(square)` and `SellBackShare(share)`, instead of one with either parameter | 05 |
 | I17 | The "can still raise funds" check counts, for each unmortgaged property, the larger of its mortgage and buy-back value, and every share's buy-back value. Mortgaged properties add nothing, since redeeming is not allowed while raising funds | 05 |
+| I18 | Building is not a purchase: it doesn't use up the one purchase per turn. Each building is its own payment and `PropertyBuilt` event. Building pieces are not counted, since there are enough for every property | 06 |
 
 ## Decided
 

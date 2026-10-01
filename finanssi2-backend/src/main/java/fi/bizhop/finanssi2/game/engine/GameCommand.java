@@ -3,6 +3,8 @@ package fi.bizhop.finanssi2.game.engine;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
+import java.util.List;
+
 /** A player action, sent as JSON with its simple class name as {@code type}, e.g. {@code {"type": "Roll"}} */
 @JsonTypeInfo(use = JsonTypeInfo.Id.SIMPLE_NAME, property = "type")
 @JsonSubTypes({
@@ -20,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(GameCommand.Redeem.class),
         @JsonSubTypes.Type(GameCommand.SellBackProperty.class),
         @JsonSubTypes.Type(GameCommand.SellBackShare.class),
+        @JsonSubTypes.Type(GameCommand.Build.class),
 })
 public sealed interface GameCommand {
     record Roll() implements GameCommand {}
@@ -52,4 +55,11 @@ public sealed interface GameCommand {
     record SellBackProperty(int square) implements GameCommand {}
 
     record SellBackShare(String share) implements GameCommand {}
+
+    /** Builds on each of the listed properties; all or nothing */
+    record Build(List<Integer> squares) implements GameCommand {
+        public Build {
+            squares = squares == null ? List.of() : List.copyOf(squares);
+        }
+    }
 }
