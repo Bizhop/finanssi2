@@ -66,6 +66,10 @@ public sealed interface GameEvent {
         public BailRoll { dice = List.copyOf(dice); }
     }
     record BondOneWon(String player, String previousOwner, int amount) implements GameEvent {}
+    record ShareholdersMeetingResolved(String player, String group, int brokerageFee, int takeoverSum,
+                                       List<Integer> dice, boolean success) implements GameEvent {
+        public ShareholdersMeetingResolved { dice = List.copyOf(dice); }
+    }
 
     record HeldStockTipsReturned(String player, List<String> cards) implements GameEvent {
         public HeldStockTipsReturned { cards = List.copyOf(cards); }

@@ -1,5 +1,8 @@
 # 11 Shareholders' meeting
 
+Status: done. The command validates timing, location, fee, ownership and funds; resolution records the roll, pays sellers and the
+bank, transfers assets with mortgages intact, and completes groups for doubled rent.
+
 Taking over a business group from the other players. Completes the main route to owning complete groups.
 
 ## Command

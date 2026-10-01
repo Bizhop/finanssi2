@@ -28,5 +28,6 @@ public enum MoneyReason {
     BOND_PRIZE,
     FINANCE_NEWS,
     STOCK_TIP,
-    ASSET_AUCTION
+    ASSET_AUCTION,
+    SHAREHOLDERS_MEETING
 }

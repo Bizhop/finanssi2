@@ -62,6 +62,7 @@ Made while implementing. I1–I23 are reviewed and accepted; add new ones at the
 | I33 | FL-19 moves affected players directly to square 1, ignores intervening squares, and awards the square 34 reward when that square lies along the forward route | 09 |
 | I34 | Stock Tips have their own shuffled hidden draw-order list; held cards are stored publicly on the player, stay out of the deck until used, and return to the bottom on use or bankruptcy | 10 |
 | I35 | Stock Tip choices are stored as pending decisions with their allowed options; compulsory-sale bids stay hidden until every active bidder has responded | 10 |
+| I36 | At a successful shareholders' meeting with a fee below 30 000, the bank receives the entire fee and sellers receive no brokerage distribution; the rules' fixed 30 000 bank share cannot exceed the fee | 11 |
 
 ## Decided
 

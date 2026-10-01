@@ -49,6 +49,8 @@ import fi.bizhop.finanssi2.game.engine.GameEvent.TurnEnded;
 import fi.bizhop.finanssi2.game.engine.GameEvent.TurnStarted;
 import fi.bizhop.finanssi2.game.engine.PendingDecision.RaiseFunds;
 
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -100,7 +102,8 @@ public class GameEngine {
             Map.entry(GameCommand.ChooseNewsDirection.class, Timing.DECISION),
             Map.entry(GameCommand.ChooseStockTipOption.class, Timing.DECISION),
             Map.entry(GameCommand.UseHeldStockTip.class, Timing.OWN_TURN),
-            Map.entry(GameCommand.BidAsset.class, Timing.DECISION));
+            Map.entry(GameCommand.BidAsset.class, Timing.DECISION),
+            Map.entry(GameCommand.CallShareholdersMeeting.class, Timing.BEFORE_ROLL));
 
     /** Commands allowed while a decision of this type is pending, in or out of turn */
     static Set<Class<? extends GameCommand>> decisionCommands(PendingDecision decision) {
@@ -144,7 +147,8 @@ public class GameEngine {
                 Stream.of(new GameCommand.Pass(), new GameCommand.BidBond(0), new GameCommand.ChooseNewsDirection(true),
                         new GameCommand.ChooseNewsDirection(false), new GameCommand.ChooseStockTipOption(""),
                         new GameCommand.UseHeldStockTip("PV-25"), new GameCommand.BidAsset(0)));
-        candidateCommands = Stream.of(SIMPLE_COMMANDS.stream(), propertyCommands, shareCommands, bondCommands)
+        var meetingCommands = gameData.groups().stream().map(group -> (GameCommand) new GameCommand.CallShareholdersMeeting(group.id(), 20_000));
+        candidateCommands = Stream.of(SIMPLE_COMMANDS.stream(), propertyCommands, shareCommands, bondCommands, meetingCommands)
                 .flatMap(commands -> commands)
                 .toList();
     }
@@ -196,6 +200,7 @@ public class GameEngine {
             case GameCommand.ChooseStockTipOption choose -> resolveStockTipChoice(state, player, choose.option(), dice);
             case GameCommand.UseHeldStockTip use -> useHeldStockTip(state, player, use.card(), dice);
             case GameCommand.BidAsset bid -> bidAsset(state, player, bid.amount());
+            case GameCommand.CallShareholdersMeeting meeting -> callShareholdersMeeting(state, player, meeting.group(), meeting.brokerageFee(), dice);
         };
     }
 
@@ -330,6 +335,19 @@ public class GameEngine {
                 require(bid.amount() >= 0 && bid.amount() % 500 == 0 && bid.amount() <= player.getCash()
                                 && (bid.amount() == 0 || bid.amount() >= auction.minimumBid()),
                         "Invalid asset auction bid");
+            }
+            case GameCommand.CallShareholdersMeeting meeting -> {
+                var groupExists = gameData.groups().stream().anyMatch(group -> group.id().equals(meeting.group()));
+                require(groupExists, "Unknown business group");
+                require(player.getPosition() >= HEAD_OFFICE_FIRST_SQUARE && player.getPosition() <= SQUARE_COUNT,
+                        "Shareholders' meetings are held inside the bank");
+                require(rules.shareholdersMeetingsAllowed(state), "Shareholders' meetings are stopped by Finance News");
+                require(meeting.brokerageFee() >= 20_000 && meeting.brokerageFee() <= 120_000
+                                && meeting.brokerageFee() % 10_000 == 0, "Invalid brokerage fee");
+                require(ownershipOwnsGroupAsset(state, player.getUid(), meeting.group()), "You own no asset in this group");
+                require(groupHasOtherOwner(state, player.getUid(), meeting.group()), "Other players own no assets in this group");
+                require(player.getCash() >= shareholdersMeetingTakeoverSum(state, meeting.group(), player.getUid())
+                                + meeting.brokerageFee(), "Not enough cash for the takeover and brokerage fee");
             }
         }
     }
@@ -1287,6 +1305,101 @@ public class GameEngine {
         var payment = payments.toBank(player, rules.redemptionPrice(state, deed(square), property), MoneyReason.REDEMPTION);
         property.setMortgaged(false);
         return List.of(payment, new PropertyRedeemed(player.getUid(), square));
+    }
+
+    private boolean ownershipOwnsGroupAsset(GameState state, String uid, String group) {
+        var groupData = gameData.group(group);
+        return groupData.properties().stream().anyMatch(square -> uid.equals(state.property(square).getOwner()))
+                || gameData.sharesOf(group).stream().anyMatch(share -> uid.equals(state.share(share.id()).getOwner()));
+    }
+
+    private boolean groupHasOtherOwner(GameState state, String uid, String group) {
+        return groupDataHasActiveOwner(state, group, uid);
+    }
+
+    private boolean groupDataHasActiveOwner(GameState state, String group, String except) {
+        var groupData = gameData.group(group);
+        return groupData.properties().stream().map(square -> state.property(square).getOwner())
+                .filter(owner -> owner != null && !owner.equals(except)).anyMatch(owner -> state.player(owner).filter(p -> !p.isOut()).isPresent())
+                || gameData.sharesOf(group).stream().map(share -> state.share(share.id()).getOwner())
+                .filter(owner -> owner != null && !owner.equals(except)).anyMatch(owner -> state.player(owner).filter(p -> !p.isOut()).isPresent());
+    }
+
+    private int shareholdersMeetingTakeoverSum(GameState state, String group, String caller) {
+        var total = 0;
+        for (var square : gameData.group(group).properties()) {
+            var property = state.property(square);
+            if (property.getOwner() != null && !caller.equals(property.getOwner())) {
+                var deed = gameData.titleDeed(square);
+                total += deed.price() + (property.isBuilt() ? deed.building().price() : 0);
+            }
+        }
+        for (var share : gameData.sharesOf(group)) {
+            var owner = state.share(share.id()).getOwner();
+            if (owner != null && !caller.equals(owner)) total += share.value();
+        }
+        return total;
+    }
+
+    List<GameEvent> callShareholdersMeeting(GameState state, PlayerState caller, String group, int brokerageFee, Dice dice) {
+        var diceResult = new ArrayList<Integer>();
+        var success = brokerageFee == 120_000;
+        if (!success) {
+            diceResult.add(dice.roll());
+            diceResult.add(dice.roll());
+            success = diceResult.stream().mapToInt(Integer::intValue).sum() <= brokerageFee / 10_000;
+        }
+        var takeoverSum = shareholdersMeetingTakeoverSum(state, group, caller.getUid());
+        var events = new ArrayList<GameEvent>();
+        if (!diceResult.isEmpty()) events.add(new GameEvent.DiceRolled(caller.getUid(), diceResult));
+        events.add(new GameEvent.ShareholdersMeetingResolved(caller.getUid(), group, brokerageFee, takeoverSum,
+                diceResult, success));
+        if (!success) {
+            events.add(payments.toBank(caller, brokerageFee, MoneyReason.SHAREHOLDERS_MEETING));
+            return List.copyOf(events);
+        }
+
+        var sellerIds = new LinkedHashSet<String>();
+        for (var square : gameData.group(group).properties()) {
+            var property = state.property(square);
+            if (property.getOwner() != null && !caller.getUid().equals(property.getOwner())) sellerIds.add(property.getOwner());
+        }
+        for (var share : gameData.sharesOf(group)) {
+            var owner = state.share(share.id()).getOwner();
+            if (owner != null && !caller.getUid().equals(owner)) sellerIds.add(owner);
+        }
+        var baseBankFee = Math.min(30_000, brokerageFee);
+        var shareOfFee = (brokerageFee - baseBankFee) / (double) sellerIds.size();
+        var brokeragePayouts = sellerIds.stream().collect(java.util.stream.Collectors.toMap(uid -> uid,
+                uid -> (int) (Math.floor((shareOfFee + 250) / 500) * 500), (a, b) -> a, LinkedHashMap::new));
+        for (var square : gameData.group(group).properties()) {
+            var property = state.property(square);
+            if (property.getOwner() == null || caller.getUid().equals(property.getOwner())) continue;
+            var seller = state.player(property.getOwner()).orElseThrow();
+            var deed = gameData.titleDeed(square);
+            var price = deed.price() + (property.isBuilt() ? deed.building().price() : 0);
+            events.add(payments.transfer(caller, seller, price, MoneyReason.SHAREHOLDERS_MEETING));
+            var previousOwner = property.getOwner();
+            property.setOwner(caller.getUid());
+            events.add(new GameEvent.AssetTransferred(previousOwner, caller.getUid(), "P:" + square));
+        }
+        for (var share : gameData.sharesOf(group)) {
+            var shareState = state.share(share.id());
+            if (shareState.getOwner() == null || caller.getUid().equals(shareState.getOwner())) continue;
+            var seller = state.player(shareState.getOwner()).orElseThrow();
+            events.add(payments.transfer(caller, seller, share.value(), MoneyReason.SHAREHOLDERS_MEETING));
+            var previousOwner = shareState.getOwner();
+            shareState.setOwner(caller.getUid());
+            events.add(new GameEvent.AssetTransferred(previousOwner, caller.getUid(), "S:" + share.id()));
+        }
+        for (var sellerUid : sellerIds) {
+            var seller = state.player(sellerUid).orElseThrow();
+            var payout = brokeragePayouts.get(sellerUid);
+            if (payout > 0) events.add(payments.transfer(caller, seller, payout, MoneyReason.SHAREHOLDERS_MEETING));
+        }
+        var bankFee = brokerageFee - brokeragePayouts.values().stream().mapToInt(Integer::intValue).sum();
+        if (bankFee > 0) events.add(payments.toBank(caller, bankFee, MoneyReason.SHAREHOLDERS_MEETING));
+        return List.copyOf(events);
     }
 
     List<GameEvent> sellBackProperty(GameState state, PlayerState player, int square) {
