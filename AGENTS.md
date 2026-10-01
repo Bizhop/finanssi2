@@ -1,4 +1,4 @@
-# Finanssi 2: notes for Claude
+# Finanssi 2: notes for coding agents
 
 ## Commits
 

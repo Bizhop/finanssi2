@@ -1,4 +1,4 @@
-# Backend: notes for Claude
+# Backend: notes for coding agents
 
 ## Building in the sandbox
 
@@ -31,3 +31,10 @@ For more (real database, running API, websocket), ask the developer to
 start the services locally (`docker compose up -d`, `./gradlew bootRun`) and reach them at `host.docker.internal` (e.g. port 8080);
 if blocked, ask them to allow the port in the sandbox network policy. If a sandbox database is unavoidable, use `mongo:7` on a port
 other than 27017 (latest `mongo` won't start on the sandbox's 6.19+ kernel) and remove it afterwards.
+
+## Java conventions
+
+- prefer streaming API and immutable colletions
+- prefer guard clauses to avoid deep if-else blocks
+- prefer exhaustive switch expressions when dealing with enums
+- prefer simple records over POJOs
