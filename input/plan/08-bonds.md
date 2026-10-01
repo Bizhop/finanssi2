@@ -45,8 +45,8 @@ Starting points in `game.engine` (steps 03–07):
   the bids out of API responses (`@JsonIgnore`, as the decks, I6) until the last bid is in, then emit them in one event.
 - **Money**: `Payments.toBank` for purchases and winning bids, `fromBank` for prizes; new `MoneyReason`s `BOND_PURCHASE`,
   `BOND_PRIZE`. Prizes and the bond price go through `Rules`, so step 09 can change them.
-- **Bankruptcy**: `declareBankruptcy` returns properties and shares to the bank; bonds go back too (R45: all assets of a bankrupt
-  player return to the bank), listed in `AssetsReturned`.
+- **Bankruptcy**: bonds have no sale value, so a bankrupt player's bonds go back to the bank without compensation (R45), listed in
+  `AssetsReturned` with the properties and shares. Selling the other assets first is step 12.
 
 ## Tests
 

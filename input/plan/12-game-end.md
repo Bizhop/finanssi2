@@ -13,9 +13,17 @@ Winning, finishing bankruptcy handling, and closing a game.
 
 ## Bankruptcy, complete
 
-Collect what steps 04–10 added into one procedure and test it as a whole: cash to the creditor (R13), loans cancelled, car,
-properties (unmortgaged, buildings removed), shares (fund shares too) and bonds back to the bank, held Stock Tips back to the
-deck, pending decisions for the player dropped, player skipped in turn order.
+Collect what steps 04–10 added into one procedure and test it as a whole:
+
+- `DeclareBankruptcy` stays allowed only when even every available loan and sale cannot cover the debt (step 04,
+  `GameEngine.fundsAvailable`).
+- Take the available loans and sell everything sellable to the bank (R45): the car and shares (fund shares too) sold back, each
+  unmortgaged property sold back or mortgaged, whichever gives more, built ones at their built value. Steps 04–07 skip this: the
+  creditor gets only the cash on hand, no loans are taken, and the car, shares and properties return to the bank unsold.
+- Cash to the creditor (R13), loans cancelled.
+- What is left back to the bank without compensation: mortgaged properties (unmortgaged, buildings removed), properties the bank
+  neither buys back nor lends on, bonds.
+- Held Stock Tips back to the deck, pending decisions for the player dropped (I19), player skipped in turn order.
 
 ## Leaving a running game
 
@@ -29,7 +37,7 @@ deck, pending decisions for the player dropped, player skipped in turn order.
   while cash is already enough
 - Win reached outside the player's turn
 - Last player standing
-- Full bankruptcy procedure; resign
+- Full bankruptcy procedure: the creditor gets the loan money and sale proceeds, unsellable assets return to the bank; resign
 
 ## Done when
 
