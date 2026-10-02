@@ -15,6 +15,7 @@ export type GamePlayer = {
 
 export type Game = {
     id: string
+    mode: "NORMAL" | "DEBUG"
     status: "LOBBY" | "RUNNING" | "FINISHED"
     creator: string
     createdAt: number
@@ -39,12 +40,30 @@ export type Game = {
     }
 }
 
-export type GameView = { game: Game; allowedCommands: string[] }
+export type GameView = { game: Game; allowedCommands: string[]; actingPlayer: string | null }
+
+export class GameApiError extends Error {
+    constructor(message: string, public status: number) {
+        super(message)
+    }
+}
 export type GameSquare = { square: number; name: string; type: string; group: string | null; price: number | null; text: string | null }
 export type GameBoardData = {
     squares: GameSquare[]
     groups: { id: string; name: string; color: string; properties: number[] }[]
-    titleDeeds: { id: string; square: number; name: string; group: string | null; price: number; building: { label: string; price: number } | null; rent: { unbuilt: number | null; built: number | null } | null; parkingFee: number | null; mortgage: { unbuilt: number | null; built: number | null } | null; redemption: { unbuilt: number | null; built: number | null } | null; buyBack: { unbuilt: number | null; built: number | null } | null }[]
+    titleDeeds: {
+        id: string
+        square: number
+        name: string
+        group: string | null
+        price: number
+        building: { label: string; price: number } | null
+        rent: { unbuilt: number | null; built: number | null } | null
+        parkingFee: number | null
+        mortgage: { unbuilt: number | null; built: number | null } | null
+        redemption: { unbuilt: number | null; built: number | null } | null
+        buyBack: { unbuilt: number | null; built: number | null } | null
+    }[]
     shares: { id: string; group: string | null; value: number; dividendPercent: number; dividend: number; buyBack: number }[]
     financeNews: Card[]
     stockTips: Card[]
@@ -63,8 +82,9 @@ export async function gameApi<T>(user: User, path: string, init: RequestInit = {
     })
     if (!response.ok) {
         const body = await response.json().catch(() => null)
-        throw new Error(body?.detail ?? `Request failed (${response.status})`)
+        throw new GameApiError(body?.detail ?? `Request failed (${response.status})`, response.status)
     }
     if (response.status === 204) return undefined as T
-    return await response.json() as T
+    const body = await response.text()
+    return body ? JSON.parse(body) as T : undefined as T
 }

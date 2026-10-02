@@ -147,7 +147,7 @@ Card control and persistence:
   one owner can resolve every seat's legal actions, stale requests fail and no dev-profile bypass remains.
 - [x] 4. Next-card control with deck invariants, event persistence and version checks. Done when ordinary draws use the selected
   card and held cards, finished games and pending decisions reject invalid deck changes.
-- [ ] 5. Frontend capability gating, creation, acting-seat controls and the required asset control fixes. Done when real debug
+- [x] 5. Frontend capability gating, creation, acting-seat controls and the required asset control fixes. Done when real debug
   rooms show the current controlled seat and submit actor/version with each action, including out-of-turn decisions.
 - [ ] 6. Focused automated checks and manual play through the real app; update status notes as features are completed. Done when
   the acceptance checks below pass, or any review requiring developer-run services is explicitly recorded as outstanding.
@@ -183,3 +183,5 @@ Once implemented, move final decisions and any remaining todos into the backend/
 - 2026-10-02: Step 3 complete: effective actor views/commands, stale actor/version conflicts, bounded request dice, creator closure after elimination, dev route/wiring removal. Full backend suite passed before adding MongoDB actor/dice tests; focused MongoDB suite then passed, including out-of-turn Pay, owner resignation, stale requests and unused/rejected dice isolation. Next: next-card controls.
 
 - 2026-10-02: Step 4 complete: next-card endpoint/service, explicit DebugDeckChanged event and atomic archival, deck/held-card invariants and version checks. Full backend suite passed (224 tests): selected card draws through ordinary rules; order/effect persistence, held/unknown cards, stale views, pending decisions and finished games checked. Next: frontend controls.
+
+- 2026-10-02: Step 5 complete: capability/account gating, debug creation with seats/settings, labels and acting-seat controls, dice/card/deletion UI, empty-body transport, 409/403/deletion handling, reconnect list refresh, property inventory and built-state mortgages. Frontend typecheck/lint and changed-file formatting passed via npx deno; existing MUI 9 props in touched controls were corrected. Global format check identified two inherited files (STATUS.md and dev-pages/mocks.ts), to format in step 6. Next: focused endpoint/security checks, final status handoff and live-service review.
