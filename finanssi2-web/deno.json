@@ -10,7 +10,7 @@
         "fmt:check": "deno fmt --check",
         "typecheck": "deno check src/ dev-pages/ vite.config.ts vite.dev-pages.config.ts",
         "lint": "deno lint",
-        "test": "deno test src/components/gameApi.test.ts"
+        "test": "deno test src/components/gameApi.test.ts src/components/gameEvents.test.ts"
     },
     "imports": {
         "@deno/vite-plugin": "npm:@deno/vite-plugin@^2.0.4",

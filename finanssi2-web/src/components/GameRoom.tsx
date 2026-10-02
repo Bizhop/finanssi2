@@ -12,7 +12,6 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
-    Divider,
     Grid,
     Paper,
     Stack,
@@ -24,8 +23,8 @@ import { toast } from "react-toastify"
 import { useCurrentUser } from "./CurrentUserContext.tsx"
 import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
 import { Game, gameApi, GameApiError, GameBoardData, GameView } from "./gameApi.ts"
+import { describeEvent, GameLogEntry } from "./gameEvents.ts"
 
-type GameLogEntry = { id: string; seq: number; time: number; type: string; event: Record<string, unknown> }
 type GameUpdate = { version: number; events: GameLogEntry[] }
 
 const apiError = (reason: unknown) => reason instanceof Error ? reason.message : "The request failed"
@@ -216,6 +215,8 @@ const GameRoomContent = () => {
     const squareByNumber = new Map(board?.squares.map((square) => [square.square, square]) ?? [])
     const propertyBySquare = new Map(game.state.properties.map((property) => [property.square, property]))
     const simpleCommands = ["Roll", "EndTurn", "BuyCar", "SellCar", "TakeLoan", "RepayLoan", "Pay", "DeclareBankruptcy", "Pass", "Resign"]
+    const playerName = (uid: string) => game.state.players.find((player) => player.uid === uid)?.name ?? "a former player"
+    const lastStockTip = events.findLast((entry) => entry.type === "StockTipDrawn")
     const commands = pending ? allowedCommands.filter((command) => command === "Resign") : allowedCommands.filter((command) => simpleCommands.includes(command))
 
     return (
@@ -352,6 +353,31 @@ const GameRoomContent = () => {
                                 </CardContent>
                             </Card>
                         )}
+                        {lastStockTip && (
+                            <Card variant="outlined">
+                                <CardContent>
+                                    <Typography sx={{ fontWeight: 700 }}>Last Stock Tip</Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                        Drawn by {playerName(String(lastStockTip.event.player))} · {String(lastStockTip.event.card)}
+                                        {lastStockTip.event.held ? " · held" : ""}
+                                    </Typography>
+                                    <CardChapters
+                                        card={board?.stockTips.find((item) => item.id === lastStockTip.event.card)}
+                                        fallback={String(lastStockTip.event.card)}
+                                    />
+                                </CardContent>
+                            </Card>
+                        )}
+                        <Card variant="outlined">
+                            <CardContent>
+                                <Typography sx={{ fontWeight: 700 }}>Event log</Typography>
+                                <Stack spacing={0.5} sx={{ maxHeight: 480, overflowY: "auto", mt: 0.5 }}>
+                                    {events.slice(-200).reverse().map((entry) => (
+                                        <EventLine key={entry.seq} entry={entry} text={describeEvent(entry, { playerName, board })} board={board} />
+                                    ))}
+                                </Stack>
+                            </CardContent>
+                        </Card>
                         {game.state.finished && (
                             <Alert severity="success">
                                 {game.state.winner
@@ -591,13 +617,6 @@ const GameRoomContent = () => {
                 </>
             )}
             {allowedCommands.includes("EndGame") && <Button color="error" onClick={() => setEndGameOpen(true)}>End game</Button>}
-            <Divider />
-            <Typography variant="h6">Recent events</Typography>
-            <Stack spacing={0.5}>
-                {events.slice(-12).reverse().map((entry) => (
-                    <Typography key={entry.seq} variant="body2" color="text.secondary">{entry.seq}. {entry.type}</Typography>
-                ))}
-            </Stack>
             <Dialog open={choiceOpen} onClose={() => setChoiceOpen(false)}>
                 <DialogTitle>Choose a Stock Tip effect</DialogTitle>
                 <DialogContent>
@@ -678,6 +697,34 @@ const CardChapters = ({ card, fallback }: { card: GameBoardData["financeNews"][n
         )) ?? <Typography variant="body2">{fallback}</Typography>}
     </Stack>
 )
+
+/** A log line; card draws also show the card text, turn starts separate turns */
+const EventLine = ({ entry, text, board }: { entry: GameLogEntry; text: string; board: GameBoardData | null }) => {
+    const cards = entry.type === "FinanceNewsDrawn" ? board?.financeNews : entry.type === "StockTipDrawn" ? board?.stockTips : undefined
+    const card = cards?.find((item) => item.id === entry.event.card)
+    const turnStart = entry.type === "TurnStarted"
+    return (
+        <Box sx={turnStart ? { borderTop: 1, borderColor: "divider", pt: 0.5 } : undefined}>
+            <Typography
+                variant="body2"
+                color={entry.type === "NotImplemented" && !["BRANCH_OFFICE", "CONSTRUCTION"].includes(String(entry.event.squareType))
+                    ? "warning.main"
+                    : turnStart
+                    ? "text.primary"
+                    : "text.secondary"}
+                sx={{ fontWeight: turnStart ? 600 : undefined }}
+            >
+                <Box component="span" sx={{ color: "text.disabled", mr: 0.75 }}>{entry.seq}</Box>
+                {text}
+            </Typography>
+            {card && (
+                <Box sx={{ pl: 2, borderLeft: 2, borderColor: "divider", ml: 0.5, my: 0.25 }}>
+                    <CardChapters card={card} fallback={card.id} />
+                </Box>
+            )}
+        </Box>
+    )
+}
 
 const commandLabel = (command: string) => ({
     EndTurn: "End turn",

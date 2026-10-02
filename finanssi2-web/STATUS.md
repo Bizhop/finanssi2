@@ -63,8 +63,9 @@ Private single-player debug mode is implemented. Live Google-authenticated accep
       in the UI.
 - [ ] Explain obligations and choices: show payment amount/creditor, asset auction details/minimum bid and meaningful labels for the backend's Stock Tip option
       strings. Show costs/proceeds for purchases, redemption, construction and meetings.
-- [ ] Render useful event details. The recent log currently shows only the last 12 event types, so dice, movement, transfers, card draws, auction outcomes and
-      reasons need readable descriptions. Show immediate drawn Stock Tips as well as held/choice cards; the current card display does not cover every draw.
+- [x] Render useful event details. `gameEvents.ts` describes every backend event type (dice, squares, money and reasons, cards, auctions with bids,
+      unimplemented squares); the room's event log shows the latest 200, newest first, with drawn card text inline. A sidebar card shows the last drawn Stock
+      Tip, immediate or held. Unknown event types fall back to their type name. Card text remains Finnish.
 - [x] Disable room controls while requests run and guard submissions synchronously against duplicate clicks.
 - [x] Remount rooms on game/account changes and reject stale state/history responses; newest state refresh wins.
 

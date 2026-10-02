@@ -86,6 +86,21 @@ const board = {
     }],
 }
 
+const events = [
+    { type: "TurnStarted", player: user.uid },
+    { type: "DiceRolled", player: user.uid, dice: [3, 4] },
+    { type: "PieceMoved", player: user.uid, from: 10, to: 17 },
+    { type: "LandedOn", player: user.uid, square: 17 },
+    { type: "StockTipDrawn", player: user.uid, card: "PV-25", held: true },
+    { type: "TurnEnded", player: user.uid },
+    { type: "TurnStarted", player: "olli" },
+    { type: "DiceRolled", player: "olli", dice: [2, 6] },
+    { type: "LandedOn", player: "olli", square: 25 },
+    { type: "FinanceNewsDrawn", player: "olli", card: "FL-01", replaced: null },
+    { type: "MoneyTransferred", from: "olli", to: null, amount: 5_000, reason: "FINANCE_NEWS" },
+    { type: "NotImplemented", player: "olli", square: 26, squareType: "CONSTRUCTION" },
+].map((event, index) => ({ id: `preview-game:${index + 1}`, seq: index + 1, time: 0, type: event.type, event }))
+
 const PreviewRoom = () => {
     const { setUser } = useCurrentUser()
     useEffect(() => {
@@ -98,7 +113,7 @@ const previewConnection: StompConnection = { connected: true, subscribe: () => (
 
 globalThis.fetch = (input, init) => {
     const path = new URL(String(input).replace(/^undefined/, ""), location.origin).pathname
-    if (path.startsWith("/api/games/preview-game/events")) return Promise.resolve(Response.json([]))
+    if (path.startsWith("/api/games/preview-game/events")) return Promise.resolve(Response.json(events))
     if (path === "/api/games/preview-game") {
         return Promise.resolve(Response.json({
             game,
