@@ -83,6 +83,62 @@ abstract class GameMongoTests {
     }
 
     @Test
+    void debugCardSelectionPreservesDeckAndDrawsThroughGameplay() {
+        var owner = new User("debug-owner", "owner@example.com", "Owner", null, true);
+        var game = gameService.createDebug(owner, 2, GameSettings.DEFAULT);
+        var id = game.getId();
+        createdGames.add(id);
+        when(diceSource.forGame(any())).thenReturn(new ScriptedDice(6, 6, 1, 1));
+        game = gameService.start(id, owner);
+        game.getState().current().setPosition(4);
+        game.getState().setActiveFinanceNews("FL-09");
+        game = gameRepository.save(game);
+        var before = game.getState().getFinanceNewsDeck().stream().filter(card -> !card.equals("FL-05")).toList();
+        var selected = gameService.nextCard(id, owner, "FINANCE_NEWS", "FL-05", game.getVersion());
+        assertEquals("FL-09", selected.getState().getActiveFinanceNews());
+        assertEquals("FL-05", selected.getState().getFinanceNewsDeck().getFirst());
+        assertEquals(before, selected.getState().getFinanceNewsDeck().subList(1, 21));
+        assertInstanceOf(GameEvent.DebugDeckChanged.class,
+                gameService.events(id, selected.getLastEventSeq() - 1, owner).getFirst().event());
+        var rolls = gameService.debugCommand(id, owner, owner.uid(), selected.getVersion(), new GameCommand.Roll(), List.of(1));
+        assertTrue(rolls.stream().anyMatch(e -> e.event() instanceof GameEvent.FinanceNewsDrawn drawn && drawn.card().equals("FL-05")));
+        assertEquals(21, gameService.get(id).getState().getFinanceNewsDeck().stream().distinct().count());
+        var version = selected.getVersion();
+        assertThrows(fi.bizhop.finanssi2.game.engine.RuleViolation.class,
+                () -> gameService.nextCard(id, owner, "FINANCE_NEWS", "FL-01", version));
+    }
+
+    @Test
+    void debugCardSelectionRejectsHeldCardsPendingDecisionsAndFinishedGames() {
+        var owner = new User("debug-owner", "owner@example.com", "Owner", null, true);
+        var game = gameService.createDebug(owner, 2, GameSettings.DEFAULT);
+        var id = game.getId();
+        createdGames.add(id);
+        when(diceSource.forGame(any())).thenReturn(new ScriptedDice(6, 6, 1, 1));
+        game = gameService.start(id, owner);
+        game.getState().getStockTipDeck().remove("PV-01");
+        game.getState().current().getHeldStockTips().add("PV-01");
+        game = gameRepository.save(game);
+        var version = game.getVersion();
+        for (var choice : List.of(List.of("STOCK_TIP", "PV-01"), List.of("FINANCE_NEWS", "unknown"),
+                List.of("unknown", "FL-01"))) {
+            assertThrows(fi.bizhop.finanssi2.game.engine.RuleViolation.class,
+                    () -> gameService.nextCard(id, owner, choice.getFirst(), choice.getLast(), version));
+        }
+        game.getState().getPendingDecisions().add(new PendingDecision.BondOffer(owner.uid(), BondContinuation.NONE));
+        game = gameRepository.save(game);
+        var pendingVersion = game.getVersion();
+        assertThrows(fi.bizhop.finanssi2.game.engine.RuleViolation.class,
+                () -> gameService.nextCard(id, owner, "STOCK_TIP", "PV-02", pendingVersion));
+        game.getState().getPendingDecisions().clear();
+        game.setStatus(GameStatus.FINISHED);
+        game = gameRepository.save(game);
+        var finishedVersion = game.getVersion();
+        assertThrows(fi.bizhop.finanssi2.game.engine.RuleViolation.class,
+                () -> gameService.nextCard(id, owner, "FINANCE_NEWS", "FL-01", finishedVersion));
+    }
+
+    @Test
     void debugCommandsControlDecisionsAndSurviveOwnerElimination() {
         var owner = new User("debug-owner", "owner@example.com", "Owner", null, true);
         var game = gameService.createDebug(owner, 3, GameSettings.DEFAULT);

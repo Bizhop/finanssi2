@@ -145,7 +145,7 @@ Card control and persistence:
   broadcasts. Done when owner-only lifecycle works and neither ordinary REST nor public topics expose another user's debug game.
 - [x] 3. Effective actor views/commands, version checks and request-scoped dice; replace the existing dev dice route. Done when
   one owner can resolve every seat's legal actions, stale requests fail and no dev-profile bypass remains.
-- [ ] 4. Next-card control with deck invariants, event persistence and version checks. Done when ordinary draws use the selected
+- [x] 4. Next-card control with deck invariants, event persistence and version checks. Done when ordinary draws use the selected
   card and held cards, finished games and pending decisions reject invalid deck changes.
 - [ ] 5. Frontend capability gating, creation, acting-seat controls and the required asset control fixes. Done when real debug
   rooms show the current controlled seat and submit actor/version with each action, including out-of-turn decisions.
@@ -181,3 +181,5 @@ Once implemented, move final decisions and any remaining todos into the backend/
 - 2026-10-02: Step 2 complete: GameService/DebugGameController private creation/deletion, stable seats, REST/list filters, STOMP literal-topic access and SEND rejection, private broadcasts and archival cleanup after deletion. Full backend suite passed (221 tests), including MongoDB lifecycle/stale-save and subscription checks. Next: effective actors and request-scoped dice.
 
 - 2026-10-02: Step 3 complete: effective actor views/commands, stale actor/version conflicts, bounded request dice, creator closure after elimination, dev route/wiring removal. Full backend suite passed before adding MongoDB actor/dice tests; focused MongoDB suite then passed, including out-of-turn Pay, owner resignation, stale requests and unused/rejected dice isolation. Next: next-card controls.
+
+- 2026-10-02: Step 4 complete: next-card endpoint/service, explicit DebugDeckChanged event and atomic archival, deck/held-card invariants and version checks. Full backend suite passed (224 tests): selected card draws through ordinary rules; order/effect persistence, held/unknown cards, stale views, pending decisions and finished games checked. Next: frontend controls.

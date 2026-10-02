@@ -211,6 +211,43 @@ public class GameService {
         return execute(game, user, actor, command, () -> rolls.isEmpty() ? fallback.roll() : rolls.removeFirst());
     }
 
+    public synchronized Game nextCard(String id, User user, String deckName, String card, Long expectedVersion) {
+        var game = get(id);
+        debugAccess.requireOwner(game, user);
+        requireVersion(game, expectedVersion);
+        if (game.getStatus() != GameStatus.RUNNING || !game.getState().getPendingDecisions().isEmpty()) {
+            throw new RuleViolation("Cards can only be selected in a running game without pending decisions");
+        }
+        var deck = switch (deckName == null ? "" : deckName) {
+            case "FINANCE_NEWS" -> fi.bizhop.finanssi2.game.data.Deck.FINANCE_NEWS;
+            case "STOCK_TIP" -> fi.bizhop.finanssi2.game.data.Deck.STOCK_TIP;
+            default -> throw new RuleViolation("Unknown deck; use FINANCE_NEWS or STOCK_TIP");
+        };
+        var known = gameData.cards(deck).stream().map(fi.bizhop.finanssi2.game.data.Card::id).toList();
+        if (!known.contains(card)) throw new RuleViolation("Unknown card for this deck");
+        var state = game.getState();
+        var drawDeck = switch (deck) {
+            case FINANCE_NEWS -> state.getFinanceNewsDeck();
+            case STOCK_TIP -> state.getStockTipDeck();
+        };
+        if (!drawDeck.contains(card)) throw new RuleViolation("The selected Stock Tip is held by a player");
+        var held = deck == fi.bizhop.finanssi2.game.data.Deck.STOCK_TIP
+                ? state.getPlayers().stream().flatMap(player -> player.getHeldStockTips().stream()).toList()
+                : List.<String>of();
+        var all = Stream.concat(drawDeck.stream(), held.stream()).toList();
+        if (all.size() != known.size() || !new java.util.HashSet<>(all).equals(new java.util.HashSet<>(known))) {
+            throw new RuleViolation("The deck has inconsistent card membership");
+        }
+        var reordered = new java.util.ArrayList<>(drawDeck);
+        reordered.remove(card);
+        reordered.addFirst(card);
+        switch (deck) {
+            case FINANCE_NEWS -> state.setFinanceNewsDeck(reordered);
+            case STOCK_TIP -> state.setStockTipDeck(reordered);
+        }
+        return commit(game, List.of(new GameEvent.DebugDeckChanged(user.uid(), deckName, card)), false).game();
+    }
+
     static void requireVersion(Game game, Long expectedVersion) {
         if (expectedVersion == null || !expectedVersion.equals(game.getVersion())) {
             throw new RuleViolation("The game changed; reload and submit a fresh action");

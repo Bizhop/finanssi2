@@ -30,6 +30,14 @@ public class DebugGameController {
         return gameService.debugCommand(id, user, request.actor(), request.expectedVersion(), request.command(), request.dice());
     }
 
+    public record NextCardRequest(String deck, String card, Long expectedVersion) {}
+
+    @PutMapping("/api/debug/games/{id}/next-card")
+    public Game nextCard(@PathVariable String id, @RequestAttribute("user") User user,
+                         @RequestBody NextCardRequest request) {
+        return gameService.nextCard(id, user, request.deck(), request.card(), request.expectedVersion());
+    }
+
     @DeleteMapping("/api/debug/games/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable String id, @RequestAttribute("user") User user) {
