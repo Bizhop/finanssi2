@@ -21,10 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import tools.jackson.databind.ObjectMapper;
@@ -53,8 +49,6 @@ abstract class GameMongoTests {
     GameLogRepository gameLogRepository;
     @Autowired
     ChatRepository chatRepository;
-    @Autowired
-    MongoTemplate mongoTemplate;
     @Autowired
     ObjectMapper objectMapper;
     @MockitoBean
@@ -271,14 +265,6 @@ abstract class GameMongoTests {
     }
 
     @Test
-    void legacyDocumentDefaultsToNormalMode() {
-        var game = create("legacy");
-        mongoTemplate.updateFirst(Query.query(Criteria.where("_id").is(game.getId())),
-                new Update().unset("mode"), Game.class);
-        assertEquals(GameMode.NORMAL, gameRepository.findById(game.getId()).orElseThrow().getMode());
-    }
-
-    @Test
     void testGameAndEventsRoundTrip() {
         var id = create("a").getId();
         gameService.join(id, user("b"));
@@ -386,19 +372,6 @@ abstract class GameMongoTests {
         assertEquals(2, decisions.get(0).get("after").asInt());
         assertFalse(decisions.get(1).has("bids"));
         assertFalse(decisions.get(2).has("bids"));
-    }
-
-    @Test
-    void testLegacyIntegerBondContinuationsStillLoad() {
-        var id = create("a").getId();
-        var game = gameService.get(id);
-        game.getState().getPendingDecisions().add(new PendingDecision.BondOffer("it-a", BondContinuation.SMALL_DRAW));
-        gameRepository.save(game);
-        mongoTemplate.updateFirst(Query.query(Criteria.where("_id").is(id)),
-                new Update().set("state.pendingDecisions.0.after", 1), Game.class);
-
-        assertEquals(new PendingDecision.BondOffer("it-a", BondContinuation.SMALL_DRAW),
-                gameService.get(id).getState().getPendingDecisions().getFirst());
     }
 
     @Test

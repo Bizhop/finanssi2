@@ -16,7 +16,7 @@ public class Game {
     // Optimistic locking: of two commands applied to the same version, only the first is saved
     @Version Long version;
     GameStatus status = GameStatus.LOBBY;
-    // Immutable session mode; missing fields in legacy documents retain NORMAL.
+    // Immutable session mode
     @lombok.Setter(lombok.AccessLevel.NONE)
     GameMode mode = GameMode.NORMAL;
     String creator;

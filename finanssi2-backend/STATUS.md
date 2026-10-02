@@ -50,8 +50,7 @@ live frontend integration review and the follow-ups below remain. See [frontend 
 - `GET /api/games/{id}` returns `{game, allowedCommands, actingPlayer}`. The list contains command types, validated using candidate parameters;
   it does not enumerate all legal assets, fees or amounts. Stock Tip choices carry their options in the pending decision.
 - `Rules` centralizes values and modifiers; `Payments` records cash changes, including car purchases/sales. `Bonds` centralizes
-  purchases, auctions, draws and returns. `BondContinuation` uses enums internally while retaining numeric API codes and support
-  for legacy numeric MongoDB values.
+  purchases, auctions, draws and returns. `BondContinuation` uses enums internally while retaining numeric API codes.
 - Money uses integer currency units (€ in the transcriptions, marks in the original game), in multiples of 500. The bank's cash
   is unlimited. Cars, properties, shares and bonds are limited; building pieces are not counted because the set has enough.
 - Rejected-command tests use immutable typed snapshots of all state fields, preserving player and deck order; a coverage check
@@ -65,8 +64,8 @@ live frontend integration review and the follow-ups below remain. See [frontend 
 - Configure exact comma-separated addresses in `finanssi2.debug.allowed-emails`; the committed default is empty. Access requires
   Firebase's verified email claim, comparing trimmed addresses case-insensitively with `Locale.ROOT`. No addresses or patterns
   are embedded in code. `GET /api/me/capabilities` exposes only `debugMode`.
-- Game mode is immutable `NORMAL`/`DEBUG`; legacy documents without mode default to normal. The creator uid owns a debug game
-  even after their seat is eliminated. Additional seats have stable server-generated ids and need no accounts.
+- Game mode is immutable `NORMAL`/`DEBUG`. The creator uid owns a debug game even after their seat is eliminated. Additional
+  seats have stable server-generated ids and need no accounts.
 - `POST /api/debug/games` accepts `playerCount` and ordinary `settings`. Existing settings/start routes work for the owner.
   Debug joins/leaves and ordinary commands are denied. Lists, reads, history and literal game-topic subscriptions require current
   access plus ownership. Debug payloads never enter the public lobby topic; client SENDs to game topics are rejected.
@@ -78,7 +77,7 @@ live frontend integration review and the follow-ups below remain. See [frontend 
   Held cards, unknown ids/decks, pending decisions and nonrunning games are rejected; effects change only on an ordinary draw.
 - `DELETE /api/debug/games/{id}` returns empty 204, removes state/history and emits a private deletion notification. Versioned
   removal rejects stale saves. Archival racing with a deletion can leave unreachable log entries; they are not cleaned up.
-- Automated checks cover empty/unverified/unlisted identities, verified token mapping, legacy mode, six-seat creation,
+- Automated checks cover empty/unverified/unlisted identities, verified token mapping, six-seat creation,
   private lifecycle, owner elimination, stale actors/versions, dice isolation, Pay, all bond/asset bidders, grand-draw offers,
   normal command isolation, card invariants/draws, HTTP conflicts/204 and websocket owner enforcement.
 
