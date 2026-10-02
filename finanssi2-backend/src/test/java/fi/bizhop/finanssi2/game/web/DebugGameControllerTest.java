@@ -52,7 +52,6 @@ class DebugGameControllerTest {
             return game;
         });
         when(games.findById(anyString())).thenAnswer(call -> Optional.ofNullable(stored.get(call.<String>getArgument(0))));
-        when(games.existsById(anyString())).thenAnswer(call -> stored.containsKey(call.<String>getArgument(0)));
         when(games.findByStatusOrPlayer(any(), anyString(), any())).thenAnswer(call -> List.copyOf(stored.values()));
         doAnswer(call -> { stored.remove(call.<Game>getArgument(0).getId()); return null; }).when(games).delete(any(Game.class));
         when(history.saveAll(any())).thenAnswer(call -> call.getArgument(0));

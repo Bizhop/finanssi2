@@ -43,7 +43,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -111,30 +110,6 @@ class GameServiceTest {
         var captor = ArgumentCaptor.forClass(List.class);
         verify(gameLogRepository).saveAll(captor.capture());
         return captor.getValue();
-    }
-
-    @Test
-    void failedArchivalOfDeletedGameCleansPartialHistory() {
-        var entry = GameLogEntry.of(GAME_ID, 1, 1000, new GameEvent.PlayerJoined("a", "Player a", 0));
-        when(gameLogRepository.saveAll(any())).thenThrow(new DataAccessResourceFailureException("partial write"));
-        when(gameRepository.existsById(GAME_ID)).thenReturn(false);
-        assertEquals(false, service().archive(List.of(entry), true));
-        verify(gameLogRepository).deleteByGameId(GAME_ID);
-    }
-
-    @Test
-    void runningNormalGamesSkipArchivalCleanupCheck() {
-        var game = lobby("a", "b");
-        saveSucceeds();
-        var service = service(6, 6, 1, 1, 3, 4);
-        service.start(GAME_ID, user("a"));
-        clearInvocations(gameRepository);
-
-        service.command(GAME_ID, user("a"), new GameCommand.Roll());
-        service.events(GAME_ID, 0);
-
-        assertEquals(GameStatus.RUNNING, game.getStatus());
-        verify(gameRepository, never()).existsById(any());
     }
 
     @Test

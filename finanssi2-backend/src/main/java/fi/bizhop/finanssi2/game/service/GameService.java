@@ -44,7 +44,7 @@ import static fi.bizhop.finanssi2.game.data.GameConstants.MAX_PLAYERS;
  * Saves state and new events together in the game document, then archives events and broadcasts the change. Optimistic locking
  * rejects competing changes before their new events are archived or broadcast. A failed archive is retried on event reads and
  * later changes; the events remain available from the game document. Versioned saves and removal reject changes to a deleted
- * game, and archival cleanup removes events written while a game was being deleted, so no local locking is needed.
+ * game.
  */
 @Service
 @RequiredArgsConstructor
@@ -137,7 +137,7 @@ public class GameService {
     }
 
     private List<GameLogEntry> events(Game game, int after) {
-        archive(game.getUnarchivedEvents(), game.getStatus() == GameStatus.LOBBY || game.getMode() == GameMode.DEBUG);
+        archive(game.getUnarchivedEvents());
         var archived = gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(game.getId(), after);
         var entries = Stream.concat(archived.stream(), game.getUnarchivedEvents().stream().filter(entry -> entry.seq() > after))
                 .collect(Collectors.toMap(GameLogEntry::seq, Function.identity(), (first, second) -> second, TreeMap::new));
@@ -331,16 +331,14 @@ public class GameService {
         var entries = IntStream.range(0, events.size())
                 .mapToObj(i -> GameLogEntry.of(game.getId(), firstSeq + i, time, events.get(i)))
                 .toList();
-        // Only games in the lobby (including the one being started) and debug games can be deleted
-        var deletable = lobbyChange || game.getMode() == GameMode.DEBUG;
         var earlier = game.getUnarchivedEvents();
-        if (archive(earlier, deletable)) {
+        if (archive(earlier)) {
             earlier = List.of();
         }
         game.setUnarchivedEvents(Stream.concat(earlier.stream(), entries.stream()).toList());
         game.setLastEventSeq(game.getLastEventSeq() + events.size());
         var saved = gameRepository.save(game);
-        archive(saved.getUnarchivedEvents(), deletable);
+        archive(saved.getUnarchivedEvents());
 
         messagingService.send(gameTopic(saved.getId()), new GameUpdate(saved.getId(), saved.getVersion(), entries));
         if (lobbyChange && saved.getMode() == GameMode.NORMAL) {
@@ -350,10 +348,10 @@ public class GameService {
     }
 
     /**
-     * Idempotent: stable event ids make retries safe after either a complete or a partial log write. Events of a game that may be
-     * deleted meanwhile ({@code deletable}) are removed again if the game is gone.
+     * Idempotent: stable event ids make retries safe after either a complete or a partial log write. Archival racing with deletion
+     * of the game can leave its events in the log; nothing reads them.
      */
-    boolean archive(List<GameLogEntry> entries, boolean deletable) {
+    boolean archive(List<GameLogEntry> entries) {
         if (entries.isEmpty()) {
             return true;
         }
@@ -363,20 +361,6 @@ public class GameService {
         } catch (DataAccessException e) {
             logger.log(Level.WARNING, "Events remain in game " + entries.getFirst().gameId() + " for archival retry", e);
             return false;
-        } finally {
-            if (deletable) removeIfDeleted(entries.getFirst().gameId());
-        }
-    }
-
-    /**
-     * The versioned game may have been deleted while archival was writing its events. Also cleans partial writes when saveAll failed
-     * after writing some of the batch.
-     */
-    void removeIfDeleted(String id) {
-        try {
-            if (!gameRepository.existsById(id)) gameLogRepository.deleteByGameId(id);
-        } catch (DataAccessException e) {
-            logger.log(Level.WARNING, "Could not check archival cleanup", e);
         }
     }
 }
