@@ -21,6 +21,15 @@ public class DebugGameController {
                 request.settings() == null ? GameSettings.DEFAULT : request.settings());
     }
 
+    public record CommandRequest(String actor, Long expectedVersion,
+                                 fi.bizhop.finanssi2.game.engine.GameCommand command, java.util.List<Integer> dice) {}
+
+    @PostMapping("/api/debug/games/{id}/commands")
+    public java.util.List<fi.bizhop.finanssi2.game.db.GameLogEntry> command(
+            @PathVariable String id, @RequestAttribute("user") User user, @RequestBody CommandRequest request) {
+        return gameService.debugCommand(id, user, request.actor(), request.expectedVersion(), request.command(), request.dice());
+    }
+
     @DeleteMapping("/api/debug/games/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable String id, @RequestAttribute("user") User user) {

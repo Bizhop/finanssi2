@@ -143,7 +143,7 @@ Card control and persistence:
   defaults. Done when capability/access tests cover configured accounts and existing documents default to normal mode.
 - [x] 2. Debug game creation/lifecycle and visibility: synthetic seats, list/read filters, subscription checks and private
   broadcasts. Done when owner-only lifecycle works and neither ordinary REST nor public topics expose another user's debug game.
-- [ ] 3. Effective actor views/commands, version checks and request-scoped dice; replace the existing dev dice route. Done when
+- [x] 3. Effective actor views/commands, version checks and request-scoped dice; replace the existing dev dice route. Done when
   one owner can resolve every seat's legal actions, stale requests fail and no dev-profile bypass remains.
 - [ ] 4. Next-card control with deck invariants, event persistence and version checks. Done when ordinary draws use the selected
   card and held cards, finished games and pending decisions reject invalid deck changes.
@@ -179,3 +179,5 @@ Once implemented, move final decisions and any remaining todos into the backend/
 - 2026-10-02: Step 1 complete: security token mapping, DebugAccess, capabilities, immutable game mode/configuration. Backend full test suite passed, including allowlist checks and MongoDB legacy mode defaults. Next: private lifecycle and subscriptions.
 
 - 2026-10-02: Step 2 complete: GameService/DebugGameController private creation/deletion, stable seats, REST/list filters, STOMP literal-topic access and SEND rejection, private broadcasts and archival cleanup after deletion. Full backend suite passed (221 tests), including MongoDB lifecycle/stale-save and subscription checks. Next: effective actors and request-scoped dice.
+
+- 2026-10-02: Step 3 complete: effective actor views/commands, stale actor/version conflicts, bounded request dice, creator closure after elimination, dev route/wiring removal. Full backend suite passed before adding MongoDB actor/dice tests; focused MongoDB suite then passed, including out-of-turn Pay, owner resignation, stale requests and unused/rejected dice isolation. Next: next-card controls.

@@ -47,7 +47,8 @@ public class GameController {
     @RequestMapping(value = "/api/games/{id}", method = RequestMethod.GET, produces = "application/json")
     @ResponseBody GameView get(@PathVariable String id, @RequestAttribute("user") User user) {
         var game = gameService.get(id, user);
-        return new GameView(game, gameService.allowedCommands(game, user));
+        return new GameView(game, gameService.allowedCommands(game, user),
+                game.getMode() == fi.bizhop.finanssi2.game.db.GameMode.DEBUG ? game.getState().actor() : user.uid());
     }
 
     /** Runs an in-game command, e.g. {@code {"type": "Roll"}}, and returns the events it caused */

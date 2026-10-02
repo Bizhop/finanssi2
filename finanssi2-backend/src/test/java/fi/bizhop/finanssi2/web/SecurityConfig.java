@@ -31,7 +31,7 @@ public class SecurityConfig {
         return (request, response, chain) -> {
             var uid = ((jakarta.servlet.http.HttpServletRequest) request).getHeader(TEST_USER_HEADER);
             if (uid != null) {
-                request.setAttribute("user", new User(uid, uid + "@example.com", "Player " + uid, null));
+                request.setAttribute("user", new User(uid, uid + "@example.com", "Player " + uid, null, true));
             }
             chain.doFilter(request, response);
         };

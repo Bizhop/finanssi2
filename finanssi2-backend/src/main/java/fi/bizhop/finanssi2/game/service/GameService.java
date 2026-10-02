@@ -190,16 +190,43 @@ public class GameService {
     public synchronized List<GameLogEntry> command(String id, User user, GameCommand command) {
         var game = get(id);
         requireNormal(game);
-        if (game.getStatus() != GameStatus.RUNNING) {
-            throw new RuleViolation("The game is not running");
+        return execute(game, user, user.uid(), command, diceSource.forGame(id));
+    }
+
+    public synchronized List<GameLogEntry> debugCommand(String id, User user, String actor, Long expectedVersion,
+                                                        GameCommand command, List<Integer> dice) {
+        var game = get(id);
+        debugAccess.requireOwner(game, user);
+        requireVersion(game, expectedVersion);
+        if (actor == null || !actor.equals(game.getState().actor())) {
+            throw new RuleViolation("The acting player changed; reload and submit a fresh action");
         }
+        if (command == null) throw new RuleViolation("command is required");
+        var values = dice == null ? List.<Integer>of() : dice;
+        if (values.size() > 32 || values.stream().anyMatch(value -> value == null || value < 1 || value > 6)) {
+            throw new RuleViolation("dice must contain at most 32 values from 1 to 6");
+        }
+        var rolls = new java.util.ArrayDeque<>(values);
+        var fallback = diceSource.forGame(id);
+        return execute(game, user, actor, command, () -> rolls.isEmpty() ? fallback.roll() : rolls.removeFirst());
+    }
+
+    static void requireVersion(Game game, Long expectedVersion) {
+        if (expectedVersion == null || !expectedVersion.equals(game.getVersion())) {
+            throw new RuleViolation("The game changed; reload and submit a fresh action");
+        }
+    }
+
+    private List<GameLogEntry> execute(Game game, User user, String actor, GameCommand command,
+                                      fi.bizhop.finanssi2.game.engine.Dice dice) {
+        if (game.getStatus() != GameStatus.RUNNING) throw new RuleViolation("The game is not running");
         List<GameEvent> events;
         if (command instanceof GameCommand.EndGame) {
             requireCreator(game, user, "Only the creator can end the game");
             events = gameEngine.endWithoutWinner(game.getState());
             game.setStatus(GameStatus.FINISHED);
         } else {
-            events = gameEngine.handle(game.getState(), user.uid(), command, diceSource.forGame(id));
+            events = gameEngine.handle(game.getState(), actor, command, dice);
             if (game.getState().isFinished()) game.setStatus(GameStatus.FINISHED);
         }
         return commit(game, events, false).entries();
@@ -209,7 +236,9 @@ public class GameService {
     public List<String> allowedCommands(Game game, User user) {
         return switch (game.getStatus()) {
             case RUNNING -> {
-                var allowed = new java.util.ArrayList<>(gameEngine.allowedCommands(game.getState(), user.uid()));
+                debugAccess.requireRead(game, user);
+                var actor = game.getMode() == GameMode.DEBUG ? game.getState().actor() : user.uid();
+                var allowed = new java.util.ArrayList<>(gameEngine.allowedCommands(game.getState(), actor));
                 if (game.getCreator().equals(user.uid())) allowed.add(GameCommand.EndGame.class.getSimpleName());
                 allowed.sort(String::compareTo);
                 yield List.copyOf(allowed);

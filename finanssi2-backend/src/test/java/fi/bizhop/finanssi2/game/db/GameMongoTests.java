@@ -83,6 +83,63 @@ abstract class GameMongoTests {
     }
 
     @Test
+    void debugCommandsControlDecisionsAndSurviveOwnerElimination() {
+        var owner = new User("debug-owner", "owner@example.com", "Owner", null, true);
+        var game = gameService.createDebug(owner, 3, GameSettings.DEFAULT);
+        var id = game.getId();
+        createdGames.add(id);
+        when(diceSource.forGame(any())).thenReturn(new ScriptedDice(6, 6, 2, 2, 1, 1));
+        game = gameService.start(id, owner);
+        var seat = game.getState().getPlayers().get(1).getUid();
+        game.getState().getPendingDecisions().add(new PendingDecision.RaiseFunds(seat, owner.uid(),
+                List.of(new Charge(500, MoneyReason.RENT))));
+        game = gameRepository.save(game);
+        var version = game.getVersion();
+        var seq = game.getLastEventSeq();
+        assertTrue(gameService.allowedCommands(game, owner).contains("Pay"));
+        assertThrows(fi.bizhop.finanssi2.game.engine.RuleViolation.class,
+                () -> gameService.debugCommand(id, owner, owner.uid(), version, new GameCommand.Pay(), List.of(6)));
+        assertThrows(fi.bizhop.finanssi2.game.engine.RuleViolation.class,
+                () -> gameService.debugCommand(id, owner, seat, version - 1, new GameCommand.Pay(), null));
+        assertEquals(seq, gameService.get(id).getLastEventSeq());
+        gameService.debugCommand(id, owner, seat, version, new GameCommand.Pay(), null);
+        game = gameService.get(id);
+        gameService.debugCommand(id, owner, game.getState().actor(), game.getVersion(), new GameCommand.Resign(), null);
+        game = gameService.get(id);
+        assertTrue(game.getState().player(owner.uid()).orElseThrow().isOut());
+        assertEquals(seat, game.getState().actor());
+        assertTrue(gameService.allowedCommands(game, owner).contains("Roll"));
+        gameService.debugCommand(id, owner, seat, game.getVersion(), new GameCommand.Roll(), List.of(1));
+        game = gameService.get(id);
+        assertEquals(21, game.getState().current().getPosition());
+        gameService.debugCommand(id, owner, game.getState().actor(), game.getVersion(), new GameCommand.EndGame(), null);
+        assertEquals(GameStatus.FINISHED, gameService.get(id).getStatus());
+    }
+
+    @Test
+    void debugDiceAreDiscardedBetweenCommandsAndOnRejection() {
+        var owner = new User("debug-owner", "owner@example.com", "Owner", null, true);
+        var game = gameService.createDebug(owner, 2, GameSettings.DEFAULT);
+        var id = game.getId();
+        createdGames.add(id);
+        when(diceSource.forGame(any())).thenReturn(new ScriptedDice(6, 6, 1, 1));
+        game = gameService.start(id, owner);
+        var version = game.getVersion();
+        assertThrows(fi.bizhop.finanssi2.game.engine.RuleViolation.class,
+                () -> gameService.debugCommand(id, owner, owner.uid(), version, new GameCommand.EndTurn(), List.of(6)));
+        when(diceSource.forGame(any())).thenReturn(new ScriptedDice(2));
+        gameService.debugCommand(id, owner, owner.uid(), version, new GameCommand.Roll(), List.of(1, 6));
+        game = gameService.get(id);
+        assertEquals(21, game.getState().current().getPosition());
+        gameService.debugCommand(id, owner, game.getState().actor(), game.getVersion(), new GameCommand.EndTurn(), null);
+        game = gameService.get(id);
+        gameService.debugCommand(id, owner, game.getState().actor(), game.getVersion(), new GameCommand.Roll(), null);
+        assertEquals(3, gameService.get(id).getState().current().getPosition());
+        assertThrows(fi.bizhop.finanssi2.game.service.NotAllowedException.class,
+                () -> gameService.command(id, owner, new GameCommand.EndTurn()));
+    }
+
+    @Test
     void debugLifecycleIsPrivateAndDeletesHistory() {
         var owner = new User("debug-owner", "owner@example.com", "Owner", null, true);
         var other = new User("debug-other", "other@example.com", "Other", null, true);
