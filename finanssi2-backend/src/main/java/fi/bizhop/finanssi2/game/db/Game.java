@@ -16,7 +16,17 @@ public class Game {
     // Optimistic locking: of two commands applied to the same version, only the first is saved
     @Version Long version;
     GameStatus status = GameStatus.LOBBY;
+    // Immutable session mode; missing fields in legacy documents retain NORMAL.
+    @lombok.Setter(lombok.AccessLevel.NONE)
+    GameMode mode = GameMode.NORMAL;
     String creator;
+
+    public Game() {}
+
+    public Game(GameMode mode) {
+        this.mode = java.util.Objects.requireNonNull(mode);
+    }
+
     long createdAt;
     // Sequence number of the newest event in the log; the next one gets lastEventSeq + 1
     int lastEventSeq;

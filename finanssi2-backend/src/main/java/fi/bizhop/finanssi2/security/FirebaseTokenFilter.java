@@ -32,7 +32,7 @@ public class FirebaseTokenFilter extends AbstractPreAuthenticatedProcessingFilte
         var httpRequest = (HttpServletRequest)request;
         tokenVerifier.verifyAuthorizationHeader(httpRequest.getHeader("Authorization")).ifPresentOrElse(
                 decodedToken -> {
-                    var user = new User(decodedToken.getUid(), decodedToken.getEmail(), decodedToken.getName(), decodedToken.getPicture());
+                    var user = User.fromToken(decodedToken);
                     request.setAttribute("user", user);
                     SecurityContextHolder.getContext().setAuthentication(new FirebaseAuthenticationToken(decodedToken));
                 },

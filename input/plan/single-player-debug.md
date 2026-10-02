@@ -1,6 +1,6 @@
 # Single-player debug mode
 
-Status: proposed, not implemented. Created 2026-10-01.
+Status: implementation in progress. Created 2026-10-01.
 
 ## Resume after a cleared session
 
@@ -139,7 +139,7 @@ Card control and persistence:
 
 ## Implementation order
 
-- [ ] 1. Backend access/configuration and capabilities: verified email mapping, central checks, normal/debug metadata and legacy
+- [x] 1. Backend access/configuration and capabilities: verified email mapping, central checks, normal/debug metadata and legacy
   defaults. Done when capability/access tests cover configured accounts and existing documents default to normal mode.
 - [ ] 2. Debug game creation/lifecycle and visibility: synthetic seats, list/read filters, subscription checks and private
   broadcasts. Done when owner-only lifecycle works and neither ordinary REST nor public topics expose another user's debug game.
@@ -175,3 +175,5 @@ Card control and persistence:
   Manually confirm a single Google-authenticated allowlisted account can complete the flows above without mocked responses.
 
 Once implemented, move final decisions and any remaining todos into the backend/frontend status notes and remove this plan.
+
+- 2026-10-02: Step 1 complete: security token mapping, DebugAccess, capabilities, immutable game mode/configuration. Backend full test suite passed, including allowlist checks and MongoDB legacy mode defaults. Next: private lifecycle and subscriptions.

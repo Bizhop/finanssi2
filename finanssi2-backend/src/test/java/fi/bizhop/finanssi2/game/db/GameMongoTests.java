@@ -83,6 +83,14 @@ abstract class GameMongoTests {
     }
 
     @Test
+    void legacyDocumentDefaultsToNormalMode() {
+        var game = create("legacy");
+        mongoTemplate.updateFirst(Query.query(Criteria.where("_id").is(game.getId())),
+                new Update().unset("mode"), Game.class);
+        assertEquals(GameMode.NORMAL, gameRepository.findById(game.getId()).orElseThrow().getMode());
+    }
+
+    @Test
     void testGameAndEventsRoundTrip() {
         var id = create("a").getId();
         gameService.join(id, user("b"));
