@@ -43,8 +43,8 @@ import static fi.bizhop.finanssi2.game.data.GameConstants.MAX_PLAYERS;
 /**
  * Saves state and new events together in the game document, then archives events and broadcasts the change. Optimistic locking
  * rejects competing changes before their new events are archived or broadcast. A failed archive is retried on event reads and
- * later changes; the events remain available from the game document. Debug mutations and event reads serialize with local
- * deletion; versioned saves/removal and archival cleanup also protect against stale writes on another backend instance.
+ * later changes; the events remain available from the game document. Versioned saves and removal reject changes to a deleted
+ * game, and archival cleanup removes events written while a game was being deleted, so no local locking is needed.
  */
 @Service
 @RequiredArgsConstructor
@@ -75,7 +75,7 @@ public class GameService {
         return commit(game, List.of(addPlayer(game, user)), true).game();
     }
 
-    public synchronized Game createDebug(User user, int playerCount, GameSettings settings) {
+    public Game createDebug(User user, int playerCount, GameSettings settings) {
         debugAccess.require(user);
         if (playerCount < 2 || playerCount > MAX_PLAYERS) throw new RuleViolation("playerCount must be 2–6");
         if (settings.loanLimit() == null) throw new RuleViolation("loanLimit is required");
@@ -94,7 +94,7 @@ public class GameService {
         return commit(game, events, true).game();
     }
 
-    public synchronized void deleteDebug(String id, User user) {
+    public void deleteDebug(String id, User user) {
         var game = get(id);
         debugAccess.requireOwner(game, user);
         // Versioned removal makes a concurrent save fail rather than recreate the document.
@@ -111,7 +111,7 @@ public class GameService {
         return game;
     }
 
-    public synchronized List<GameLogEntry> events(String id, int after, User user) {
+    public List<GameLogEntry> events(String id, int after, User user) {
         return events(get(id, user), after);
     }
 
@@ -132,7 +132,7 @@ public class GameService {
         return gameRepository.findById(id).orElseThrow(() -> new GameNotFoundException(id));
     }
 
-    public synchronized List<GameLogEntry> events(String id, int after) {
+    public List<GameLogEntry> events(String id, int after) {
         return events(get(id), after);
     }
 
@@ -178,7 +178,7 @@ public class GameService {
     }
 
     /** Sets the house rules of a game in the lobby */
-    public synchronized Game changeSettings(String id, User user, GameSettings settings) {
+    public Game changeSettings(String id, User user, GameSettings settings) {
         var game = get(id, user);
         requireCreator(game, user, "Only the creator can change the settings");
         requireLobby(game);
@@ -186,7 +186,7 @@ public class GameService {
         return commit(game, List.of(new GameEvent.SettingsChanged(settings)), true).game();
     }
 
-    public synchronized Game start(String id, User user) {
+    public Game start(String id, User user) {
         var game = get(id, user);
         requireCreator(game, user, "Only the creator can start the game");
         requireLobby(game);
@@ -202,7 +202,7 @@ public class GameService {
         return execute(game, user, user.uid(), command, diceSource.forGame(id));
     }
 
-    public synchronized List<GameLogEntry> debugCommand(String id, User user, String actor, Long expectedVersion,
+    public List<GameLogEntry> debugCommand(String id, User user, String actor, Long expectedVersion,
                                                         GameCommand command, List<Integer> dice) {
         var game = get(id);
         debugAccess.requireOwner(game, user);
@@ -220,7 +220,7 @@ public class GameService {
         return execute(game, user, actor, command, () -> rolls.isEmpty() ? fallback.roll() : rolls.removeFirst());
     }
 
-    public synchronized Game nextCard(String id, User user, String deckName, String card, Long expectedVersion) {
+    public Game nextCard(String id, User user, String deckName, String card, Long expectedVersion) {
         var game = get(id);
         debugAccess.requireOwner(game, user);
         requireVersion(game, expectedVersion);

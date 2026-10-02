@@ -76,9 +76,9 @@ live frontend integration review and the follow-ups below remain. See [frontend 
 - `PUT /api/debug/games/{id}/next-card` accepts `deck` (`FINANCE_NEWS`/`STOCK_TIP`), `card` and `expectedVersion`. It moves one
   available card to the front, preserves other order/membership and records `DebugDeckChanged` through atomic archival.
   Held cards, unknown ids/decks, pending decisions and nonrunning games are rejected; effects change only on an ordinary draw.
-- `DELETE /api/debug/games/{id}` returns empty 204, removes state/history and emits a private deletion notification. Debug
-  writes/event reads serialize with deletion locally; versioned removal rejects stale saves, and archival checks clean history
-  written by stale readers, including partial failures, on another backend instance.
+- `DELETE /api/debug/games/{id}` returns empty 204, removes state/history and emits a private deletion notification. There is
+  no local locking: versioned removal rejects stale saves, and archival of lobby and debug games cleans history written by
+  stale readers, including partial failures.
 - Automated checks cover empty/unverified/unlisted identities, verified token mapping, legacy mode, six-seat creation,
   private lifecycle, owner elimination, stale actors/versions, dice isolation, Pay, all bond/asset bidders, grand-draw offers,
   normal command isolation, card invariants/draws, partial archival cleanup, HTTP conflicts/204 and websocket owner enforcement.
