@@ -4,8 +4,15 @@
 
 - Current features, decisions and todos: [backend status](finanssi2-backend/STATUS.md) and
   [frontend status](finanssi2-web/STATUS.md).
-- Active implementation plan: [single-player debug mode](input/plan/single-player-debug.md). Its resume instructions,
-  implementation checklist and acceptance checks are the handoff for a fresh agent session.
+- Single-player debug mode is implemented. Remaining developer-run acceptance checks and configuration are recorded in the
+  backend/frontend status notes; use those as the session handoff.
+
+## Deployment model
+
+- One frontend, one backend instance and one MongoDB. There is no horizontal scaling and none is planned.
+- Don't design for multiple backend instances: no cross-instance race handling, distributed locks or shared broker. In-process
+  state and locking and the in-memory STOMP broker are fine. Concurrent requests within the one backend (two players, two tabs)
+  still need handling, e.g. optimistic locking.
 
 ## Commits
 

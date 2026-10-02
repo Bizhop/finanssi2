@@ -13,6 +13,10 @@ public class FirebaseAuthenticationToken extends AbstractAuthenticationToken {
         setAuthenticated(true);
     }
 
+    public User user() {
+        return User.fromToken(firebaseToken);
+    }
+
     @Override
     public Object getCredentials() {
         return null;

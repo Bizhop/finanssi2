@@ -64,28 +64,7 @@ class DevGameControllerTest {
     }
 
     @Test
-    void testQueuedDiceAreRolledFirst() {
-        var game = new Game();
-        game.setId(GAME_ID);
-        game.setVersion(1L);
-        game.setStatus(GameStatus.RUNNING);
-        game.getState().getPlayers().add(new PlayerState("a", "Player a", null, 0));
-        game.getState().getPlayers().add(new PlayerState("b", "Player b", null, 1));
-        new GameSetup(gameData).start(game.getState(), new ScriptedDice(6, 6, 1, 1), new Random(1));
-        when(gameRepository.findById(GAME_ID)).thenReturn(Optional.of(game));
-        when(gameRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(gameLogRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        assertEquals(HttpStatus.OK, post("/dev/dice", "[3]").getStatusCode());
-        assertEquals(HttpStatus.OK, post("/commands", "{\"type\": \"Roll\"}").getStatusCode());
-
-        assertEquals(4, game.getState().current().getPosition());
-    }
-
-    @Test
-    void testInvalidDiceValues() {
-        for (var json : new String[] {"[]", "[0]", "[7]", "[null]"}) {
-            assertEquals(HttpStatus.BAD_REQUEST, post("/dev/dice", json).getStatusCode(), json);
-        }
+    void devProfileDoesNotExposeOldDiceRoute() {
+        assertEquals(HttpStatus.NOT_FOUND, post("/dev/dice", "[3]").getStatusCode());
     }
 }

@@ -1,7 +1,7 @@
 # Backend status
 
-Updated 2026-10-01 from the implementation and the former gameplay plans. The planned gameplay features are implemented;
-frontend integration review and the follow-ups below remain. See [frontend status](../finanssi2-web/STATUS.md) for UI gaps.
+Updated 2026-10-02 after implementing single-player debug mode. Gameplay and private debug controls are implemented;
+live frontend integration review and the follow-ups below remain. See [frontend status](../finanssi2-web/STATUS.md) for UI gaps.
 
 ## Completed features
 
@@ -21,7 +21,7 @@ frontend integration review and the follow-ups below remain. See [frontend statu
 | Shareholders' meetings | Takeover validation, success rolls, seller payments, fee distribution and transfer of mortgages |
 | Game end | Cash-and-group win, last-player win, full bankruptcy liquidation, resignation, creator closure and final standings |
 | Persistence and live updates | Optimistic locking, state/event persistence, retryable event archival, event history and lobby/game broadcasts |
-| Frontend API and dev support | Static board/card data at `/api/game-data`, game views with allowed commands and per-game queued dice under the `dev` profile |
+| Frontend API and dev support | Static board/card data, actor-aware game views and private allowlisted debug games with command dice and next-card controls |
 
 ## Implementation decisions
 
@@ -39,24 +39,56 @@ frontend integration review and the follow-ups below remain. See [frontend statu
   make partial writes safe to retry. Reads merge the log and unarchived batch without duplicates and retry archival; subsequent
   writes discard only batches confirmed archived. Archival failure does not reject an already saved command. This needs no
   MongoDB transaction or second state save/version increment.
-- Dice are injected (`SecureRandom` normally, scripted in tests). Dev dice require the `dev` profile; queues are per game and
-  random rolls resume when exhausted. Decks are shuffled at start, stored in draw order and hidden from API responses.
+- Dice are injected (`SecureRandom` normally, scripted in tests). Debug overrides belong to one command, fall back to random
+  rolls when exhausted and discard unused values. The old dev dice route/profile wiring is removed. Deck order stays hidden.
 - Player ids are Firebase uids; name/photo are copied on joining. Pieces are the lowest free numbers 0–5. A creator leaving the
   lobby passes ownership to the earliest remaining player; the last departure deletes the lobby. Lobby changes also enter the log.
 - All table information is public, including held Stock Tips. Upcoming deck order and sealed bids stay hidden. There is one
   game topic, `/topic/games/{id}`, plus `/topic/games` for lobby changes.
 - Pending decisions queue the addressed player's legal actions and block ordinary play. Later payments to a player already
   raising funds queue even if cash covers them; each requires its own `Pay`. Bankruptcy drops that player's other payments.
-- `GET /api/games/{id}` returns `{game, allowedCommands}`. The list contains command types, validated using candidate parameters;
+- `GET /api/games/{id}` returns `{game, allowedCommands, actingPlayer}`. The list contains command types, validated using candidate parameters;
   it does not enumerate all legal assets, fees or amounts. Stock Tip choices carry their options in the pending decision.
 - `Rules` centralizes values and modifiers; `Payments` records cash changes, including car purchases/sales. `Bonds` centralizes
-  purchases, auctions, draws and returns. `BondContinuation` uses enums internally while retaining numeric API codes and support
-  for legacy numeric MongoDB values.
+  purchases, auctions, draws and returns. `BondContinuation` is a plain enum, serialized by name.
 - Money uses integer currency units (€ in the transcriptions, marks in the original game), in multiples of 500. The bank's cash
   is unlimited. Cars, properties, shares and bonds are limited; building pieces are not counted because the set has enough.
 - Rejected-command tests use immutable typed snapshots of all state fields, preserving player and deck order; a coverage check
   requires new state fields to be included. Existing tests cover data, engine, service, controller, MongoDB and authentication.
   MongoDB tests use an in-memory server normally; the real `mongo:7` suite is tagged `container` and run manually.
+
+## Private single-player debug mode
+
+- Six planned implementation steps were completed in separate commits on 2026-10-02. The implementation plan was retired;
+  these status files are the handoff. One verified account manually controls 2–6 seats (default two); no automatic opponents.
+- Configure exact comma-separated addresses in `finanssi2.debug.allowed-emails`; the committed default is empty. Access requires
+  Firebase's verified email claim, comparing trimmed addresses case-insensitively with `Locale.ROOT`. No addresses or patterns
+  are embedded in code. `GET /api/me/capabilities` exposes only `debugMode`.
+- Game mode is immutable `NORMAL`/`DEBUG`. The creator uid owns a debug game even after their seat is eliminated. Additional
+  seats have stable server-generated ids and need no accounts.
+- `POST /api/debug/games` accepts `playerCount` and ordinary `settings`. Existing settings/start routes work for the owner.
+  Debug joins/leaves and ordinary commands are denied. Lists, reads, history and literal game-topic subscriptions require current
+  access plus ownership. Debug payloads never enter the public lobby topic; client SENDs to game topics are rejected.
+- `POST /api/debug/games/{id}/commands` accepts `actor`, `expectedVersion`, `command` and optional `dice` (at most 32 values, 1–6).
+  Actor and version are checked before execution. The effective seat is `state.actor()`, including out-of-turn decisions; closure
+  still uses authenticated creator authority. Normal commands reject unexpected actor/dice fields. Conflicts return 409.
+- `PUT /api/debug/games/{id}/next-card` accepts `deck` (`FINANCE_NEWS`/`STOCK_TIP`), `card` and `expectedVersion`. It moves one
+  available card to the front, preserves other order/membership and records `DebugDeckChanged` through atomic archival.
+  Held cards, unknown ids/decks, pending decisions and nonrunning games are rejected; effects change only on an ordinary draw.
+- `DELETE /api/debug/games/{id}` returns empty 204, removes state/history and emits a private deletion notification. Versioned
+  removal rejects stale saves. Archival racing with a deletion can leave unreachable log entries; they are not cleaned up.
+- Automated checks cover empty/unverified/unlisted identities, verified token mapping, six-seat creation,
+  private lifecycle, owner elimination, stale actors/versions, dice isolation, Pay, all bond/asset bidders, grand-draw offers,
+  normal command isolation, card invariants/draws, HTTP conflicts/204 and websocket owner enforcement.
+
+Outstanding developer-run acceptance:
+
+- [ ] Configure a verified Google account and play through the real frontend/backend: create/configure/start/reload a 2–6-seat
+  debug game, act for every seat/decision, select both card decks, close after owner elimination and delete.
+- [ ] Use two tabs for conflicting actions and deletion notifications; verify reconnects, allowlist removal and normal games.
+- [ ] Optionally run `containerTest` against real MongoDB. The normal suite uses in-memory MongoDB.
+- On 2026-10-02 the available host endpoint `host.docker.internal:8080/api/hello` returned 500. No deployed allowlist or
+  Google-authenticated browser session was supplied, so live play was not claimed.
 
 ## Rules and interpretations
 
@@ -163,7 +195,7 @@ These retain the decisions from the former open-questions file. The physical rul
 
 ## Settings and todos
 
-New work: [single-player debug mode plan](../input/plan/single-player-debug.md), with access restricted by account email.
+Single-player debug implementation is complete; developer-run live acceptance remains outstanding below.
 
 Implemented lobby settings, fixed once the game starts:
 
@@ -188,6 +220,6 @@ Implemented lobby settings, fixed once the game starts:
   were broader than the current `FinanceNewsTest`, `StockTipsTest` and `GameEndTest` classes; implementation is not evidence
   that every planned scenario has an automated test.
 
-This cleanup reviewed source and existing test code; it did not run builds or tests. The former notes recorded successful
-`compileJava`/`bootJar` and a developer-confirmed local clean build. Follow [AGENTS.md](AGENTS.md) for backend build isolation
-and test commands; follow the [root README](../README.md) for local setup.
+Validation on 2026-10-02: the full isolated Gradle suite passed (231 tests), including in-memory MongoDB,
+HTTP endpoints and real websocket clients. Container MongoDB tests were not run. Follow [AGENTS.md](AGENTS.md)
+for build isolation and [README](../README.md) for local setup.

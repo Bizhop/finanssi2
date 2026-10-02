@@ -29,6 +29,10 @@ class StompAuthenticationInterceptorTest {
     @Mock
     FirebaseTokenVerifier tokenVerifier;
     @Mock
+    fi.bizhop.finanssi2.game.db.GameRepository gameRepository;
+    @Mock
+    fi.bizhop.finanssi2.game.service.DebugAccess debugAccess;
+    @Mock
     MessageChannel channel;
     @InjectMocks
     StompAuthenticationInterceptor interceptor;
@@ -62,12 +66,41 @@ class StompAuthenticationInterceptorTest {
     }
 
     @Test
+    void gameSubscriptionsCheckAccessAndRejectWildcardAndSends() {
+        var accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        accessor.setUser(new FirebaseAuthenticationToken(mock(FirebaseToken.class)));
+        var id = "66f9a1b2c3d4e5f607182931";
+        accessor.setDestination("/topic/games/" + id);
+        when(gameRepository.findById(id)).thenReturn(Optional.empty());
+        assertThrows(MessageDeliveryException.class, () -> interceptor.preSend(frame(accessor), channel));
+        accessor.setDestination("/topic/games/**");
+        assertThrows(MessageDeliveryException.class, () -> interceptor.preSend(frame(accessor), channel));
+        accessor.setDestination("/topic/**");
+        assertThrows(MessageDeliveryException.class, () -> interceptor.preSend(frame(accessor), channel));
+        var send = StompHeaderAccessor.create(StompCommand.SEND);
+        send.setUser(accessor.getUser());
+        send.setDestination("/topic/games/" + id);
+        assertThrows(MessageDeliveryException.class, () -> interceptor.preSend(frame(send), channel));
+    }
+
+    @Test
+    void clientsCannotSendToAnyTopic() {
+        var send = StompHeaderAccessor.create(StompCommand.SEND);
+        send.setUser(new FirebaseAuthenticationToken(mock(FirebaseToken.class)));
+        for (var destination : java.util.List.of("/topic/chat", "/topic/games", "/topic/other", "/api/anything")) {
+            send.setDestination(destination);
+            assertThrows(MessageDeliveryException.class, () -> interceptor.preSend(frame(send), channel), destination);
+        }
+    }
+
+    @Test
     void testSubscribeRequiresAuthenticatedSession() {
         var anonymous = frame(StompHeaderAccessor.create(StompCommand.SUBSCRIBE));
         assertThrows(MessageDeliveryException.class, () -> interceptor.preSend(anonymous, channel));
 
         var accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
         accessor.setUser(new FirebaseAuthenticationToken(mock(FirebaseToken.class)));
+        accessor.setDestination("/topic/chat");
         var authenticated = frame(accessor);
         assertSame(authenticated, interceptor.preSend(authenticated, channel));
     }

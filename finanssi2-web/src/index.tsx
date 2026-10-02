@@ -19,7 +19,7 @@ const stompUrl = `${import.meta.env.VITE_FINANSSI_API_URL.replace(/^http/, "ws")
 const StompConnection = ({ children }: { children: React.ReactNode }) => {
     const { user } = useCurrentUser()
     return (
-        <StompProvider url={stompUrl} enabled={user !== null} getAccessToken={() => user!.getIdToken()}>
+        <StompProvider key={user?.uid ?? "signed-out"} url={stompUrl} enabled={user !== null} getAccessToken={() => user!.getIdToken()}>
             {children}
         </StompProvider>
     )

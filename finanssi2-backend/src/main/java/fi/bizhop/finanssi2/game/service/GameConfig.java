@@ -7,7 +7,6 @@ import fi.bizhop.finanssi2.game.engine.RandomDice;
 import fi.bizhop.finanssi2.game.engine.Rules;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 
 import java.security.SecureRandom;
 import java.util.random.RandomGenerator;
@@ -22,7 +21,6 @@ public class GameConfig {
     }
 
     @Bean
-    @Profile("!dev")
     public DiceSource diceSource(RandomGenerator gameRandom) {
         var dice = new RandomDice(gameRandom);
         return gameId -> dice;
