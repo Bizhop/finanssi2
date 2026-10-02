@@ -112,8 +112,7 @@ public class GameService {
     }
 
     public synchronized List<GameLogEntry> events(String id, int after, User user) {
-        get(id, user);
-        return events(id, after);
+        return events(get(id, user), after);
     }
 
     static void requireNormal(Game game) {
@@ -134,9 +133,12 @@ public class GameService {
     }
 
     public synchronized List<GameLogEntry> events(String id, int after) {
-        var game = get(id);
+        return events(get(id), after);
+    }
+
+    private List<GameLogEntry> events(Game game, int after) {
         archive(game.getUnarchivedEvents());
-        var archived = gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(id, after);
+        var archived = gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(game.getId(), after);
         var entries = Stream.concat(archived.stream(), game.getUnarchivedEvents().stream().filter(entry -> entry.seq() > after))
                 .collect(Collectors.toMap(GameLogEntry::seq, Function.identity(), (first, second) -> second, TreeMap::new));
         return List.copyOf(entries.values());
@@ -276,13 +278,19 @@ public class GameService {
         return commit(game, events, false).entries();
     }
 
-    /** Command types the user may send in the game right now */
+    /** The player the user acts as: their own seat, or in a debug game whichever seat must act next */
+    public String actingPlayer(Game game, User user) {
+        return switch (game.getMode()) {
+            case NORMAL -> user.uid();
+            case DEBUG -> game.getState().actor();
+        };
+    }
+
+    /** Command types the user may send right now, in a game loaded with {@link #get(String, User)} */
     public List<String> allowedCommands(Game game, User user) {
         return switch (game.getStatus()) {
             case RUNNING -> {
-                debugAccess.requireRead(game, user);
-                var actor = game.getMode() == GameMode.DEBUG ? game.getState().actor() : user.uid();
-                var allowed = new ArrayList<>(gameEngine.allowedCommands(game.getState(), actor));
+                var allowed = new ArrayList<>(gameEngine.allowedCommands(game.getState(), actingPlayer(game, user)));
                 if (game.getCreator().equals(user.uid())) allowed.add(GameCommand.EndGame.class.getSimpleName());
                 allowed.sort(String::compareTo);
                 yield List.copyOf(allowed);
