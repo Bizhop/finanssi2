@@ -172,7 +172,7 @@ class GameControllerTest {
         var entry = new GameLogEntry("e1", GAME_ID, 1, 1000L, "PlayerJoined", new GameEvent.PlayerJoined("a", "Player a", 0));
         when(gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(GAME_ID, 0)).thenReturn(List.of(entry));
 
-        var response = restTemplate.getForEntity(url("/" + GAME_ID + "/events"), JsonNode.class);
+        var response = get("/" + GAME_ID + "/events", "a");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         var event = response.getBody().get(0).get("event");

@@ -46,7 +46,7 @@ public class GameController {
     /** The game, with the commands the user may send right now */
     @RequestMapping(value = "/api/games/{id}", method = RequestMethod.GET, produces = "application/json")
     @ResponseBody GameView get(@PathVariable String id, @RequestAttribute("user") User user) {
-        var game = gameService.get(id);
+        var game = gameService.get(id, user);
         return new GameView(game, gameService.allowedCommands(game, user));
     }
 
@@ -60,11 +60,11 @@ public class GameController {
 
     /** The game's events after sequence number {@code after}, oldest first; the whole log by default */
     @RequestMapping(value = "/api/games/{id}/events", method = RequestMethod.GET, produces = "application/json")
-    @ResponseBody List<GameLogEntry> events(@PathVariable String id, @RequestParam(defaultValue = "0") int after) {
+    @ResponseBody List<GameLogEntry> events(@PathVariable String id, @RequestParam(defaultValue = "0") int after, @RequestAttribute("user") User user) {
         if (after < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "after must not be negative");
         }
-        return gameService.events(id, after);
+        return gameService.events(id, after, user);
     }
 
     @RequestMapping(value = "/api/games/{id}/join", method = RequestMethod.POST, produces = "application/json")
@@ -93,23 +93,4 @@ public class GameController {
         return gameService.start(id, user);
     }
 
-    @ExceptionHandler(GameNotFoundException.class)
-    ProblemDetail notFound(GameNotFoundException e) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
-    }
-
-    @ExceptionHandler({NotAllowedException.class, NotYourTurn.class})
-    ProblemDetail notAllowed(RuntimeException e) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, e.getMessage());
-    }
-
-    @ExceptionHandler(RuleViolation.class)
-    ProblemDetail ruleViolation(RuleViolation e) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
-    }
-
-    @ExceptionHandler(OptimisticLockingFailureException.class)
-    ProblemDetail concurrentChange() {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "The game was changed at the same time; reload and try again");
-    }
 }

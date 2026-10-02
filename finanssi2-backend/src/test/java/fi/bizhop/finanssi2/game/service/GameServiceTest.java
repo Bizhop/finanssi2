@@ -76,7 +76,7 @@ class GameServiceTest {
         var rules = new Rules(gameData);
         var scripted = new ScriptedDice(dice);
         return new GameService(gameRepository, gameLogRepository, messagingService, gameData, new GameSetup(gameData),
-                new GameEngine(gameData, rules), gameId -> scripted, new Random(1));
+                new GameEngine(gameData, rules), gameId -> scripted, new Random(1), new DebugAccess(""));
     }
 
     /** A saved game in the lobby with the given players, the first one the creator */

@@ -42,7 +42,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 /** Saves and loads games in MongoDB; subclasses choose the database. Removes only the documents it created. */
-@SpringBootTest
+@SpringBootTest(properties = "finanssi2.debug.allowed-emails=owner@example.com,other@example.com")
 @ActiveProfiles("test")
 abstract class GameMongoTests {
     @Autowired
@@ -80,6 +80,31 @@ abstract class GameMongoTests {
         var game = gameService.create(user(uid));
         createdGames.add(game.getId());
         return game;
+    }
+
+    @Test
+    void debugLifecycleIsPrivateAndDeletesHistory() {
+        var owner = new User("debug-owner", "owner@example.com", "Owner", null, true);
+        var other = new User("debug-other", "other@example.com", "Other", null, true);
+        var game = gameService.createDebug(owner, 6, GameSettings.DEFAULT);
+        createdGames.add(game.getId());
+        assertEquals(GameMode.DEBUG, game.getMode());
+        assertEquals(6, game.getState().getPlayers().size());
+        assertEquals("debug:" + game.getId() + ":seat:2", game.getState().getPlayers().get(1).getUid());
+        assertTrue(gameService.list(owner).stream().anyMatch(g -> g.getId().equals(game.getId())));
+        assertFalse(gameService.list(other).stream().anyMatch(g -> g.getId().equals(game.getId())));
+        assertThrows(fi.bizhop.finanssi2.game.service.NotAllowedException.class, () -> gameService.get(game.getId(), other));
+        assertThrows(fi.bizhop.finanssi2.game.service.NotAllowedException.class, () -> gameService.events(game.getId(), 0, other));
+        assertThrows(fi.bizhop.finanssi2.game.service.NotAllowedException.class, () -> gameService.join(game.getId(), owner));
+        assertThrows(fi.bizhop.finanssi2.game.service.NotAllowedException.class, () -> gameService.leave(game.getId(), owner));
+        assertThrows(fi.bizhop.finanssi2.game.service.NotAllowedException.class, () -> gameService.deleteDebug(game.getId(), other));
+        org.mockito.Mockito.verify(messagingService, org.mockito.Mockito.never()).send(
+                org.mockito.ArgumentMatchers.eq("/topic/games"), org.mockito.ArgumentMatchers.any());
+        var stale = gameService.get(game.getId());
+        gameService.deleteDebug(game.getId(), owner);
+        assertFalse(gameRepository.existsById(game.getId()));
+        assertTrue(gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(game.getId(), 0).isEmpty());
+        assertThrows(OptimisticLockingFailureException.class, () -> gameRepository.save(stale));
     }
 
     @Test

@@ -141,7 +141,7 @@ Card control and persistence:
 
 - [x] 1. Backend access/configuration and capabilities: verified email mapping, central checks, normal/debug metadata and legacy
   defaults. Done when capability/access tests cover configured accounts and existing documents default to normal mode.
-- [ ] 2. Debug game creation/lifecycle and visibility: synthetic seats, list/read filters, subscription checks and private
+- [x] 2. Debug game creation/lifecycle and visibility: synthetic seats, list/read filters, subscription checks and private
   broadcasts. Done when owner-only lifecycle works and neither ordinary REST nor public topics expose another user's debug game.
 - [ ] 3. Effective actor views/commands, version checks and request-scoped dice; replace the existing dev dice route. Done when
   one owner can resolve every seat's legal actions, stale requests fail and no dev-profile bypass remains.
@@ -177,3 +177,5 @@ Card control and persistence:
 Once implemented, move final decisions and any remaining todos into the backend/frontend status notes and remove this plan.
 
 - 2026-10-02: Step 1 complete: security token mapping, DebugAccess, capabilities, immutable game mode/configuration. Backend full test suite passed, including allowlist checks and MongoDB legacy mode defaults. Next: private lifecycle and subscriptions.
+
+- 2026-10-02: Step 2 complete: GameService/DebugGameController private creation/deletion, stable seats, REST/list filters, STOMP literal-topic access and SEND rejection, private broadcasts and archival cleanup after deletion. Full backend suite passed (221 tests), including MongoDB lifecycle/stale-save and subscription checks. Next: effective actors and request-scoped dice.

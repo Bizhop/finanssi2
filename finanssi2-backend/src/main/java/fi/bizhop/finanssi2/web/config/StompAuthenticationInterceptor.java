@@ -1,6 +1,8 @@
 package fi.bizhop.finanssi2.web.config;
 
 import fi.bizhop.finanssi2.security.FirebaseAuthenticationToken;
+import fi.bizhop.finanssi2.game.db.GameRepository;
+import fi.bizhop.finanssi2.game.service.DebugAccess;
 import fi.bizhop.finanssi2.security.FirebaseTokenVerifier;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
@@ -20,6 +22,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class StompAuthenticationInterceptor implements ChannelInterceptor {
     final FirebaseTokenVerifier tokenVerifier;
+    final GameRepository gameRepository;
+    final DebugAccess debugAccess;
 
     @Override
     public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
@@ -38,6 +42,28 @@ public class StompAuthenticationInterceptor implements ChannelInterceptor {
             case SUBSCRIBE, SEND -> {
                 if (accessor.getUser() == null) {
                     throw new MessageDeliveryException("Not authenticated");
+                }
+                var destination = accessor.getDestination();
+                if (destination != null && (destination.equals("/topic/games") || destination.startsWith("/topic/games/"))) {
+                    if (accessor.getCommand() == org.springframework.messaging.simp.stomp.StompCommand.SEND) {
+                        throw new MessageDeliveryException("Game updates can only be sent through REST");
+                    }
+                    if (destination.startsWith("/topic/games/")) {
+                        // Literal game ids only; broker wildcard subscriptions could expose private games.
+                        var id = destination.substring("/topic/games/".length());
+                        if (!id.matches("[a-f0-9]{24}") || !(accessor.getUser() instanceof FirebaseAuthenticationToken auth)) {
+                            throw new MessageDeliveryException("Invalid game subscription");
+                        }
+                        try {
+                            var game = gameRepository.findById(id).orElseThrow();
+                            debugAccess.requireRead(game, auth.user());
+                        } catch (RuntimeException e) {
+                            throw new MessageDeliveryException(message, "Game subscription denied", e);
+                        }
+                    }
+                } else if (accessor.getCommand() == org.springframework.messaging.simp.stomp.StompCommand.SUBSCRIBE
+                        && !"/topic/chat".equals(destination)) {
+                    throw new MessageDeliveryException("Unknown topic");
                 }
                 yield message;
             }

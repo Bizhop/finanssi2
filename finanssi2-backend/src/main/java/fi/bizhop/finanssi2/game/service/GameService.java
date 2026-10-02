@@ -2,6 +2,7 @@ package fi.bizhop.finanssi2.game.service;
 
 import fi.bizhop.finanssi2.game.data.GameData;
 import fi.bizhop.finanssi2.game.db.Game;
+import fi.bizhop.finanssi2.game.db.GameMode;
 import fi.bizhop.finanssi2.game.db.GameLogEntry;
 import fi.bizhop.finanssi2.game.db.GameLogRepository;
 import fi.bizhop.finanssi2.game.db.GameRepository;
@@ -52,13 +53,14 @@ public class GameService {
     final GameEngine gameEngine;
     final DiceSource diceSource;
     final RandomGenerator gameRandom;
+    final DebugAccess debugAccess;
 
     static String gameTopic(String gameId) {
         return LOBBY_TOPIC + "/" + gameId;
     }
 
     /** Creates a game in the lobby with its creator as the first player */
-    public Game create(User user) {
+    public synchronized Game create(User user) {
         var game = new Game();
         game.setId(new ObjectId().toHexString());
         game.setCreator(user.uid());
@@ -66,16 +68,65 @@ public class GameService {
         return commit(game, List.of(addPlayer(game, user)), true).game();
     }
 
+    public synchronized Game createDebug(User user, int playerCount, GameSettings settings) {
+        debugAccess.require(user);
+        if (playerCount < 2 || playerCount > MAX_PLAYERS) throw new RuleViolation("playerCount must be 2–6");
+        if (settings.loanLimit() == null) throw new RuleViolation("loanLimit is required");
+        var game = new Game(GameMode.DEBUG);
+        game.setId(new ObjectId().toHexString());
+        game.setCreator(user.uid());
+        game.setCreatedAt(System.currentTimeMillis());
+        game.getState().setSettings(settings);
+        var events = new java.util.ArrayList<GameEvent>();
+        events.add(addPlayer(game, user));
+        for (int seat = 2; seat <= playerCount; seat++) {
+            events.add(addPlayer(game, new User("debug:" + game.getId() + ":seat:" + seat,
+                    null, "Debug player " + seat, null)));
+        }
+        events.add(new GameEvent.SettingsChanged(settings));
+        return commit(game, events, true).game();
+    }
+
+    public synchronized void deleteDebug(String id, User user) {
+        var game = get(id);
+        debugAccess.requireOwner(game, user);
+        // Versioned removal makes a concurrent save fail rather than recreate the document.
+        gameRepository.delete(game);
+        gameLogRepository.deleteByGameId(id);
+        messagingService.send(gameTopic(id), new GameDeleted(id, true));
+    }
+
+    public record GameDeleted(String gameId, boolean deleted) {}
+
+    public Game get(String id, User user) {
+        var game = get(id);
+        debugAccess.requireRead(game, user);
+        return game;
+    }
+
+    public synchronized List<GameLogEntry> events(String id, int after, User user) {
+        get(id, user);
+        return events(id, after);
+    }
+
+    static void requireNormal(Game game) {
+        if (game.getMode() != GameMode.NORMAL) {
+            throw new NotAllowedException("Use debug controls for this game");
+        }
+    }
+
     /** Games in the lobby and games the user is in, newest first */
     public List<Game> list(User user) {
-        return gameRepository.findByStatusOrPlayer(GameStatus.LOBBY, user.uid(), Sort.by(Sort.Direction.DESC, "createdAt"));
+        return gameRepository.findByStatusOrPlayer(GameStatus.LOBBY, user.uid(), Sort.by(Sort.Direction.DESC, "createdAt"))
+                .stream().filter(game -> game.getMode() == GameMode.NORMAL
+                        || (game.getCreator().equals(user.uid()) && debugAccess.allowed(user))).toList();
     }
 
     public Game get(String id) {
         return gameRepository.findById(id).orElseThrow(() -> new GameNotFoundException(id));
     }
 
-    public List<GameLogEntry> events(String id, int after) {
+    public synchronized List<GameLogEntry> events(String id, int after) {
         var game = get(id);
         archive(game.getUnarchivedEvents());
         var archived = gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(id, after);
@@ -84,8 +135,9 @@ public class GameService {
         return List.copyOf(entries.values());
     }
 
-    public Game join(String id, User user) {
+    public synchronized Game join(String id, User user) {
         var game = get(id);
+        requireNormal(game);
         requireLobby(game);
         if (game.getState().player(user.uid()).isPresent()) {
             throw new RuleViolation("Already in the game");
@@ -97,8 +149,9 @@ public class GameService {
     }
 
     /** Leaves a game in the lobby. The last player leaving deletes the game; if the creator leaves, the next player takes over. */
-    public void leave(String id, User user) {
+    public synchronized void leave(String id, User user) {
         var game = get(id);
+        requireNormal(game);
         requireLobby(game);
         var player = game.getState().player(user.uid()).orElseThrow(() -> new RuleViolation("Not in the game"));
         var players = game.getState().getPlayers();
@@ -116,16 +169,16 @@ public class GameService {
     }
 
     /** Sets the house rules of a game in the lobby */
-    public Game changeSettings(String id, User user, GameSettings settings) {
-        var game = get(id);
+    public synchronized Game changeSettings(String id, User user, GameSettings settings) {
+        var game = get(id, user);
         requireCreator(game, user, "Only the creator can change the settings");
         requireLobby(game);
         game.getState().setSettings(settings);
         return commit(game, List.of(new GameEvent.SettingsChanged(settings)), true).game();
     }
 
-    public Game start(String id, User user) {
-        var game = get(id);
+    public synchronized Game start(String id, User user) {
+        var game = get(id, user);
         requireCreator(game, user, "Only the creator can start the game");
         requireLobby(game);
         var events = gameSetup.start(game.getState(), diceSource.forGame(id), gameRandom);
@@ -134,8 +187,9 @@ public class GameService {
     }
 
     /** Runs a player's command and returns the events it caused */
-    public List<GameLogEntry> command(String id, User user, GameCommand command) {
+    public synchronized List<GameLogEntry> command(String id, User user, GameCommand command) {
         var game = get(id);
+        requireNormal(game);
         if (game.getStatus() != GameStatus.RUNNING) {
             throw new RuleViolation("The game is not running");
         }
@@ -206,7 +260,7 @@ public class GameService {
         archive(saved.getUnarchivedEvents());
 
         messagingService.send(gameTopic(saved.getId()), new GameUpdate(saved.getId(), saved.getVersion(), entries));
-        if (lobbyChange) {
+        if (lobbyChange && saved.getMode() == GameMode.NORMAL) {
             messagingService.send(LOBBY_TOPIC, new LobbyChange(saved.getId(), saved));
         }
         return new Committed(saved, entries);
@@ -219,6 +273,9 @@ public class GameService {
         }
         try {
             gameLogRepository.saveAll(entries);
+            if (entries.getFirst().gameId() != null && !gameRepository.existsById(entries.getFirst().gameId())) {
+                gameLogRepository.deleteByGameId(entries.getFirst().gameId());
+            }
             return true;
         } catch (DataAccessException e) {
             logger.log(Level.WARNING, "Events remain in game " + entries.getFirst().gameId() + " for archival retry", e);
