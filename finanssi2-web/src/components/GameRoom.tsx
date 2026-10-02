@@ -81,7 +81,7 @@ const GameRoomContent = () => {
             if (!mounted.current) return
             setEvents((current) => [...new Map([...current, ...latest].map((entry) => [entry.seq, entry])).values()].sort((a, b) => a.seq - b.seq))
         } catch (reason) {
-            toast(apiError(reason), { type: "error" })
+            if (mounted.current) toast(apiError(reason), { type: "error" })
         }
     }, [id, user])
 
@@ -132,13 +132,14 @@ const GameRoomContent = () => {
         }
     }, [connected])
 
-    const mutate = async (action: () => Promise<unknown>) => {
+    /** Runs an action, then reloads the game unless the action leaves it (`reload` false) */
+    const mutate = async (action: () => Promise<unknown>, reload = true) => {
         if (busyRef.current) return
         busyRef.current = true
         setCommandBusy(true)
         try {
             await action()
-            if (!mounted.current) return
+            if (!mounted.current || !reload) return
             await refresh()
             await refreshEvents(events.at(-1)?.seq ?? 0)
         } catch (reason) {
@@ -635,7 +636,7 @@ const GameRoomContent = () => {
                             void mutate(async () => {
                                 await gameApi<void>(user, `/api/debug/games/${id}`, { method: "DELETE" })
                                 navigate("/games", { replace: true })
-                            })
+                            }, false)
                         }}
                     >
                         Delete
