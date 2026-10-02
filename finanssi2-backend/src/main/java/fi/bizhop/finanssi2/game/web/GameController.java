@@ -4,17 +4,10 @@ import fi.bizhop.finanssi2.game.db.Game;
 import fi.bizhop.finanssi2.game.db.GameLogEntry;
 import fi.bizhop.finanssi2.game.engine.GameCommand;
 import fi.bizhop.finanssi2.game.engine.GameSettings;
-import fi.bizhop.finanssi2.game.engine.NotYourTurn;
-import fi.bizhop.finanssi2.game.engine.RuleViolation;
-import fi.bizhop.finanssi2.game.service.GameNotFoundException;
 import fi.bizhop.finanssi2.game.service.GameService;
-import fi.bizhop.finanssi2.game.service.NotAllowedException;
 import fi.bizhop.finanssi2.security.User;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -31,6 +24,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class GameController {
     final GameService gameService;
+    final tools.jackson.databind.ObjectMapper objectMapper;
 
     @RequestMapping(value = "/api/games", method = RequestMethod.POST, produces = "application/json")
     @ResponseBody Game create(@RequestAttribute("user") User user) {
@@ -54,8 +48,10 @@ public class GameController {
     /** Runs an in-game command, e.g. {@code {"type": "Roll"}}, and returns the events it caused */
     @RequestMapping(value = "/api/games/{id}/commands", method = RequestMethod.POST, consumes = "application/json",
             produces = "application/json")
-    @ResponseBody List<GameLogEntry> command(@PathVariable String id, @RequestBody GameCommand command,
+    @ResponseBody List<GameLogEntry> command(@PathVariable String id, @RequestBody tools.jackson.databind.JsonNode request,
                                              @RequestAttribute("user") User user) {
+        var command = objectMapper.readerFor(GameCommand.class)
+                .with(tools.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).<GameCommand>readValue(request.toString());
         return gameService.command(id, user, command);
     }
 

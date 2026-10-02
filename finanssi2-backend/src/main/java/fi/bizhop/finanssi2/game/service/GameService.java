@@ -1,12 +1,15 @@
 package fi.bizhop.finanssi2.game.service;
 
+import fi.bizhop.finanssi2.game.data.Card;
+import fi.bizhop.finanssi2.game.data.Deck;
 import fi.bizhop.finanssi2.game.data.GameData;
 import fi.bizhop.finanssi2.game.db.Game;
-import fi.bizhop.finanssi2.game.db.GameMode;
 import fi.bizhop.finanssi2.game.db.GameLogEntry;
 import fi.bizhop.finanssi2.game.db.GameLogRepository;
+import fi.bizhop.finanssi2.game.db.GameMode;
 import fi.bizhop.finanssi2.game.db.GameRepository;
 import fi.bizhop.finanssi2.game.db.GameStatus;
+import fi.bizhop.finanssi2.game.engine.Dice;
 import fi.bizhop.finanssi2.game.engine.GameCommand;
 import fi.bizhop.finanssi2.game.engine.GameEngine;
 import fi.bizhop.finanssi2.game.engine.GameEvent;
@@ -22,12 +25,15 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.TreeMap;
 import java.util.function.Function;
-import java.util.random.RandomGenerator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.random.RandomGenerator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -37,7 +43,8 @@ import static fi.bizhop.finanssi2.game.data.GameConstants.MAX_PLAYERS;
 /**
  * Saves state and new events together in the game document, then archives events and broadcasts the change. Optimistic locking
  * rejects competing changes before their new events are archived or broadcast. A failed archive is retried on event reads and
- * later changes; the events remain available from the game document.
+ * later changes; the events remain available from the game document. Debug mutations and event reads serialize with local
+ * deletion; versioned saves/removal and archival cleanup also protect against stale writes on another backend instance.
  */
 @Service
 @RequiredArgsConstructor
@@ -60,7 +67,7 @@ public class GameService {
     }
 
     /** Creates a game in the lobby with its creator as the first player */
-    public synchronized Game create(User user) {
+    public Game create(User user) {
         var game = new Game();
         game.setId(new ObjectId().toHexString());
         game.setCreator(user.uid());
@@ -77,7 +84,7 @@ public class GameService {
         game.setCreator(user.uid());
         game.setCreatedAt(System.currentTimeMillis());
         game.getState().setSettings(settings);
-        var events = new java.util.ArrayList<GameEvent>();
+        var events = new ArrayList<GameEvent>();
         events.add(addPlayer(game, user));
         for (int seat = 2; seat <= playerCount; seat++) {
             events.add(addPlayer(game, new User("debug:" + game.getId() + ":seat:" + seat,
@@ -135,7 +142,7 @@ public class GameService {
         return List.copyOf(entries.values());
     }
 
-    public synchronized Game join(String id, User user) {
+    public Game join(String id, User user) {
         var game = get(id);
         requireNormal(game);
         requireLobby(game);
@@ -149,7 +156,7 @@ public class GameService {
     }
 
     /** Leaves a game in the lobby. The last player leaving deletes the game; if the creator leaves, the next player takes over. */
-    public synchronized void leave(String id, User user) {
+    public void leave(String id, User user) {
         var game = get(id);
         requireNormal(game);
         requireLobby(game);
@@ -187,7 +194,7 @@ public class GameService {
     }
 
     /** Runs a player's command and returns the events it caused */
-    public synchronized List<GameLogEntry> command(String id, User user, GameCommand command) {
+    public List<GameLogEntry> command(String id, User user, GameCommand command) {
         var game = get(id);
         requireNormal(game);
         return execute(game, user, user.uid(), command, diceSource.forGame(id));
@@ -206,7 +213,7 @@ public class GameService {
         if (values.size() > 32 || values.stream().anyMatch(value -> value == null || value < 1 || value > 6)) {
             throw new RuleViolation("dice must contain at most 32 values from 1 to 6");
         }
-        var rolls = new java.util.ArrayDeque<>(values);
+        var rolls = new ArrayDeque<>(values);
         var fallback = diceSource.forGame(id);
         return execute(game, user, actor, command, () -> rolls.isEmpty() ? fallback.roll() : rolls.removeFirst());
     }
@@ -219,11 +226,11 @@ public class GameService {
             throw new RuleViolation("Cards can only be selected in a running game without pending decisions");
         }
         var deck = switch (deckName == null ? "" : deckName) {
-            case "FINANCE_NEWS" -> fi.bizhop.finanssi2.game.data.Deck.FINANCE_NEWS;
-            case "STOCK_TIP" -> fi.bizhop.finanssi2.game.data.Deck.STOCK_TIP;
+            case "FINANCE_NEWS" -> Deck.FINANCE_NEWS;
+            case "STOCK_TIP" -> Deck.STOCK_TIP;
             default -> throw new RuleViolation("Unknown deck; use FINANCE_NEWS or STOCK_TIP");
         };
-        var known = gameData.cards(deck).stream().map(fi.bizhop.finanssi2.game.data.Card::id).toList();
+        var known = gameData.cards(deck).stream().map(Card::id).toList();
         if (!known.contains(card)) throw new RuleViolation("Unknown card for this deck");
         var state = game.getState();
         var drawDeck = switch (deck) {
@@ -231,14 +238,14 @@ public class GameService {
             case STOCK_TIP -> state.getStockTipDeck();
         };
         if (!drawDeck.contains(card)) throw new RuleViolation("The selected Stock Tip is held by a player");
-        var held = deck == fi.bizhop.finanssi2.game.data.Deck.STOCK_TIP
+        var held = deck == Deck.STOCK_TIP
                 ? state.getPlayers().stream().flatMap(player -> player.getHeldStockTips().stream()).toList()
                 : List.<String>of();
         var all = Stream.concat(drawDeck.stream(), held.stream()).toList();
-        if (all.size() != known.size() || !new java.util.HashSet<>(all).equals(new java.util.HashSet<>(known))) {
+        if (all.size() != known.size() || !new HashSet<>(all).equals(new HashSet<>(known))) {
             throw new RuleViolation("The deck has inconsistent card membership");
         }
-        var reordered = new java.util.ArrayList<>(drawDeck);
+        var reordered = new ArrayList<>(drawDeck);
         reordered.remove(card);
         reordered.addFirst(card);
         switch (deck) {
@@ -255,7 +262,7 @@ public class GameService {
     }
 
     private List<GameLogEntry> execute(Game game, User user, String actor, GameCommand command,
-                                      fi.bizhop.finanssi2.game.engine.Dice dice) {
+                                      Dice dice) {
         if (game.getStatus() != GameStatus.RUNNING) throw new RuleViolation("The game is not running");
         List<GameEvent> events;
         if (command instanceof GameCommand.EndGame) {
@@ -275,7 +282,7 @@ public class GameService {
             case RUNNING -> {
                 debugAccess.requireRead(game, user);
                 var actor = game.getMode() == GameMode.DEBUG ? game.getState().actor() : user.uid();
-                var allowed = new java.util.ArrayList<>(gameEngine.allowedCommands(game.getState(), actor));
+                var allowed = new ArrayList<>(gameEngine.allowedCommands(game.getState(), actor));
                 if (game.getCreator().equals(user.uid())) allowed.add(GameCommand.EndGame.class.getSimpleName());
                 allowed.sort(String::compareTo);
                 yield List.copyOf(allowed);
@@ -339,13 +346,19 @@ public class GameService {
         }
         try {
             gameLogRepository.saveAll(entries);
-            if (entries.getFirst().gameId() != null && !gameRepository.existsById(entries.getFirst().gameId())) {
-                gameLogRepository.deleteByGameId(entries.getFirst().gameId());
-            }
             return true;
         } catch (DataAccessException e) {
             logger.log(Level.WARNING, "Events remain in game " + entries.getFirst().gameId() + " for archival retry", e);
             return false;
+        } finally {
+            // Another backend instance may have deleted the versioned game while this archival was writing.
+            // Also clean partial writes when saveAll failed after writing some of the batch.
+            try {
+                var id = entries.getFirst().gameId();
+                if (!gameRepository.existsById(id)) gameLogRepository.deleteByGameId(id);
+            } catch (DataAccessException e) {
+                logger.log(Level.WARNING, "Could not check archival cleanup", e);
+            }
         }
     }
 }

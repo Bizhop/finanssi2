@@ -12,6 +12,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GameErrors {
+    @ExceptionHandler(tools.jackson.core.JacksonException.class)
+    ProblemDetail invalidCommand() {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Invalid command or unexpected command fields");
+    }
+
     @ExceptionHandler(GameNotFoundException.class)
     ProblemDetail notFound(GameNotFoundException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());

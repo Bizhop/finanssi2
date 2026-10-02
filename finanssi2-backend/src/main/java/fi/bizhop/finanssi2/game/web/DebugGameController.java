@@ -1,12 +1,23 @@
 package fi.bizhop.finanssi2.game.web;
 
 import fi.bizhop.finanssi2.game.db.Game;
+import fi.bizhop.finanssi2.game.db.GameLogEntry;
+import fi.bizhop.finanssi2.game.engine.GameCommand;
 import fi.bizhop.finanssi2.game.engine.GameSettings;
 import fi.bizhop.finanssi2.game.service.GameService;
 import fi.bizhop.finanssi2.security.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -22,10 +33,10 @@ public class DebugGameController {
     }
 
     public record CommandRequest(String actor, Long expectedVersion,
-                                 fi.bizhop.finanssi2.game.engine.GameCommand command, java.util.List<Integer> dice) {}
+                                 GameCommand command, List<Integer> dice) {}
 
     @PostMapping("/api/debug/games/{id}/commands")
-    public java.util.List<fi.bizhop.finanssi2.game.db.GameLogEntry> command(
+    public List<GameLogEntry> command(
             @PathVariable String id, @RequestAttribute("user") User user, @RequestBody CommandRequest request) {
         return gameService.debugCommand(id, user, request.actor(), request.expectedVersion(), request.command(), request.dice());
     }

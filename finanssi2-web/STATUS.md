@@ -1,72 +1,81 @@
 # Frontend status
 
-Updated 2026-10-01 from the implementation and the former frontend plan. The lobby and game room are implemented, with the
-functional gaps and deferred reviews below. See [backend status](../finanssi2-backend/STATUS.md) for gameplay and rule decisions.
+Updated 2026-10-02 after implementing private debug games and the prerequisite asset controls. The functional gaps and deferred live reviews below remain. See
+[backend status](../finanssi2-backend/STATUS.md) for gameplay and rule decisions.
 
 ## Completed features
 
-- Firebase/Google sign-in, authenticated REST calls and chat. STOMP connects with a fresh Firebase token on every attempt,
-  reconnects automatically and recreates subscriptions.
+- Firebase/Google sign-in, authenticated REST calls and chat. STOMP connects with a fresh Firebase token on every attempt, reconnects automatically and
+  recreates subscriptions.
 - Games page at `/games`: list, create, join, leave, start, creator settings, loading/errors and refresh on `/topic/games`.
-- Game room at `/games/:id`: load state and static board/card data, subscribe to `/topic/games/{id}`, reload state after updates,
-  merge events by sequence and fetch missing events after gaps/reconnects.
-- Board display with all 46 squares, player tokens, property owners, buildings and mortgages. Player panels show cash, loans,
-  cars, position and eliminated status; asset lists show properties, shares, bonds and held Stock Tips.
-- Controls for turns, cars, loans, assets, construction, shareholders' meetings, resignation and creator closure. Pending-decision
-  controls cover raising funds, bond offers, bond/asset bids, Finance News direction and Stock Tip options.
-- Active Finance News, current-player held card text and Stock Tip choice text render card chapters with headings/italics.
-  Finished games show the winner or closure and standings sorted by net worth.
+- Game room at `/games/:id`: load state and static board/card data, subscribe to `/topic/games/{id}`, reload state after updates, merge events by sequence and
+  fetch missing events after gaps/reconnects.
+- Board display with all 46 squares, player tokens, property owners, buildings and mortgages. Player panels show cash, loans, cars, position and eliminated
+  status; asset lists show properties, shares, bonds and held Stock Tips.
+- Controls for turns, cars, loans, assets, construction, shareholders' meetings, resignation and creator closure. Pending-decision controls cover raising funds,
+  bond offers, bond/asset bids, Finance News direction and Stock Tip options.
+- Active Finance News, current-player held card text and Stock Tip choice text render card chapters with headings/italics. Finished games show the winner or
+  closure and standings sorted by net worth.
 - Separate Vite dev pages for chat and mocked running/finished game rooms, without Google sign-in or a backend.
 
 ## Decisions
 
-- Keep transport/shared API types in `src/components/gameApi.ts`, the lobby in `Games.tsx`, the room in `GameRoom.tsx` and STOMP
-  lifecycle/hooks in `StompContext.tsx`. The frontend uses React, Material UI, Deno and Vite.
-- Send game commands over REST. Broadcasts contain events and a version, so the room fetches current state on every update;
-  event sequence gaps trigger an incremental history fetch. Backend `allowedCommands` controls action types, and the backend
-  remains responsible for validating their parameters.
-- The settings dialog marks unlimited bank loans as recommended, while backend-created games default to the official six-loan
-  bank limit. Opening settings uses the game's stored values; creation does not automatically apply the house rule. Compulsory
-  sale bids default to no minimum, with half the nominal price available as a house rule.
-- Visual redesign and live multiplayer review were explicitly deferred by the developer. The current board is a six-column
-  grid; `../input/board.png` is the physical-board reference for later visual work.
-- Dev pages use a separate Vite root on port 3001. `/game-room.html` previews a running game; `/game-room.html?finished` previews
-  standings. Mocks are display fixtures: their command endpoint logs requests without applying state transitions, and they do
-  not exercise real rules or live subscriptions.
+- Keep transport/shared API types in `src/components/gameApi.ts`, the lobby in `Games.tsx`, the room in `GameRoom.tsx` and STOMP lifecycle/hooks in
+  `StompContext.tsx`. The frontend uses React, Material UI, Deno and Vite.
+- Send game commands over REST. Broadcasts contain events and a version, so the room fetches current state on every update; event sequence gaps trigger an
+  incremental history fetch. Backend `allowedCommands` controls action types, and the backend remains responsible for validating their parameters.
+- The settings dialog marks unlimited bank loans as recommended, while backend-created games default to the official six-loan bank limit. Opening settings uses
+  the game's stored values; creation does not automatically apply the house rule. Compulsory sale bids default to no minimum, with half the nominal price
+  available as a house rule.
+- Visual redesign and live multiplayer review were explicitly deferred by the developer. The current board is a six-column grid; `../input/board.png` is the
+  physical-board reference for later visual work.
+- Dev pages use a separate Vite root on port 3001. `/game-room.html` previews a running game; `/game-room.html?finished` previews standings. Mocks are display
+  fixtures: their command endpoint logs requests without applying state transitions, and they do not exercise real rules or live subscriptions.
 - Production builds remain disabled in `deno.json` until a production Firebase environment/configuration exists.
+
+## Private debug games
+
+- Capabilities load after sign-in, clear on account changes and refresh on reconnect. STOMP reconnects on account changes. Eligible users can create 2–6-seat
+  debug games with settings; lists and rooms label the mode. Debug lobbies can be opened for deletion before starting.
+- Rooms distinguish the authenticated account from `actingPlayer`, display “Controlling: …” and follow every turn/decision. Asset ownership, held cards and
+  out-of-turn controls use the effective seat; creator closure still uses the account.
+- Debug commands submit the displayed actor/version and optional command-only dice. Inputs clear after submission; 409 reloads without replay. Controls are
+  disabled while requests run. Finance News/Stock Tip selectors exclude held cards.
+- Confirmed deletion handles empty 204 and returns to the list. Private deletion notifications leave other rooms; 403/capability removal clears access and
+  leaves the room. Owned lists refresh on reconnect because debug lifecycle stays off the public topic.
+- API transport accepts all empty successful bodies and preserves error status. Two Deno tests cover 200/204 and single-request 403/409 failures. Typechecking
+  corrected inherited MUI 9 system props to `sx` and select configuration to `slotProps`.
+- `dev-pages/game-room.html?debug` previews controls; fixtures remain visual mocks without real transitions.
+- [ ] Complete live debug acceptance with an allowlisted Google account, including auctions/out-of-turn decisions, mortgage and inventory controls, stale
+      actions in two tabs, deletion and reconnect/capability removal. See the backend status for setup and the host-service limitation observed during
+      implementation.
 
 ## Todos
 
-New work: [single-player debug mode plan](../input/plan/single-player-debug.md), for one authorized account controlling all seats.
+Private single-player debug mode is implemented. Live Google-authenticated acceptance remains outstanding.
 
 ### Functional gaps visible in the current code
 
-- [ ] Add a picker for buying bank-owned properties. The current button only targets a property on the player's current square,
-  while the rules permit buying from square 11 or 35–46; players need to select the available inventory.
-- [ ] Use the deed's mortgage value for the property's current building state. Both ordinary and raise-funds controls currently
-  filter out all built properties, hiding legal mortgages and potentially blocking payment decisions.
-- [ ] Align parameterized controls with valid options and current prices. Share buttons show base prices despite Finance News
-  modifiers, and some asset/meeting choices can be invalid even when their command type is allowed. Consider concrete options
-  in the backend response instead of duplicating rule calculations in the UI.
-- [ ] Explain obligations and choices: show payment amount/creditor, asset auction details/minimum bid and meaningful labels for
-  the backend's Stock Tip option strings. Show costs/proceeds for purchases, redemption, construction and meetings.
-- [ ] Render useful event details. The recent log currently shows only the last 12 event types, so dice, movement, transfers,
-  card draws, auction outcomes and reasons need readable descriptions. Show immediate drawn Stock Tips as well as held/choice
-  cards; the current card display does not cover every draw.
-- [ ] Prevent duplicate submissions consistently. Simple actions/choice dialogs use `commandBusy`, but several asset and
-  pending-decision buttons remain enabled while a command is in flight.
-- [ ] Clear room-specific state/history when navigating between game ids and review overlapping refresh requests so stale
-  events or responses cannot appear in another room.
+- [x] Add a picker for buying bank-owned properties from available inventory.
+- [x] Use built/unbuilt deed mortgage values in ordinary and raise-funds controls.
+- [ ] Align parameterized controls with valid options and current prices. Share buttons show base prices despite Finance News modifiers, and some asset/meeting
+      choices can be invalid even when their command type is allowed. Consider concrete options in the backend response instead of duplicating rule calculations
+      in the UI.
+- [ ] Explain obligations and choices: show payment amount/creditor, asset auction details/minimum bid and meaningful labels for the backend's Stock Tip option
+      strings. Show costs/proceeds for purchases, redemption, construction and meetings.
+- [ ] Render useful event details. The recent log currently shows only the last 12 event types, so dice, movement, transfers, card draws, auction outcomes and
+      reasons need readable descriptions. Show immediate drawn Stock Tips as well as held/choice cards; the current card display does not cover every draw.
+- [x] Disable room controls while requests run and guard submissions synchronously against duplicate clicks.
+- [x] Remount rooms on game/account changes and reject stale state/history responses; newest state refresh wins.
 
 ### Deferred review and follow-up
 
-- [ ] Run frontend typechecking, lint and formatting checks in a Deno environment. The former plan recorded typechecking and
-  dev-page rendering as unverified because Deno was unavailable there; this documentation cleanup did not run those checks.
-- [ ] Review live multiplayer with at least two Google-authenticated players: lobby/settings/start, all pending decisions,
-  out-of-turn payments, held-card effects, auctions, game end and reconnect/missed-event recovery.
-- [ ] Review mocked pages and responsive layouts, then do the deferred visual redesign. Mock command responses cannot validate
-  gameplay transitions; add representative decision fixtures if needed for UI work.
+- [x] Run frontend typecheck, lint, formatting and transport tests using Deno on 2026-10-02 (via `npx deno`).
+- [ ] Review live multiplayer with at least two Google-authenticated players: lobby/settings/start, all pending decisions, out-of-turn payments, held-card
+      effects, auctions, game end and reconnect/missed-event recovery.
+- [ ] Review mocked pages and responsive layouts, then do the deferred visual redesign. Mock command responses cannot validate gameplay transitions; add
+      representative decision fixtures if needed for UI work.
 - [ ] Configure production Firebase/environment values and re-enable the production build task.
 
-Local setup and Deno tasks are in the [root README](../README.md). Start the preview server with `deno task dev:pages` from this
-folder. These notes describe source review and inherited verification status, not a newly tested release.
+Local setup and Deno tasks are in the [root README](../README.md). Start the preview server with `deno task dev:pages` from this folder. Automated checks
+passed; live play and responsive visual review are still unverified.

@@ -72,7 +72,7 @@ export type Card = { id: string; type: string; chapters: { type: string | null; 
 
 export async function gameApi<T>(user: User, path: string, init: RequestInit = {}): Promise<T> {
     const token = await user.getIdToken()
-    const response = await fetch(`${import.meta.env.VITE_FINANSSI_API_URL}${path}`, {
+    const response = await fetch(`${(import.meta.env?.VITE_FINANSSI_API_URL ?? "")}${path}`, {
         ...init,
         headers: {
             Authorization: `Bearer ${token}`,

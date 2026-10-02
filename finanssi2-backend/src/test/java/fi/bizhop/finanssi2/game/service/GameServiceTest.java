@@ -113,6 +113,15 @@ class GameServiceTest {
     }
 
     @Test
+    void failedArchivalOfDeletedGameCleansPartialHistory() {
+        var entry = GameLogEntry.of(GAME_ID, 1, 1000, new GameEvent.PlayerJoined("a", "Player a", 0));
+        when(gameLogRepository.saveAll(any())).thenThrow(new DataAccessResourceFailureException("partial write"));
+        when(gameRepository.existsById(GAME_ID)).thenReturn(false);
+        assertEquals(false, service().archive(List.of(entry)));
+        verify(gameLogRepository).deleteByGameId(GAME_ID);
+    }
+
+    @Test
     void testCreateJoinsCreatorAndBroadcasts() {
         saveSucceeds();
 

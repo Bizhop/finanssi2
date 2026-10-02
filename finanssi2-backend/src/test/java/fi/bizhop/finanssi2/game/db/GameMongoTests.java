@@ -83,6 +83,56 @@ abstract class GameMongoTests {
     }
 
     @Test
+    void debugOwnerResolvesAllAuctionBidsAndGrandDrawOffers() {
+        var owner = new User("debug-owner", "owner@example.com", "Owner", null, true);
+        var game = gameService.createDebug(owner, 3, GameSettings.DEFAULT);
+        var id = game.getId();
+        createdGames.add(id);
+        when(diceSource.forGame(any())).thenReturn(new ScriptedDice(6, 6, 2, 2, 1, 1));
+        game = gameService.start(id, owner);
+        game.getState().current().setPosition(37);
+        game = gameRepository.save(game);
+        gameService.debugCommand(id, owner, game.getState().actor(), game.getVersion(), new GameCommand.Roll(), List.of(1));
+        for (int bid = 0; bid < 3; bid++) {
+            game = gameService.get(id);
+            assertInstanceOf(PendingDecision.BondAuction.class, game.getState().getPendingDecisions().getFirst());
+            assertTrue(gameService.allowedCommands(game, owner).contains("BidBond"));
+            gameService.debugCommand(id, owner, game.getState().actor(), game.getVersion(), new GameCommand.BidBond(0), null);
+        }
+        game = gameService.get(id);
+        assertTrue(game.getState().getPendingDecisions().isEmpty());
+        game.getState().current().setPosition(4);
+        game.getState().setPhase(fi.bizhop.finanssi2.game.engine.TurnPhase.BEFORE_ROLL);
+        game = gameRepository.save(game);
+        game = gameService.nextCard(id, owner, "FINANCE_NEWS", "FL-02", game.getVersion());
+        gameService.debugCommand(id, owner, game.getState().actor(), game.getVersion(), new GameCommand.Roll(), List.of(1));
+        for (int offer = 0; offer < 3; offer++) {
+            game = gameService.get(id);
+            assertInstanceOf(PendingDecision.BondOffer.class, game.getState().getPendingDecisions().getFirst());
+            gameService.debugCommand(id, owner, game.getState().actor(), game.getVersion(), new GameCommand.Pass(),
+                    java.util.Collections.nCopies(32, 1));
+        }
+        game = gameService.get(id);
+        assertTrue(game.getState().getPendingDecisions().isEmpty());
+        var seller = game.getState().getPlayers().get(2).getUid();
+        var order = game.getState().getPlayers().stream().map(fi.bizhop.finanssi2.game.engine.PlayerState::getUid)
+                .filter(uid -> !uid.equals(seller)).toList();
+        var share = game.getState().getShares().getFirst();
+        share.setOwner(seller);
+        game.getState().getPendingDecisions().add(new PendingDecision.AssetAuction(seller, "S:" + share.getId(), 0,
+                order, 0, List.of()));
+        game = gameRepository.save(game);
+        for (int bid = 0; bid < 2; bid++) {
+            game = gameService.get(id);
+            assertTrue(gameService.allowedCommands(game, owner).contains("BidAsset"));
+            gameService.debugCommand(id, owner, game.getState().actor(), game.getVersion(), new GameCommand.BidAsset(500), null);
+        }
+        game = gameService.get(id);
+        assertTrue(game.getState().getPendingDecisions().isEmpty());
+        assertEquals(owner.uid(), game.getState().share(share.getId()).getOwner());
+    }
+
+    @Test
     void debugCardSelectionPreservesDeckAndDrawsThroughGameplay() {
         var owner = new User("debug-owner", "owner@example.com", "Owner", null, true);
         var game = gameService.createDebug(owner, 2, GameSettings.DEFAULT);

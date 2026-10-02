@@ -244,7 +244,7 @@ const Games = () => {
                                                 Leave
                                             </Button>
                                         )}
-                                        {member && game.status !== "LOBBY" && (
+                                        {member && (game.status !== "LOBBY" || game.mode === "DEBUG") && (
                                             <Button onClick={() => navigate(`/games/${game.id}`)}>
                                                 {game.status === "FINISHED" ? "Results" : "Open game"}
                                             </Button>

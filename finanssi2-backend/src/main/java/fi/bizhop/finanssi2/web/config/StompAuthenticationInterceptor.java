@@ -1,18 +1,20 @@
 package fi.bizhop.finanssi2.web.config;
 
-import fi.bizhop.finanssi2.security.FirebaseAuthenticationToken;
 import fi.bizhop.finanssi2.game.db.GameRepository;
 import fi.bizhop.finanssi2.game.service.DebugAccess;
+import fi.bizhop.finanssi2.security.FirebaseAuthenticationToken;
 import fi.bizhop.finanssi2.security.FirebaseTokenVerifier;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageDeliveryException;
+import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
+
 
 /**
  * Authenticates websocket clients: CONNECT must carry an {@code Authorization: Bearer <Firebase ID token>} header, and other frames
@@ -45,7 +47,7 @@ public class StompAuthenticationInterceptor implements ChannelInterceptor {
                 }
                 var destination = accessor.getDestination();
                 if (destination != null && (destination.equals("/topic/games") || destination.startsWith("/topic/games/"))) {
-                    if (accessor.getCommand() == org.springframework.messaging.simp.stomp.StompCommand.SEND) {
+                    if (accessor.getCommand() == StompCommand.SEND) {
                         throw new MessageDeliveryException("Game updates can only be sent through REST");
                     }
                     if (destination.startsWith("/topic/games/")) {
@@ -61,7 +63,7 @@ public class StompAuthenticationInterceptor implements ChannelInterceptor {
                             throw new MessageDeliveryException(message, "Game subscription denied", e);
                         }
                     }
-                } else if (accessor.getCommand() == org.springframework.messaging.simp.stomp.StompCommand.SUBSCRIBE
+                } else if (accessor.getCommand() == StompCommand.SUBSCRIBE
                         && !"/topic/chat".equals(destination)) {
                     throw new MessageDeliveryException("Unknown topic");
                 }

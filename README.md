@@ -10,7 +10,7 @@ Current implementation status, decisions and todos:
 - [Backend notes](finanssi2-backend/STATUS.md)
 - [Frontend notes](finanssi2-web/STATUS.md)
 
-Active implementation plan: [single-player debug mode](input/plan/single-player-debug.md).
+Private single-player debug mode is implemented; remaining live acceptance checks are recorded in the status notes.
 
 ## Prerequisites
 
@@ -69,6 +69,25 @@ Other frontend tasks (run from `finanssi2-web`, defined in `deno.json` like npm 
 |---|---|
 | ~~`deno task build`~~ | Production build – **disabled for now**: there is no Firebase production environment yet (see comment in `deno.json`) |
 | `deno task typecheck` | Type-check the sources |
+| `deno task test` | Run API transport tests |
 | `deno task lint` | Lint the sources (unused imports/variables etc.) |
 | `deno task fmt` | Format the code |
 | `deno task fmt:check` | Check formatting without changing files (for CI) |
+
+
+## Private debug games
+
+Debug access is disabled by default. Configure `finanssi2.debug.allowed-emails` in backend deployment configuration,
+or pass it locally when starting the backend:
+
+```bash
+./gradlew bootRun --args='--finanssi2.debug.allowed-emails=you@example.com'
+```
+
+Use the exact email of a Google/Firebase account with a verified email claim. Comma-separated addresses are trimmed and
+compared case-insensitively; domains and wildcard patterns do not grant access. Restart the backend and reconnect after changes.
+Keep actual accounts in local/deployment configuration.
+
+After sign-in, an eligible account sees “Create debug game”. One human controls 2–6 seats, following the “Controlling” label for
+turns and pending decisions. Optional dice apply to one command; next-card controls reorder a deck without executing the card.
+Debug games are private to their owner and can be closed normally or permanently deleted with their history.
