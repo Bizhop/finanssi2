@@ -7,14 +7,16 @@ import fi.bizhop.finanssi2.game.service.NotAllowedException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GameErrors {
-    @ExceptionHandler(tools.jackson.core.JacksonException.class)
-    ProblemDetail invalidCommand() {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Invalid command or unexpected command fields");
+    /** Only request bodies that fail to parse; other Jackson failures are server errors */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ProblemDetail unreadableBody() {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Invalid request body or unexpected fields");
     }
 
     @ExceptionHandler(GameNotFoundException.class)
