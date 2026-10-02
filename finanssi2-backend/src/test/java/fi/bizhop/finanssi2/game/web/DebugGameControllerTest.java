@@ -115,6 +115,10 @@ class DebugGameControllerTest {
                 "{\"actor\":\"a\",\"expectedVersion\":-1,\"command\":{\"type\":\"Roll\"}}").getStatusCode());
         assertEquals(HttpStatus.CONFLICT, request(HttpMethod.POST, endpoint, "a",
                 "{\"actor\":\"a\",\"expectedVersion\":" + version + ",\"command\":{\"type\":\"Roll\"},\"dice\":[7]}").getStatusCode());
+        for (var body : List.of("\"command\":{\"type\":\"BuyProperty\",\"sqare\":11}", "\"command\":{\"type\":\"Roll\"},\"dise\":[6]")) {
+            assertEquals(HttpStatus.BAD_REQUEST, request(HttpMethod.POST, endpoint, "a",
+                    "{\"actor\":\"a\",\"expectedVersion\":" + version + "," + body + "}").getStatusCode(), body);
+        }
         assertEquals(version, stored.get(id).getVersion());
         assertEquals(HttpStatus.OK, request(HttpMethod.PUT, "/api/debug/games/" + id + "/next-card", "a",
                 "{\"deck\":\"FINANCE_NEWS\",\"card\":\"FL-05\",\"expectedVersion\":" + version + "}").getStatusCode());

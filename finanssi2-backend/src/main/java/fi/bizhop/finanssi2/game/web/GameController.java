@@ -24,7 +24,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class GameController {
     final GameService gameService;
-    final tools.jackson.databind.ObjectMapper objectMapper;
 
     @RequestMapping(value = "/api/games", method = RequestMethod.POST, produces = "application/json")
     @ResponseBody Game create(@RequestAttribute("user") User user) {
@@ -48,10 +47,8 @@ public class GameController {
     /** Runs an in-game command, e.g. {@code {"type": "Roll"}}, and returns the events it caused */
     @RequestMapping(value = "/api/games/{id}/commands", method = RequestMethod.POST, consumes = "application/json",
             produces = "application/json")
-    @ResponseBody List<GameLogEntry> command(@PathVariable String id, @RequestBody tools.jackson.databind.JsonNode request,
+    @ResponseBody List<GameLogEntry> command(@PathVariable String id, @RequestBody GameCommand command,
                                              @RequestAttribute("user") User user) {
-        var command = objectMapper.readerFor(GameCommand.class)
-                .with(tools.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).<GameCommand>readValue(request.toString());
         return gameService.command(id, user, command);
     }
 
