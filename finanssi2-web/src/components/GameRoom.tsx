@@ -34,9 +34,8 @@ const GameRoomContent = () => {
     const { id } = useParams()
     const { user, debugMode, capabilitiesReady, clearDebugAccess } = useCurrentUser()
     const navigate = useNavigate()
-    const roomKey = id + ":" + user?.uid
-    const roomKeyRef = useRef(roomKey)
-    roomKeyRef.current = roomKey
+    // The GameRoom wrapper remounts this per game and user; late responses after unmount must not toast or navigate.
+    const mounted = useRef(true)
     const refreshSequence = useRef(0)
     const busyRef = useRef(false)
     const connected = useStompConnected()
@@ -59,14 +58,13 @@ const GameRoomContent = () => {
     const refresh = useCallback(async () => {
         if (!user || !id) return
         const sequence = ++refreshSequence.current
-        const key = roomKey
         try {
             const latest = await gameApi<GameView>(user, `/api/games/${id}`)
-            if (roomKeyRef.current !== key || sequence !== refreshSequence.current) return
+            if (!mounted.current || sequence !== refreshSequence.current) return
             setView(latest)
             setError(null)
         } catch (reason) {
-            if (roomKeyRef.current !== key || sequence !== refreshSequence.current) return
+            if (!mounted.current || sequence !== refreshSequence.current) return
             if (reason instanceof GameApiError && (reason.status === 403 || reason.status === 404)) {
                 if (reason.status === 403) clearDebugAccess()
                 setView(null)
@@ -74,51 +72,38 @@ const GameRoomContent = () => {
             }
             setError(apiError(reason))
         }
-    }, [id, user, roomKey, clearDebugAccess, navigate])
+    }, [id, user, clearDebugAccess, navigate])
 
     const refreshEvents = useCallback(async (after = 0) => {
         if (!user || !id) return
         try {
             const latest = await gameApi<GameLogEntry[]>(user, `/api/games/${id}/events?after=${after}`)
-            if (roomKeyRef.current !== roomKey) return
+            if (!mounted.current) return
             setEvents((current) => [...new Map([...current, ...latest].map((entry) => [entry.seq, entry])).values()].sort((a, b) => a.seq - b.seq))
         } catch (reason) {
             toast(apiError(reason), { type: "error" })
         }
-    }, [id, user, roomKey])
+    }, [id, user])
 
     useEffect(() => {
-        roomKeyRef.current = roomKey
+        mounted.current = true
         return () => {
-            roomKeyRef.current = ""
+            mounted.current = false
         }
-    }, [roomKey])
-
-    useEffect(() => {
-        setView(null)
-        setEvents([])
-        setError(null)
-        setDiceInput("")
-        setNextNews("")
-        setNextTip("")
-        setBuySquare("")
-        setChoiceOpen(false)
-        setEndGameOpen(false)
-        setDeleteOpen(false)
-    }, [roomKey])
+    }, [])
 
     useEffect(() => {
         void refresh()
         void refreshEvents()
         if (user) {
             void gameApi<GameBoardData>(user, "/api/game-data").then((data) => {
-                if (roomKeyRef.current === roomKey) setBoard(data)
+                if (mounted.current) setBoard(data)
             }).catch((reason) => setError(apiError(reason)))
         }
-    }, [refresh, refreshEvents, user, roomKey])
+    }, [refresh, refreshEvents, user])
 
     const receiveUpdate = useCallback((body: string) => {
-        if (roomKeyRef.current !== roomKey) return
+        if (!mounted.current) return
         try {
             const update = JSON.parse(body) as GameUpdate & { deleted?: boolean }
             if (update.deleted) {
@@ -136,7 +121,7 @@ const GameRoomContent = () => {
             void refresh()
             void refreshEvents(events.at(-1)?.seq ?? 0)
         }
-    }, [events, refresh, refreshEvents, navigate, roomKey])
+    }, [events, refresh, refreshEvents, navigate])
 
     useStompSubscription(`/topic/games/${id}`, receiveUpdate)
 
@@ -153,11 +138,11 @@ const GameRoomContent = () => {
         setCommandBusy(true)
         try {
             await action()
-            if (roomKeyRef.current !== roomKey) return
+            if (!mounted.current) return
             await refresh()
             await refreshEvents(events.at(-1)?.seq ?? 0)
         } catch (reason) {
-            if (roomKeyRef.current !== roomKey) return
+            if (!mounted.current) return
             toast(apiError(reason), { type: "error" })
             if (reason instanceof GameApiError && reason.status === 403 && view?.game.mode === "DEBUG") {
                 clearDebugAccess()
