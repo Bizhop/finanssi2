@@ -84,6 +84,16 @@ class StompAuthenticationInterceptorTest {
     }
 
     @Test
+    void clientsCannotSendToAnyTopic() {
+        var send = StompHeaderAccessor.create(StompCommand.SEND);
+        send.setUser(new FirebaseAuthenticationToken(mock(FirebaseToken.class)));
+        for (var destination : java.util.List.of("/topic/chat", "/topic/games", "/topic/other", "/api/anything")) {
+            send.setDestination(destination);
+            assertThrows(MessageDeliveryException.class, () -> interceptor.preSend(frame(send), channel), destination);
+        }
+    }
+
+    @Test
     void testSubscribeRequiresAuthenticatedSession() {
         var anonymous = frame(StompHeaderAccessor.create(StompCommand.SUBSCRIBE));
         assertThrows(MessageDeliveryException.class, () -> interceptor.preSend(anonymous, channel));

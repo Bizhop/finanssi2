@@ -126,7 +126,7 @@ class WebSocketAuthenticationTest {
         assertEquals("private", message);
         owner.send("/topic/games/" + id, "forged update");
         error = errorFrames.poll(5, TimeUnit.SECONDS);
-        assertTrue(error != null && error.contains("Game updates can only be sent through REST"), "ERROR frame: " + error);
+        assertTrue(error != null && error.contains("Messages can only be sent through REST"), "ERROR frame: " + error);
     }
 
     @Test
