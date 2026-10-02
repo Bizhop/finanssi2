@@ -369,7 +369,7 @@ abstract class GameMongoTests {
         assertFalse(json.has("unarchivedEvents"));
         var decisions = json.get("state").get("pendingDecisions");
         assertEquals(3, decisions.size());
-        assertEquals(2, decisions.get(0).get("after").asInt());
+        assertEquals("GRAND_DRAW", decisions.get(0).get("after").asString());
         assertFalse(decisions.get(1).has("bids"));
         assertFalse(decisions.get(2).has("bids"));
     }

@@ -50,7 +50,7 @@ live frontend integration review and the follow-ups below remain. See [frontend 
 - `GET /api/games/{id}` returns `{game, allowedCommands, actingPlayer}`. The list contains command types, validated using candidate parameters;
   it does not enumerate all legal assets, fees or amounts. Stock Tip choices carry their options in the pending decision.
 - `Rules` centralizes values and modifiers; `Payments` records cash changes, including car purchases/sales. `Bonds` centralizes
-  purchases, auctions, draws and returns. `BondContinuation` uses enums internally while retaining numeric API codes.
+  purchases, auctions, draws and returns. `BondContinuation` is a plain enum, serialized by name.
 - Money uses integer currency units (€ in the transcriptions, marks in the original game), in multiples of 500. The bank's cash
   is unlimited. Cars, properties, shares and bonds are limited; building pieces are not counted because the set has enough.
 - Rejected-command tests use immutable typed snapshots of all state fields, preserving player and deck order; a coverage check
