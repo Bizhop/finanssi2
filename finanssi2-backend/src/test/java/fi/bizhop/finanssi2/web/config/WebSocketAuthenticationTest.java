@@ -97,7 +97,7 @@ class WebSocketAuthenticationTest {
         var token = mock(FirebaseToken.class);
         when(token.getUid()).thenReturn(uid);
         when(token.getEmail()).thenReturn(uid + "@example.com");
-        when(token.getClaims()).thenReturn(java.util.Map.of("email_verified", true));
+        when(token.isEmailVerified()).thenReturn(true);
         when(tokenVerifier.verifyAuthorizationHeader("Bearer " + uid)).thenReturn(Optional.of(token));
     }
 

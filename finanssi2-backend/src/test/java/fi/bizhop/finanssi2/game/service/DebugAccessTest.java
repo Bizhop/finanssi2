@@ -13,12 +13,12 @@ class DebugAccessTest {
         var token = org.mockito.Mockito.mock(com.google.firebase.auth.FirebaseToken.class);
         org.mockito.Mockito.when(token.getUid()).thenReturn("a");
         org.mockito.Mockito.when(token.getEmail()).thenReturn("owner@example.com");
-        org.mockito.Mockito.when(token.getClaims()).thenReturn(java.util.Map.of("email_verified", true));
+        org.mockito.Mockito.when(token.isEmailVerified()).thenReturn(true);
         var restUser = User.fromToken(token);
         var stompUser = new fi.bizhop.finanssi2.security.FirebaseAuthenticationToken(token).user();
         assertEquals(restUser, stompUser);
         assertTrue(new DebugAccess("owner@example.com").allowed(stompUser));
-        org.mockito.Mockito.when(token.getClaims()).thenReturn(java.util.Map.of());
+        org.mockito.Mockito.when(token.isEmailVerified()).thenReturn(false);
         assertFalse(new DebugAccess("owner@example.com").allowed(User.fromToken(token)));
     }
 

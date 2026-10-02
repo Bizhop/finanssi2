@@ -9,6 +9,6 @@ public record User(String uid, String email, String name, String photoUrl, boole
 
     public static User fromToken(FirebaseToken token) {
         return new User(token.getUid(), token.getEmail(), token.getName(), token.getPicture(),
-                Boolean.TRUE.equals(token.getClaims().get("email_verified")));
+                token.isEmailVerified());
     }
 }
