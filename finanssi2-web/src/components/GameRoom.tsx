@@ -168,13 +168,14 @@ const GameRoomContent = () => {
             toast("Dice must contain at most 32 values from 1 to 6", { type: "error" })
             return
         }
-        setDiceInput("")
-        await mutate(() =>
-            gameApi(user, debug ? `/api/debug/games/${id}/commands` : `/api/games/${id}/commands`, {
+        await mutate(async () => {
+            await gameApi(user, debug ? `/api/debug/games/${id}/commands` : `/api/games/${id}/commands`, {
                 method: "POST",
                 body: JSON.stringify(debug ? { actor: view.actingPlayer, expectedVersion: view.game.version, command, dice } : command),
             })
-        )
+            // Cleared only once used, so a rejected command can be retried with the same dice
+            setDiceInput("")
+        })
     }
 
     const selectCard = (deck: string, card: string) => {
