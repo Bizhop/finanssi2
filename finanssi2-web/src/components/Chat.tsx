@@ -161,13 +161,13 @@ const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true,
         if (connected) refreshNewestMessages()
     }, [connected])
 
-    // Global chat auto-loads at the top of a scrollable list. The compact game tab uses its button so a tall sidebar cannot
-    // consume every older page automatically.
+    // Load history as the top sentinel enters the scroll area. The compact list only loads while it overflows,
+    // so a tall panel does not fetch the entire history just because the sentinel is initially visible.
     const messageListRef = useRef<HTMLUListElement>(null)
     const loadMoreTriggerRef = useRef<HTMLLIElement>(null)
     useEffect(() => {
         const trigger = loadMoreTriggerRef.current
-        if (!trigger || !hasOlderMessages || !expanded || compact) return
+        if (!trigger || !hasOlderMessages || !expanded) return
         const observer = new IntersectionObserver(
             ([entry]) => {
                 const list = messageListRef.current
@@ -205,9 +205,17 @@ const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true,
                     {/* Last in the DOM, so at the top of the reversed list */}
                     {hasOlderMessages && (
                         <ListItem ref={loadMoreTriggerRef} component="li" disablePadding sx={{ justifyContent: "center", py: 0.5 }}>
-                            <Button size="small" disabled={loadingOlder} onClick={loadOlderMessages}>
-                                {loadingOlder ? "Loading older messages…" : "Load older messages"}
-                            </Button>
+                            {compact
+                                ? (
+                                    <Typography variant="caption" color="text.secondary">
+                                        {loadingOlder ? "Loading older messages…" : "Scroll up to load older messages"}
+                                    </Typography>
+                                )
+                                : (
+                                    <Button size="small" disabled={loadingOlder} onClick={loadOlderMessages}>
+                                        {loadingOlder ? "Loading older messages…" : "Load older messages"}
+                                    </Button>
+                                )}
                         </ListItem>
                     )}
                 </List>
