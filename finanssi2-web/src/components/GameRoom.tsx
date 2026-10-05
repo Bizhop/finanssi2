@@ -322,7 +322,7 @@ const GameRoomContent = () => {
                 </>
             )}
             {error && <Alert severity="warning">{error}</Alert>}
-            <Grid container spacing={2}>
+            <Grid container spacing={2} sx={{ alignItems: "stretch" }}>
                 <Grid size={{ xs: 12, lg: 8 }}>
                     <GameBoard
                         game={game}
@@ -339,8 +339,8 @@ const GameRoomContent = () => {
                         turnStockTip={turnStockTip ? String(turnStockTip.event.card) : null}
                     />
                 </Grid>
-                <Grid size={{ xs: 12, lg: 4 }}>
-                    <Stack spacing={1.5}>
+                <Grid size={{ xs: 12, lg: 4 }} sx={{ display: "flex", minHeight: 0 }}>
+                    <Stack spacing={1.5} sx={{ width: "100%", minHeight: 0, height: { xs: "auto", lg: "100%" } }}>
                         {game.state.players.map((player) => (
                             <PlayerPanel
                                 key={player.uid}
@@ -359,24 +359,6 @@ const GameRoomContent = () => {
                                 controls={game.status === "RUNNING" && player.uid === actingUid ? controls : undefined}
                             />
                         ))}
-                        <GameWindow title="Game chat">
-                            {(expanded) => (
-                                <Chat
-                                    user={user}
-                                    gameId={id}
-                                    embedded
-                                    expanded={expanded}
-                                    canSend={game.mode === "DEBUG" ? game.creator === user.uid : game.state.players.some((player) => player.uid === user.uid)}
-                                />
-                            )}
-                        </GameWindow>
-                        <GameWindow title="Event log">
-                            <Stack spacing={0.5} sx={{ maxHeight: 480, overflowY: "auto", mt: 0.5 }}>
-                                {events.slice(-200).reverse().map((entry) => (
-                                    <EventLine key={entry.seq} entry={entry} text={describeEvent(entry, { playerName, board })} board={board} />
-                                ))}
-                            </Stack>
-                        </GameWindow>
                         {game.state.finished && (
                             <Alert severity="success">
                                 {game.state.winner
@@ -384,6 +366,37 @@ const GameRoomContent = () => {
                                     : "The game was closed without a winner."}
                             </Alert>
                         )}
+                        <GameWindow
+                            title="Game activity"
+                            fill
+                            tabs={[
+                                {
+                                    label: "Chat",
+                                    content: ({ expanded }) => (
+                                        <Chat
+                                            user={user}
+                                            gameId={id}
+                                            embedded
+                                            compact
+                                            expanded={expanded}
+                                            canSend={game.mode === "DEBUG"
+                                                ? game.creator === user.uid
+                                                : game.state.players.some((player) => player.uid === user.uid)}
+                                        />
+                                    ),
+                                },
+                                {
+                                    label: "Event log",
+                                    content: () => (
+                                        <Stack spacing={0.5} sx={{ height: "100%", minHeight: 0, overflowY: "auto" }}>
+                                            {events.slice(-200).reverse().map((entry) => (
+                                                <EventLine key={entry.seq} entry={entry} text={describeEvent(entry, { playerName, board })} board={board} />
+                                            ))}
+                                        </Stack>
+                                    ),
+                                },
+                            ]}
+                        />
                     </Stack>
                 </Grid>
             </Grid>

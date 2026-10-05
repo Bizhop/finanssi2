@@ -34,6 +34,7 @@ type TChatProps = {
     user: User
     gameId?: string
     embedded?: boolean
+    compact?: boolean
     canSend?: boolean
     expanded?: boolean
 }
@@ -45,7 +46,7 @@ const mergeMessages = (messages: TChatMessage[], moreMessages: TChatMessage[]) =
     [...new Map([...messages, ...moreMessages].map((message) => [message.id, message])).values()]
         .sort((a, b) => a.id < b.id ? 1 : a.id > b.id ? -1 : 0)
 
-const Chat = ({ user, gameId, embedded = false, canSend = true, expanded = true }: TChatProps) => {
+const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true, expanded = true }: TChatProps) => {
     const path = gameId ? `/api/games/${gameId}/chat` : "/api/chat"
     const topic = gameId ? `/topic/games/${gameId}/chat` : "/topic/chat"
     // Newest first, like the backend returns them. The list is rendered with column-reverse, which shows them oldest at the top
@@ -178,15 +179,22 @@ const Chat = ({ user, gameId, embedded = false, canSend = true, expanded = true 
             <Box component={embedded ? "div" : Paper} sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
                 <List
                     ref={messageListRef}
+                    dense={compact}
                     sx={{
                         flex: 1,
                         overflowY: "auto",
                         display: "flex",
                         flexDirection: "column-reverse",
                         bgcolor: "background.paper",
+                        ...(compact && {
+                            fontSize: "0.875rem",
+                            "& .MuiListItem-root": { py: 0.25, px: 0.5 },
+                            "& .MuiListItemAvatar-root": { minWidth: 38 },
+                            "& .MuiListItemText-primary": { fontSize: "inherit", lineHeight: 1.3 },
+                        }),
                     }}
                 >
-                    {messages.map((msg) => <ChatLine key={msg.id} message={msg} />)}
+                    {messages.map((msg) => <ChatLine key={msg.id} message={msg} compact={compact} />)}
                     {/* Last in the DOM, so at the top of the reversed list */}
                     <li ref={loadMoreTriggerRef} aria-hidden />
                 </List>
@@ -201,13 +209,14 @@ const Chat = ({ user, gameId, embedded = false, canSend = true, expanded = true 
                 ? (
                     <form onSubmit={handleSubmit(sendChatMessage)}>
                         {/* useFlexGap: with margin-based spacing, Stack would reset the send button's top margin */}
-                        <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: "flex-start", mt: 2 }}>
+                        <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: "flex-start", mt: compact ? 1 : 2 }}>
                             <Box sx={{ flexGrow: 1 }}>
                                 <InputField
                                     control={control}
                                     name="message"
                                     label="Message"
                                     type="text"
+                                    size={compact ? "small" : "medium"}
                                     // An empty field only disables sending, it's not worth an error message
                                     error={errors.message?.type === "too_small" ? undefined : errors.message}
                                 />
@@ -215,7 +224,8 @@ const Chat = ({ user, gameId, embedded = false, canSend = true, expanded = true 
                             <IconButton
                                 color="primary"
                                 type="submit"
-                                sx={{ mt: 1 }}
+                                size={compact ? "small" : "medium"}
+                                sx={{ mt: compact ? 0.5 : 1 }}
                                 disabled={isSubmitting || !isDirty || !isValid}
                             >
                                 <SendIcon />
@@ -230,15 +240,16 @@ const Chat = ({ user, gameId, embedded = false, canSend = true, expanded = true 
 
 type ChatLineProps = {
     message: TChatMessage
+    compact: boolean
 }
 
-const ChatLine = ({ message }: ChatLineProps) => {
+const ChatLine = ({ message, compact }: ChatLineProps) => {
     return (
         <>
             <ListItem>
                 <ListItemAvatar>
                     <Tooltip title={message.username} placement="left">
-                        <Avatar src={message.photoUrl ?? undefined} />
+                        <Avatar src={message.photoUrl ?? undefined} sx={compact ? { width: 30, height: 30 } : undefined} />
                     </Tooltip>
                 </ListItemAvatar>
                 <ListItemText
@@ -256,7 +267,7 @@ const ChatLine = ({ message }: ChatLineProps) => {
                     sx={{ overflowWrap: "anywhere" }}
                 />
             </ListItem>
-            <Divider variant="inset" component="li" />
+            <Divider variant={compact ? "fullWidth" : "inset"} component="li" />
         </>
     )
 }
