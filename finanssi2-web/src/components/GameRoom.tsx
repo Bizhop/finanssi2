@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router"
 import {
     Alert,
-    Avatar,
     Box,
     Button,
     Card,
@@ -13,13 +12,15 @@ import {
     DialogContent,
     DialogTitle,
     Grid,
-    Paper,
     Stack,
     TextField,
+    Tooltip,
     Typography,
 } from "@mui/material"
 import { toast } from "react-toastify"
 
+import { CardFace, GameBoard } from "./GameBoard.tsx"
+import { PlayerPanel } from "./PlayerPanel.tsx"
 import { useCurrentUser } from "./CurrentUserContext.tsx"
 import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
 import { Game, gameApi, GameApiError, GameBoardData, GameView } from "./gameApi.ts"
@@ -209,25 +210,21 @@ const GameRoomContent = () => {
     const { game, allowedCommands } = view
     const actingUid = game.mode === "DEBUG" ? view.actingPlayer : user.uid
     const actingPlayer = game.state.players.find((player) => player.uid === actingUid)
-    const currentPlayer = game.state.players.find((player) => player.uid === game.state.currentPlayer)
     const pending = game.state.pendingDecisions[0]
     const decisionActor = pending?.player === actingUid
+    // Whoever the game is waiting for: the player of a pending decision, otherwise the player in turn
+    const expectedUid = pending?.player ?? game.state.currentPlayer
     const squareByNumber = new Map(board?.squares.map((square) => [square.square, square]) ?? [])
-    const propertyBySquare = new Map(game.state.properties.map((property) => [property.square, property]))
     const simpleCommands = ["Roll", "EndTurn", "BuyCar", "SellCar", "TakeLoan", "RepayLoan", "Pay", "DeclareBankruptcy", "Pass", "Resign"]
     const playerName = (uid: string) => game.state.players.find((player) => player.uid === uid)?.name ?? "a former player"
-    const lastStockTip = events.findLast((entry) => entry.type === "StockTipDrawn")
+    // Only a Stock Tip drawn during the current turn stays face up on the board
+    const turnStockTip = events.slice(events.findLastIndex((entry) => entry.type === "TurnStarted") + 1).findLast((entry) => entry.type === "StockTipDrawn")
+    const usableStockTips = !pending && allowedCommands.includes("UseHeldStockTip") ? actingPlayer?.heldStockTips.filter((id) => id === "PV-25") ?? [] : []
     const commands = pending ? allowedCommands.filter((command) => command === "Resign") : allowedCommands.filter((command) => simpleCommands.includes(command))
 
     return (
         <Stack component="fieldset" disabled={commandBusy} spacing={2} sx={{ border: 0, m: 0, px: 0, flex: 1, minHeight: 0, py: 2, overflowY: "auto" }}>
-            <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
-                <Box>
-                    <Typography variant="h5">{game.mode === "DEBUG" ? "Debug game" : "Game"} {game.id.slice(-6)}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        {game.status === "LOBBY" ? "Waiting for players" : game.status === "FINISHED" ? "Finished" : `Turn: ${currentPlayer?.name ?? "—"}`}
-                    </Typography>
-                </Box>
+            <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
                 <Button component={Link} to="/games">All games</Button>
             </Stack>
             {game.mode === "DEBUG" && debugMode && (
@@ -279,95 +276,37 @@ const GameRoomContent = () => {
             {error && <Alert severity="warning">{error}</Alert>}
             <Grid container spacing={2}>
                 <Grid size={{ xs: 12, lg: 8 }}>
-                    <Box sx={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(72px, 1fr))", gap: 0.75 }}>
-                        {(board?.squares ??
-                            Array.from({ length: 46 }, (_, index) => ({ square: index + 1, name: "Loading…", type: "", group: null, price: null, text: null })))
-                            .map((square) => {
-                                const property = propertyBySquare.get(square.square)
-                                const tokens = game.state.players.filter((player) => !player.out && player.position === square.square)
-                                const owner = game.state.players.find((player) => player.uid === property?.owner)
-                                return (
-                                    <Paper
-                                        key={square.square}
-                                        variant="outlined"
-                                        sx={{ minHeight: 94, p: 0.75, borderTop: `4px solid ${property?.owner ? "#7355aa" : "#d7dce2"}` }}
-                                    >
-                                        <Typography variant="caption" color="text.secondary">{square.square}</Typography>
-                                        <Typography variant="caption" sx={{ display: "block", lineHeight: 1.15, minHeight: 28 }}>{square.name}</Typography>
-                                        {owner && (
-                                            <Typography variant="caption" color="primary">
-                                                {owner.name}
-                                                {property?.built ? " · built" : ""}
-                                                {property?.mortgaged ? " · mortgaged" : ""}
-                                            </Typography>
-                                        )}
-                                        <Stack direction="row" spacing={0.25} sx={{ mt: 0.5 }}>
-                                            {tokens.map((player) => (
-                                                <Avatar
-                                                    key={player.uid}
-                                                    src={player.photoUrl ?? undefined}
-                                                    sx={{ width: 22, height: 22, bgcolor: `hsl(${player.piece * 61} 58% 44%)` }}
-                                                >
-                                                    {player.name.slice(0, 1)}
-                                                </Avatar>
-                                            ))}
-                                        </Stack>
-                                    </Paper>
-                                )
-                            })}
-                    </Box>
+                    <GameBoard
+                        game={game}
+                        board={board}
+                        lastStockTip={turnStockTip
+                            ? {
+                                card: String(turnStockTip.event.card),
+                                drawnBy: playerName(String(turnStockTip.event.player)),
+                                held: Boolean(turnStockTip.event.held),
+                            }
+                            : null}
+                    />
                 </Grid>
                 <Grid size={{ xs: 12, lg: 4 }}>
                     <Stack spacing={1.5}>
                         {game.state.players.map((player) => (
-                            <Card key={player.uid} variant="outlined" sx={{ opacity: player.out ? 0.55 : 1 }}>
-                                <CardContent>
-                                    <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
-                                        <Avatar src={player.photoUrl ?? undefined}>{player.name.slice(0, 1)}</Avatar>
-                                        <Box sx={{ flex: 1 }}>
-                                            <Typography sx={{ fontWeight: player.uid === game.state.currentPlayer ? 700 : 400 }}>
-                                                {player.name}
-                                                {player.uid === user.uid ? " (you)" : ""}
-                                            </Typography>
-                                            <Typography variant="body2">
-                                                €{player.cash.toLocaleString()} · {player.loans} loan{player.loans === 1 ? "" : "s"}
-                                                {player.car ? " · car" : ""}
-                                            </Typography>
-                                            <Typography variant="caption" color="text.secondary">
-                                                Square {player.position}
-                                                {player.out ? " · out" : ""}
-                                            </Typography>
-                                        </Box>
-                                    </Stack>
-                                </CardContent>
-                            </Card>
+                            <PlayerPanel
+                                key={player.uid}
+                                player={player}
+                                game={game}
+                                board={board}
+                                you={player.uid === user.uid}
+                                inTurn={game.status === "RUNNING" && player.uid === game.state.currentPlayer}
+                                expected={game.status !== "RUNNING" || expectedUid !== player.uid
+                                    ? null
+                                    : pending
+                                    ? player.uid === actingUid ? "Your decision" : "Deciding"
+                                    : player.uid === actingUid
+                                    ? "Your move"
+                                    : "To move"}
+                            />
                         ))}
-                        {game.state.activeFinanceNews && (
-                            <Card variant="outlined">
-                                <CardContent>
-                                    <Typography sx={{ fontWeight: 700 }}>Active Finance News</Typography>
-                                    <CardChapters
-                                        card={board?.financeNews.find((item) => item.id === game.state.activeFinanceNews)}
-                                        fallback={game.state.activeFinanceNews}
-                                    />
-                                </CardContent>
-                            </Card>
-                        )}
-                        {lastStockTip && (
-                            <Card variant="outlined">
-                                <CardContent>
-                                    <Typography sx={{ fontWeight: 700 }}>Last Stock Tip</Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Drawn by {playerName(String(lastStockTip.event.player))} · {String(lastStockTip.event.card)}
-                                        {lastStockTip.event.held ? " · held" : ""}
-                                    </Typography>
-                                    <CardChapters
-                                        card={board?.stockTips.find((item) => item.id === lastStockTip.event.card)}
-                                        fallback={String(lastStockTip.event.card)}
-                                    />
-                                </CardContent>
-                            </Card>
-                        )}
                         <Card variant="outlined">
                             <CardContent>
                                 <Typography sx={{ fontWeight: 700 }}>Event log</Typography>
@@ -411,8 +350,8 @@ const GameRoomContent = () => {
                     )}
                 </Stack>
             )}
-            {commands.length > 0 && (
-                <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
+            {(commands.length > 0 || usableStockTips.length > 0) && (
+                <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
                     <Typography sx={{ fontWeight: 600, width: "100%" }}>Actions</Typography>
                     {commands.map((command) => (
                         <Button
@@ -424,6 +363,24 @@ const GameRoomContent = () => {
                             {commandLabel(command)}
                         </Button>
                     ))}
+                    {usableStockTips.map((id) => {
+                        const card = board?.stockTips.find((item) => item.id === id)
+                        return (
+                            <Tooltip
+                                key={id}
+                                slotProps={{ tooltip: { sx: { p: 0, maxWidth: "none", backgroundColor: "transparent", boxShadow: 6 } } }}
+                                title={
+                                    <Box sx={{ width: 240, minHeight: 327, display: "flex", fontSize: 15 }}>
+                                        <CardFace card={card} fallback="Stock Tip" />
+                                    </Box>
+                                }
+                            >
+                                <Button variant="outlined" disabled={commandBusy} onClick={() => void sendCommand({ type: "UseHeldStockTip", card: id })}>
+                                    Use “{card?.chapters.find((chapter) => chapter.type === "header")?.text ?? "Stock Tip"}”
+                                </Button>
+                            </Tooltip>
+                        )
+                    })}
                 </Stack>
             )}
             {game.status === "RUNNING" && !pending && game.state.currentPlayer === actingUid && (
@@ -559,52 +516,8 @@ const GameRoomContent = () => {
                             </Button>
                         </Stack>
                     )}
-                    {actingPlayer && actingPlayer.heldStockTips.length > 0 && (
-                        <Stack spacing={0.5}>
-                            <Typography sx={{ fontWeight: 600 }}>Held Stock Tips</Typography>
-                            {actingPlayer.heldStockTips.map((id) => (
-                                <Card key={id} variant="outlined">
-                                    <CardContent>
-                                        <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
-                                            <Box>
-                                                <Typography sx={{ fontWeight: 600 }}>{id}</Typography>
-                                                <CardChapters card={board?.stockTips.find((item) => item.id === id)} fallback={id} />
-                                            </Box>
-                                            {id === "PV-25" && allowedCommands.includes("UseHeldStockTip") && (
-                                                <Button onClick={() => void sendCommand({ type: "UseHeldStockTip", card: id })}>Use</Button>
-                                            )}
-                                        </Stack>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </Stack>
-                    )}
                 </Stack>
             )}
-            <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 6 }}>
-                    <Typography variant="h6">Properties and shares</Typography>
-                    {game.state.properties.filter((p) => p.owner).map((p) => (
-                        <Typography key={p.square} variant="body2">
-                            {squareByNumber.get(p.square)?.name ?? `Square ${p.square}`} — {game.state.players.find((pl) => pl.uid === p.owner)?.name}
-                            {p.built ? " · built" : ""}
-                            {p.mortgaged ? " · mortgaged" : ""}
-                        </Typography>
-                    ))}
-                    {game.state.shares.filter((s) => s.owner).map((s) => (
-                        <Typography key={s.id} variant="body2">{s.id} — {game.state.players.find((pl) => pl.uid === s.owner)?.name}</Typography>
-                    ))}
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                    <Typography variant="h6">Bonds and held Stock Tips</Typography>
-                    {game.state.bonds.filter((b) => b.owner).map((b) => (
-                        <Typography key={b.number} variant="body2">Bond {b.number} — {game.state.players.find((p) => p.uid === b.owner)?.name}</Typography>
-                    ))}
-                    {game.state.players.map((p) =>
-                        p.heldStockTips.length > 0 && <Typography key={p.uid} variant="body2">{p.name}: {p.heldStockTips.join(", ")}</Typography>
-                    )}
-                </Grid>
-            </Grid>
             {game.state.finished && game.state.finalStandings.length > 0 && (
                 <>
                     <Typography variant="h6">Final standings</Typography>

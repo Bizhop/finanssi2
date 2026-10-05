@@ -27,8 +27,10 @@ Updated 2026-10-02 after implementing private debug games and the prerequisite a
 - The settings dialog marks unlimited bank loans as recommended, while backend-created games default to the official six-loan bank limit. Opening settings uses
   the game's stored values; creation does not automatically apply the house rule. Compulsory sale bids default to no minimum, with half the nominal price
   available as a house rule.
-- Visual redesign and live multiplayer review were explicitly deferred by the developer. The current board is a six-column grid; `../input/board.png` is the
-  physical-board reference for later visual work.
+- Live multiplayer review was explicitly deferred by the developer. The board (`GameBoard.tsx`) draws a perspective-corrected scan of the physical board
+  (`src/assets/board.webp`) with transparent squares positioned from measured divider lines (`boardLayout.ts`). Ownership is a border in the owner's colour
+  (dashed when mortgaged), and the Finance News and Stock Tip decks sit on the marked places with the active Finance News and the Stock Tip drawn this turn face-up beside them; card faces are
+  rendered from card data rather than photographed.
 - Dev pages use a separate Vite root on port 3001. `/game-room.html` previews a running game; `/game-room.html?finished` previews standings. Mocks are display
   fixtures: their command endpoint logs requests without applying state transitions, and they do not exercise real rules or live subscriptions.
 - Production builds remain disabled in `deno.json` until a production Firebase environment/configuration exists.
