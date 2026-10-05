@@ -4,8 +4,8 @@ Updated 2026-10-02 after implementing private debug games and the prerequisite a
 [backend status](../finanssi2-backend/STATUS.md) for gameplay and rule decisions.
 
 Per-game chat UI implementation is in progress (2026-10-05): game rooms use their own chat endpoint/topic, viewers without a seat get a read-only composer
-state, and chat plus event log render in independent collapsible panels. Frontend typechecking passes; responsive review, mock fixtures, and chat lifecycle
-coverage remain.
+state, and chat plus event log render in independent collapsible panels. The game-room preview has room history, simulated incoming messages, reconnect
+controls, and spectator mode. Frontend checks pass; responsive review and automated chat lifecycle coverage remain.
 
 ## Completed features
 

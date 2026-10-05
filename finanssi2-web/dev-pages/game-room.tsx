@@ -1,9 +1,10 @@
 // Mocked running game for checking the board, assets, active card, commands and responsive layout without a backend.
-import { useEffect } from "react"
+import { useEffect, useMemo, useState } from "react"
 import ReactDOM from "react-dom/client"
 import { MemoryRouter, Route, Routes } from "react-router"
 import { ToastContainer } from "react-toastify"
 import type { User as FirebaseUser } from "firebase/auth"
+import { Button, Stack } from "@mui/material"
 
 import GameRoom from "../src/components/GameRoom.tsx"
 import { CurrentUserProvider, useCurrentUser } from "../src/components/CurrentUserContext.tsx"
@@ -158,16 +159,87 @@ const events = [
 
 const PreviewRoom = () => {
     const { setUser } = useCurrentUser()
+    const [connected, setConnected] = useState(true)
+    const [viewer, setViewer] = useState(false)
+    const previewConnection = useMemo<StompConnection>(() => ({
+        connected,
+        subscribe: (destination, onMessage) => {
+            if (connected && destination === chatTopic) chatSubscribers.add(onMessage)
+            return () => chatSubscribers.delete(onMessage)
+        },
+    }), [connected])
     useEffect(() => {
-        setUser({ uid: user.uid, displayName: user.name, photoURL: null, getIdToken: () => Promise.resolve("preview-token") } as unknown as FirebaseUser)
-    }, [setUser])
-    return <GameRoom />
+        setUser(
+            {
+                uid: viewer ? "viewer" : user.uid,
+                displayName: viewer ? "Read Only Viewer" : user.name,
+                photoURL: null,
+                getIdToken: () => Promise.resolve("preview-token"),
+            } as unknown as FirebaseUser,
+        )
+    }, [setUser, viewer])
+    const sendIncoming = () =>
+        publishFakeGameMessage({
+            id: String(nextChatId++).padStart(19, "0"),
+            username: "olli@example.com",
+            name: "Olli Other",
+            message: "Live message from another player",
+            timestamp: Date.now(),
+            photoUrl: null,
+        })
+    return (
+        <StompContext.Provider value={previewConnection}>
+            <Stack spacing={1} sx={{ minHeight: 0, flex: 1 }}>
+                <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
+                    <Button size="small" onClick={sendIncoming}>Simulate incoming chat</Button>
+                    <Button size="small" onClick={() => setConnected((current) => !current)}>{connected ? "Disconnect" : "Reconnect"}</Button>
+                    <Button size="small" onClick={() => setViewer((current) => !current)}>{viewer ? "Use seated account" : "View as spectator"}</Button>
+                </Stack>
+                <GameRoom />
+            </Stack>
+        </StompContext.Provider>
+    )
 }
 
-const previewConnection: StompConnection = { connected: true, subscribe: () => () => {} }
+let nextChatId = 1
+const chatTopic = "/topic/games/preview-game/chat"
+const chatSubscribers = new Set<(body: string) => void>()
+const gameChatHistory = Array.from({ length: 27 }, (_, index) => ({
+    id: String(nextChatId++).padStart(19, "0"),
+    username: index % 2 ? "olli@example.com" : "tester@example.com",
+    name: index % 2 ? "Olli Other" : "Maija Meikäläinen",
+    message: index % 6 === 4 ? "A longer game-room message that wraps across lines while the chat list scrolls independently." : `Game message ${index + 1}`,
+    timestamp: Date.now() - (27 - index) * 60_000,
+    photoUrl: null,
+}))
+
+const publishFakeGameMessage = (message: (typeof gameChatHistory)[number]) => {
+    gameChatHistory.push(message)
+    chatSubscribers.forEach((callback) => callback(JSON.stringify(message)))
+}
 
 globalThis.fetch = (input, init) => {
     const path = new URL(String(input).replace(/^undefined/, ""), location.origin).pathname
+    if (path === "/api/games/preview-game/chat") {
+        if (init?.method === "POST") {
+            const body = JSON.parse(String(init.body)) as { message: string }
+            const saved = {
+                id: String(nextChatId++).padStart(19, "0"),
+                username: "tester@example.com",
+                name: "Maija Meikäläinen",
+                message: body.message,
+                timestamp: Date.now(),
+                photoUrl: null,
+            }
+            publishFakeGameMessage(saved)
+            return Promise.resolve(Response.json(saved))
+        }
+        const params = new URL(String(input).replace(/^undefined/, ""), location.origin).searchParams
+        const before = params.get("before")
+        const size = Number(params.get("size") ?? 20)
+        const page = gameChatHistory.filter((message) => before === null || message.id < before).slice(-size).reverse()
+        return Promise.resolve(Response.json(page))
+    }
     if (path.startsWith("/api/games/preview-game/events")) return Promise.resolve(Response.json(events))
     if (path === "/api/games/preview-game") {
         return Promise.resolve(Response.json({
@@ -208,12 +280,10 @@ globalThis.fetch = (input, init) => {
 ReactDOM.createRoot(document.getElementById("app")!).render(
     <MemoryRouter initialEntries={["/games/preview-game"]}>
         <CurrentUserProvider>
-            <StompContext.Provider value={previewConnection}>
-                <Routes>
-                    <Route path="/games/:id" element={<PreviewRoom />} />
-                </Routes>
-                <ToastContainer autoClose={1500} position="top-center" />
-            </StompContext.Provider>
+            <Routes>
+                <Route path="/games/:id" element={<PreviewRoom />} />
+            </Routes>
+            <ToastContainer autoClose={1500} position="top-center" />
         </CurrentUserProvider>
     </MemoryRouter>,
 )
