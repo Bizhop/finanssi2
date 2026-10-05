@@ -4,8 +4,6 @@ import {
     Alert,
     Box,
     Button,
-    Card,
-    CardContent,
     CircularProgress,
     Dialog,
     DialogActions,
@@ -21,6 +19,8 @@ import { toast } from "react-toastify"
 import FlagOutlined from "@mui/icons-material/FlagOutlined"
 
 import { GameBoard } from "./GameBoard.tsx"
+import Chat from "./Chat.tsx"
+import { GameWindow } from "./GameWindow.tsx"
 import { ShareCard, TitleDeedCard } from "./cards.tsx"
 import { bankSalesOpen, buildAction, ConfirmDialog, type ConfirmRequest, meetingGroups, type PlayerControls, takeoverSum, twoDiceAtMost } from "./actions.tsx"
 import { PlayerPanel } from "./PlayerPanel.tsx"
@@ -372,16 +372,16 @@ const GameRoomContent = () => {
                                 controls={game.status === "RUNNING" && player.uid === actingUid ? controls : undefined}
                             />
                         ))}
-                        <Card variant="outlined">
-                            <CardContent>
-                                <Typography sx={{ fontWeight: 700 }}>Event log</Typography>
+                        <GameWindow title="Game chat">
+                            <Chat user={user} gameId={id} embedded canSend={game.mode === "DEBUG" ? game.creator === user.uid : game.state.players.some((player) => player.uid === user.uid)} />
+                        </GameWindow>
+                        <GameWindow title="Event log">
                                 <Stack spacing={0.5} sx={{ maxHeight: 480, overflowY: "auto", mt: 0.5 }}>
                                     {events.slice(-200).reverse().map((entry) => (
                                         <EventLine key={entry.seq} entry={entry} text={describeEvent(entry, { playerName, board })} board={board} />
                                     ))}
                                 </Stack>
-                            </CardContent>
-                        </Card>
+                        </GameWindow>
                         {game.state.finished && (
                             <Alert severity="success">
                                 {game.state.winner

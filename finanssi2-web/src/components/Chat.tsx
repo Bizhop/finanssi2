@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { Avatar, Box, Divider, IconButton, List, ListItem, ListItemAvatar, ListItemText, Paper, Stack, Tooltip, Typography } from "@mui/material"
+import { Alert, Avatar, Box, Divider, IconButton, List, ListItem, ListItemAvatar, ListItemText, Paper, Stack, Tooltip, Typography } from "@mui/material"
 import { User } from "firebase/auth"
 import { z } from "zod/mini"
 import { SubmitHandler, useForm } from "react-hook-form"
@@ -8,6 +8,7 @@ import SendIcon from "@mui/icons-material/Send"
 
 import { InputField } from "./FormInput.tsx"
 import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
+import { gameApi, GameApiError } from "./gameApi.ts"
 
 const ChatMessageSchema = z.object({
     id: z.string(),
@@ -16,7 +17,7 @@ const ChatMessageSchema = z.object({
     name: z.nullish(z.string()),
     message: z.string(),
     timestamp: z.number(),
-    photoUrl: z.string(),
+    photoUrl: z.nullish(z.string()),
 })
 
 const ChatMessageSchemaArray = z.array(ChatMessageSchema)
@@ -31,9 +32,10 @@ type TNewChatMessage = z.infer<typeof NewChatMessageSchema>
 
 type TChatProps = {
     user: User
+    gameId?: string
+    embedded?: boolean
+    canSend?: boolean
 }
-
-const apiUrl = import.meta.env.VITE_FINANSSI_API_URL
 
 const PAGE_SIZE = 20
 
@@ -42,11 +44,14 @@ const mergeMessages = (messages: TChatMessage[], moreMessages: TChatMessage[]) =
     [...new Map([...messages, ...moreMessages].map((message) => [message.id, message])).values()]
         .sort((a, b) => a.id < b.id ? 1 : a.id > b.id ? -1 : 0)
 
-const Chat = ({ user }: TChatProps) => {
+const Chat = ({ user, gameId, embedded = false, canSend = true }: TChatProps) => {
+    const path = gameId ? `/api/games/${gameId}/chat` : "/api/chat"
+    const topic = gameId ? `/topic/games/${gameId}/chat` : "/topic/chat"
     // Newest first, like the backend returns them. The list is rendered with column-reverse, which shows them oldest at the top
     // and keeps the view anchored to the bottom (newest message) without any scrolling code.
     const [messages, setMessages] = useState<TChatMessage[]>([])
     const [hasOlderMessages, setHasOlderMessages] = useState(true)
+    const [error, setError] = useState<string | null>(null)
     const loadingOlderMessages = useRef(false)
     // For async callbacks that need the messages at the time they complete
     const messagesRef = useRef(messages)
@@ -61,17 +66,7 @@ const Chat = ({ user }: TChatProps) => {
     const fetchPage = (before?: string) => {
         const params = new URLSearchParams({ size: String(PAGE_SIZE) })
         if (before) params.set("before", before)
-        return user.getIdToken()
-            .then((token) =>
-                fetch(`${apiUrl}/api/chat?${params}`, {
-                    method: "GET",
-                    headers: {
-                        "Authorization": `Bearer ${token}`,
-                    },
-                })
-            )
-            .then((response) => response.json())
-            .then((response) => ChatMessageSchemaArray.parse(response))
+        return gameApi<TChatMessage[]>(user, `${path}?${params}`).then((response) => ChatMessageSchemaArray.parse(response))
     }
 
     // Loads the page before the oldest loaded message; with nothing loaded yet, the newest page
@@ -94,19 +89,17 @@ const Chat = ({ user }: TChatProps) => {
             })
     }
 
-    const sendChatMessage: SubmitHandler<TNewChatMessage> = (data) => {
-        user.getIdToken().then((token) =>
-            fetch(`${apiUrl}/api/chat`, {
-                method: "POST",
-                body: JSON.stringify(data),
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-            })
-        )
-
-        reset()
+    const sendChatMessage: SubmitHandler<TNewChatMessage> = async (data) => {
+        setError(null)
+        try {
+            const saved = await gameApi<TChatMessage | undefined>(user, path, { method: "POST", body: JSON.stringify(data) })
+            if (saved) setMessages((current) => mergeMessages(current, [ChatMessageSchema.parse(saved)]))
+            reset()
+        } catch (reason) {
+            setError(reason instanceof GameApiError && (reason.status === 403 || reason.status === 404)
+                ? "Chat access changed. Return to the games list and reopen this game."
+                : reason instanceof Error ? reason.message : "Message could not be sent. Your draft is still here.")
+        }
     }
 
     const receiveMessage = (jsonString: string) => {
@@ -119,7 +112,14 @@ const Chat = ({ user }: TChatProps) => {
         }
     }
 
-    useStompSubscription("/topic/chat", receiveMessage)
+    useStompSubscription(topic, receiveMessage)
+
+    useEffect(() => {
+        setMessages([])
+        setHasOlderMessages(true)
+        setError(null)
+        reset()
+    }, [path, user.uid, reset])
 
     // Messages sent while the websocket was down (or before it first connected) never arrive over it, so fetch the newest page after every connect
     const refreshNewestMessages = () =>
@@ -163,8 +163,8 @@ const Chat = ({ user }: TChatProps) => {
 
     return (
         <Stack direction="column" sx={{ flex: 1, minHeight: 0 }}>
-            <h1>Chat</h1>
-            <Box component={Paper} sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+            {!embedded && <h1>Chat</h1>}
+            <Box component={embedded ? "div" : Paper} sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
                 <List
                     ref={messageListRef}
                     sx={{
@@ -185,7 +185,9 @@ const Chat = ({ user }: TChatProps) => {
                     Connecting to chat… New messages appear once connected.
                 </Typography>
             )}
-            <form onSubmit={handleSubmit(sendChatMessage)}>
+            {error && <Alert severity="error" sx={{ mt: 1 }}>{error}</Alert>}
+            {canSend
+                ? <form onSubmit={handleSubmit(sendChatMessage)}>
                 {/* useFlexGap: with margin-based spacing, Stack would reset the send button's top margin */}
                 <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: "flex-start", mt: 2 }}>
                     <Box sx={{ flexGrow: 1 }}>
@@ -207,7 +209,8 @@ const Chat = ({ user }: TChatProps) => {
                         <SendIcon />
                     </IconButton>
                 </Stack>
-            </form>
+                </form>
+                : <Typography variant="caption" sx={{ mt: 1 }}>Join this game to send messages.</Typography>}
         </Stack>
     )
 }
@@ -222,7 +225,7 @@ const ChatLine = ({ message }: ChatLineProps) => {
             <ListItem>
                 <ListItemAvatar>
                     <Tooltip title={message.username} placement="left">
-                        <Avatar src={message.photoUrl} />
+                        <Avatar src={message.photoUrl ?? undefined} />
                     </Tooltip>
                 </ListItemAvatar>
                 <ListItemText
