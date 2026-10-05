@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public class ChatRepository {
@@ -15,21 +16,36 @@ public class ChatRepository {
 
     @Transactional(readOnly = true)
     public List<ChatMessage> findAllByOrderByIdDesc(Limit limit) {
-        return entityManager.createQuery("select m from ChatMessageEntity m order by m.id desc", ChatMessageEntity.class)
+        return entityManager.createQuery("select m from ChatMessageEntity m where m.game is null order by m.id desc", ChatMessageEntity.class)
                 .setMaxResults(limit.max()).getResultList().stream().map(ChatRepository::model).toList();
     }
 
     @Transactional(readOnly = true)
     public List<ChatMessage> findByIdLessThanOrderByIdDesc(String id, Limit limit) {
-        return entityManager.createQuery("select m from ChatMessageEntity m where m.id < :id order by m.id desc", ChatMessageEntity.class)
+        return entityManager.createQuery("select m from ChatMessageEntity m where m.game is null and m.id < :id order by m.id desc", ChatMessageEntity.class)
                 .setParameter("id", Long.parseLong(id)).setMaxResults(limit.max()).getResultList().stream().map(ChatRepository::model).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChatMessage> findGameMessages(UUID gameId, String before, Limit limit) {
+        var query = entityManager.createQuery("select m from ChatMessageEntity m where m.game.id = :gameId "
+                + (before == null ? "" : "and m.id < :id ") + "order by m.id desc", ChatMessageEntity.class)
+                .setParameter("gameId", gameId);
+        if (before != null) query.setParameter("id", Long.parseLong(before));
+        return query.setMaxResults(limit.max()).getResultList().stream().map(ChatRepository::model).toList();
     }
 
     @Transactional
     public ChatMessage save(ChatMessage message) {
+        return save(message, null);
+    }
+
+    @Transactional
+    public ChatMessage save(ChatMessage message, UUID gameId) {
         var row = new ChatMessageEntity();
         row.username = message.username(); row.name = message.name(); row.message = message.message();
         row.timestamp = message.timestamp(); row.photoUrl = message.photoUrl();
+        if (gameId != null) row.game = entityManager.getReference(fi.bizhop.finanssi2.game.db.GameEntity.class, gameId);
         entityManager.persist(row);
         entityManager.flush();
         return model(row);

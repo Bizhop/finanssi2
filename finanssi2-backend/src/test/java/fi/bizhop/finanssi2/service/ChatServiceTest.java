@@ -3,6 +3,8 @@ package fi.bizhop.finanssi2.service;
 import fi.bizhop.finanssi2.db.ChatRepository;
 import fi.bizhop.finanssi2.db.ChatMessage;
 import fi.bizhop.finanssi2.security.User;
+import fi.bizhop.finanssi2.game.db.GameRepository;
+import fi.bizhop.finanssi2.game.service.DebugAccess;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -25,6 +27,10 @@ class ChatServiceTest {
     ChatRepository chatRepository;
     @Mock
     MessagingService messagingService;
+    @Mock
+    GameRepository gameRepository;
+    @Mock
+    DebugAccess debugAccess;
     @InjectMocks
     ChatService chatService;
 

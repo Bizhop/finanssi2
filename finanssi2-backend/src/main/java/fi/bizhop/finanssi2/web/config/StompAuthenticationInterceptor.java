@@ -52,8 +52,10 @@ public class StompAuthenticationInterceptor implements ChannelInterceptor {
                 }
                 var destination = accessor.getDestination();
                 if (destination != null && destination.startsWith("/topic/games/")) {
-                    // Literal game ids only; broker wildcard subscriptions could expose private games.
-                    var id = destination.substring("/topic/games/".length());
+                    var suffix = destination.substring("/topic/games/".length());
+                    var chat = suffix.endsWith("/chat");
+                    var id = chat ? suffix.substring(0, suffix.length() - "/chat".length()) : suffix;
+                    // Literal game ids only; broker wildcard subscriptions and extra path segments are denied.
                     if (!id.matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
                             || !(accessor.getUser() instanceof FirebaseAuthenticationToken auth)) {
                         throw new MessageDeliveryException("Invalid game subscription");
@@ -61,6 +63,9 @@ public class StompAuthenticationInterceptor implements ChannelInterceptor {
                     try {
                         var game = gameRepository.findById(id).orElseThrow();
                         debugAccess.requireRead(game, auth.user());
+                        if (chat && game.getMode() == fi.bizhop.finanssi2.game.db.GameMode.DEBUG) {
+                            debugAccess.requireOwner(game, auth.user());
+                        }
                     } catch (RuntimeException e) {
                         throw new MessageDeliveryException(message, "Game subscription denied", e);
                     }

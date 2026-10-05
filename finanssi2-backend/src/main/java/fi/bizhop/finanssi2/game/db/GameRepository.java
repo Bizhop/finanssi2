@@ -31,6 +31,16 @@ public class GameRepository {
         }
     }
 
+    @Transactional
+    public Optional<Game> findByIdForUpdate(String id) {
+        try {
+            var entity = entityManager.find(GameEntity.class, UUID.fromString(id), jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+            return Optional.ofNullable(entity).map(this::model);
+        } catch (IllegalArgumentException invalidId) {
+            return Optional.empty();
+        }
+    }
+
     @Transactional(readOnly = true)
     public List<Game> findByStatusOrPlayer(GameStatus status, String uid, Sort sort) {
         @SuppressWarnings("unchecked")
