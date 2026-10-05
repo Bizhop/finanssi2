@@ -9,7 +9,7 @@
 
 ## Deployment model
 
-- One frontend, one backend instance and one MongoDB. There is no horizontal scaling and none is planned.
+- One frontend, one backend instance and one PostgreSQL database. There is no horizontal scaling and none is planned.
 - Don't design for multiple backend instances: no cross-instance race handling, distributed locks or shared broker. In-process
   state and locking and the in-memory STOMP broker are fine. Concurrent requests within the one backend (two players, two tabs)
   still need handling, e.g. optimistic locking.

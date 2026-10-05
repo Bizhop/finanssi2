@@ -40,7 +40,7 @@ public sealed interface PendingDecision permits PendingDecision.RaiseFunds, Pend
     record BondAuction(String player, List<String> order, int index, @JsonIgnore List<Bid> bids) implements PendingDecision {
         public BondAuction {
             order = List.copyOf(order);
-            bids = List.copyOf(bids);
+            bids = bids == null ? List.of() : List.copyOf(bids);
         }
     }
 
@@ -56,7 +56,7 @@ public sealed interface PendingDecision permits PendingDecision.RaiseFunds, Pend
             implements PendingDecision {
         public AssetAuction {
             order = List.copyOf(order);
-            bids = List.copyOf(bids);
+            bids = bids == null ? List.of() : List.copyOf(bids);
         }
         @Override public String player() { return order.get(index); }
     }

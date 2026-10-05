@@ -22,15 +22,13 @@ echo 'org.gradle.projectcachedir=/home/agent/.cache/gradle-project-cache/finanss
 - Run Gradle via a login shell (Java on PATH): `bash -l -c "./gradlew test --console=plain"`; incremental builds are safe
 - Test results: `~/.cache/gradle-build/finanssi2/test-results/test/`
 
-## Running the backend and MongoDB
+## Running the backend and PostgreSQL
 
-Avoid running them in the sandbox; build and test are enough. The MongoDB tests (`GameMongoTests`) run on every build against an
-in-memory server (`InMemoryMongoTest`, mongo-java-server). The same tests against a real MongoDB in Docker (`ContainerMongoTest`,
-Testcontainers, `mongo:7`) are tagged `container` and run only manually: `bash -l -c "./gradlew containerTest --console=plain"`.
-For more (real database, running API, websocket), ask the developer to
-start the services locally (`docker compose up -d`, `./gradlew bootRun`) and reach them at `host.docker.internal` (e.g. port 8080);
-if blocked, ask them to allow the port in the sandbox network policy. If a sandbox database is unavoidable, use `mongo:7` on a port
-other than 27017 (latest `mongo` won't start on the sandbox's 6.19+ kernel) and remove it afterwards.
+PostgreSQL persistence integration tests are tagged for manual runs. `databaseTest` uses a PostgreSQL instance at
+`host.docker.internal:5432` (override with `DATABASE_URL`, `DATABASE_USERNAME` and `DATABASE_PASSWORD`); `containerTest` starts an
+isolated Testcontainer. For local development, start PostgreSQL with `docker compose up -d`, then run the backend with
+`./gradlew bootRun`. Hibernate updates the schema from the JPA entities; use `docker compose down -v` to wipe the local database
+when an incompatible update requires a clean start.
 
 ## Java conventions
 

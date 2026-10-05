@@ -27,7 +27,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.dao.DataAccessResourceFailureException;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -94,7 +93,7 @@ class GameServiceTest {
     }
 
     void saveSucceeds() {
-        when(gameRepository.save(any())).thenAnswer(invocation -> {
+        when(gameRepository.saveWithEvents(any(), anyList())).thenAnswer(invocation -> {
             var game = invocation.<Game>getArgument(0);
             if (game.getId() == null) {
                 game.setId(GAME_ID);
@@ -102,13 +101,12 @@ class GameServiceTest {
             game.setVersion(game.getVersion() == null ? 0 : game.getVersion() + 1);
             return game;
         });
-        when(gameLogRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @SuppressWarnings("unchecked")
     List<GameLogEntry> savedEntries() {
         var captor = ArgumentCaptor.forClass(List.class);
-        verify(gameLogRepository).saveAll(captor.capture());
+        verify(gameRepository).saveWithEvents(any(), captor.capture());
         return captor.getValue();
     }
 
@@ -191,9 +189,8 @@ class GameServiceTest {
         service().leave(GAME_ID, user("a"));
 
         verify(gameRepository).delete(game);
-        verify(gameLogRepository).deleteByGameId(GAME_ID);
         verify(messagingService).send("/topic/games", new LobbyChange(GAME_ID, null));
-        verify(gameRepository, never()).save(any());
+        verify(gameRepository, never()).saveWithEvents(any(), anyList());
     }
 
     @Test
@@ -266,7 +263,7 @@ class GameServiceTest {
     @Test
     void testConcurrentChangeStoresAndBroadcastsNothing() {
         lobby("a");
-        when(gameRepository.save(any())).thenThrow(new OptimisticLockingFailureException("version 3 changed"));
+        when(gameRepository.saveWithEvents(any(), anyList())).thenThrow(new OptimisticLockingFailureException("version 3 changed"));
 
         assertThrows(OptimisticLockingFailureException.class, () -> service().join(GAME_ID, user("b")));
 
@@ -368,103 +365,9 @@ class GameServiceTest {
     }
 
     @Test
-    void testArchiveFailureKeepsEventsWithSavedStateAndAcceptsChange() {
-        var game = lobby("a");
-        when(gameRepository.save(any())).thenAnswer(invocation -> {
-            var document = invocation.<Game>getArgument(0);
-            assertEquals(2, document.getLastEventSeq());
-            assertEquals(2, document.getState().getPlayers().size());
-            assertEquals(List.of(new GameEvent.PlayerJoined("b", "Player b", 1)),
-                    document.getUnarchivedEvents().stream().map(GameLogEntry::event).toList());
-            document.setVersion(4L);
-            return document;
-        });
-        when(gameLogRepository.saveAll(anyList())).thenThrow(new DataAccessResourceFailureException("log unavailable"));
-
-        assertEquals(game, service().join(GAME_ID, user("b")));
-
-        assertEquals(1, game.getUnarchivedEvents().size());
-        verify(messagingService).send("/topic/games/" + GAME_ID, new GameUpdate(GAME_ID, 4, game.getUnarchivedEvents()));
-    }
-
-    @Test
-    void testEventReadsMergeDurableEventsAfterFailedArchiveWithoutDuplicates() {
-        var game = lobby("a", "b");
-        var first = GameLogEntry.of(GAME_ID, 1, 1000, new GameEvent.PlayerJoined("a", "Player a", 0));
-        var second = GameLogEntry.of(GAME_ID, 2, 1000, new GameEvent.PlayerJoined("b", "Player b", 1));
-        var third = GameLogEntry.of(GAME_ID, 3, 2000, new GameEvent.SettingsChanged(game.getState().getSettings()));
-        game.setUnarchivedEvents(List.of(second, third));
-        when(gameLogRepository.saveAll(anyList())).thenThrow(new DataAccessResourceFailureException("partial log write"));
-        when(gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(GAME_ID, 0)).thenReturn(List.of(first, second));
-        when(gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(GAME_ID, 2)).thenReturn(List.of());
-
-        assertEquals(List.of(first, second, third), service().events(GAME_ID, 0));
-        assertEquals(List.of(third), service().events(GAME_ID, 2));
-        assertEquals(3L, game.getVersion());
-    }
-
-    @Test
-    void testLaterChangeRetainsOlderEventsWhenArchivalStillFails() {
-        var game = lobby("a");
-        when(gameRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(gameLogRepository.saveAll(anyList())).thenThrow(new DataAccessResourceFailureException("log unavailable"));
-        var service = service();
-        service.join(GAME_ID, user("b"));
-        var earlier = game.getUnarchivedEvents().getFirst();
-
-        service.join(GAME_ID, user("c"));
-
-        assertEquals(List.of(2, 3), game.getUnarchivedEvents().stream().map(GameLogEntry::seq).toList());
-        assertEquals(earlier, game.getUnarchivedEvents().getFirst());
-    }
-
-    @Test
-    void testLaterChangeDiscardsOnlySuccessfullyArchivedEvents() {
-        var game = lobby("a");
-        when(gameRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(gameLogRepository.saveAll(anyList())).thenThrow(new DataAccessResourceFailureException("log unavailable"));
-        var service = service();
-        service.join(GAME_ID, user("b"));
-        var earlier = game.getUnarchivedEvents().getFirst();
-        var batches = new ArrayList<List<GameLogEntry>>();
-        doAnswer(invocation -> {
-            var batch = List.copyOf(invocation.<List<GameLogEntry>>getArgument(0));
-            batches.add(batch);
-            return batch;
-        }).when(gameLogRepository).saveAll(anyList());
-
-        service.join(GAME_ID, user("c"));
-
-        assertEquals(List.of(earlier), batches.getFirst());
-        assertEquals(List.of(3), game.getUnarchivedEvents().stream().map(GameLogEntry::seq).toList());
-        assertEquals(game.getUnarchivedEvents(), batches.getLast());
-    }
-
-    @Test
-    void testPartialArchiveIsRetriedWithStableIds() {
-        var game = lobby("a", "b");
-        when(gameRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        var log = new LinkedHashMap<String, GameLogEntry>();
-        when(gameLogRepository.saveAll(anyList())).thenAnswer(invocation -> {
-            var batch = invocation.<List<GameLogEntry>>getArgument(0);
-            log.put(batch.getFirst().id(), batch.getFirst());
-            throw new DataAccessResourceFailureException("failed after first event");
-        });
-        var service = service(6, 6, 1, 1);
-        service.start(GAME_ID, user("a"));
-        assertEquals(1, log.size());
-        assertEquals(4, game.getUnarchivedEvents().size());
-        doAnswer(invocation -> {
-            var batch = invocation.<List<GameLogEntry>>getArgument(0);
-            batch.forEach(entry -> log.put(entry.id(), entry));
-            return batch;
-        }).when(gameLogRepository).saveAll(anyList());
-        when(gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(GAME_ID, 2))
-                .thenAnswer(invocation -> List.copyOf(log.values()));
-
-        assertEquals(game.getUnarchivedEvents(), service.events(GAME_ID, 2));
-        assertEquals(game.getUnarchivedEvents(), service.events(GAME_ID, 2));
-        assertEquals(4, log.size());
-        assertTrue(log.values().stream().allMatch(entry -> entry.id().equals(GAME_ID + ":" + entry.seq())));
+    void testEventsReadFromPostgresLog() {
+        var entry = GameLogEntry.of(GAME_ID, 1, 1000, new GameEvent.PlayerJoined("a", "Player a", 0));
+        when(gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(GAME_ID, 0)).thenReturn(List.of(entry));
+        assertEquals(List.of(entry), service().events(GAME_ID, 0));
     }
 }

@@ -54,7 +54,8 @@ public class StompAuthenticationInterceptor implements ChannelInterceptor {
                 if (destination != null && destination.startsWith("/topic/games/")) {
                     // Literal game ids only; broker wildcard subscriptions could expose private games.
                     var id = destination.substring("/topic/games/".length());
-                    if (!id.matches("[a-f0-9]{24}") || !(accessor.getUser() instanceof FirebaseAuthenticationToken auth)) {
+                    if (!id.matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+                            || !(accessor.getUser() instanceof FirebaseAuthenticationToken auth)) {
                         throw new MessageDeliveryException("Invalid game subscription");
                     }
                     try {

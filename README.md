@@ -2,7 +2,7 @@
 
 Monorepo for the Finanssi 2 game.
 
-- `finanssi2-backend/` – Spring Boot backend (Java 25, Gradle, MongoDB, Firebase auth)
+- `finanssi2-backend/` – Spring Boot backend (Java 25, Gradle, PostgreSQL, Firebase auth)
 - `finanssi2-web/` – React frontend (Deno + Vite)
 
 Current implementation status, decisions and todos:
@@ -15,7 +15,7 @@ Private single-player debug mode is implemented; remaining live acceptance check
 ## Prerequisites
 
 - Java 25
-- Docker (for MongoDB)
+- Docker (for PostgreSQL)
 - [Deno](https://deno.com/)
 
 ## Running locally
@@ -27,7 +27,9 @@ cd finanssi2-backend
 docker compose up -d
 ```
 
-Starts MongoDB on port 27017 and mongo-express (DB admin UI) at http://localhost:8081.
+Starts PostgreSQL on port 5432. The database uses a local Docker volume and survives application restarts. Game state and game events
+use JSONB payloads; Hibernate creates and updates the schema from the Java persistence entities. For an empty database reset, run
+`docker compose down -v` before starting it again.
 
 ### 2. Backend
 

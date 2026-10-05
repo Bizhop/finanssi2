@@ -4,13 +4,12 @@ import org.junit.jupiter.api.Tag;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.mongodb.MongoDBContainer;
+import org.testcontainers.containers.PostgreSQLContainer;
 
-/** Against a real MongoDB in Docker. Not part of the normal build: run with {@code ./gradlew containerTest}. */
 @Tag("container")
 @Testcontainers
-class ContainerMongoTest extends GameMongoTests {
+class ContainerPostgresTest extends GamePostgresTests {
     @Container
     @ServiceConnection
-    static final MongoDBContainer mongo = new MongoDBContainer("mongo:7");
+    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17");
 }

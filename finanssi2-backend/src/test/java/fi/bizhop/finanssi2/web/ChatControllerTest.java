@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 @AutoConfigureTestRestTemplate
 @ActiveProfiles("test")
 public class ChatControllerTest {
-    static final String OLDEST_LOADED_ID = "66f9a1b2c3d4e5f607182930";
+    static final String OLDEST_LOADED_ID = "0000000000000000010";
 
     @LocalServerPort
     int port;
@@ -42,7 +42,7 @@ public class ChatControllerTest {
 
     @Test
     public void testNewestPageWithDefaultSize() {
-        var newest = new ChatMessage("66f9a1b2c3d4e5f607182931", "tester@example.com", "Tester Example", "Hello", 1000L, "");
+        var newest = new ChatMessage("0000000000000000011", "tester@example.com", "Tester Example", "Hello", 1000L, "");
         when(chatRepository.findAllByOrderByIdDesc(Limit.of(20))).thenReturn(List.of(newest));
 
         var response = restTemplate.getForEntity(url(""), ChatMessage[].class);
@@ -53,7 +53,7 @@ public class ChatControllerTest {
 
     @Test
     public void testOlderPage() {
-        var older = new ChatMessage("66f9a1b2c3d4e5f607182920", "tester@example.com", null, "Older", 500L, "");
+        var older = new ChatMessage("0000000000000000009", "tester@example.com", null, "Older", 500L, "");
         when(chatRepository.findByIdLessThanOrderByIdDesc(OLDEST_LOADED_ID, Limit.of(5))).thenReturn(List.of(older));
 
         var response = restTemplate.getForEntity(url("?before=" + OLDEST_LOADED_ID + "&size=5"), ChatMessage[].class);

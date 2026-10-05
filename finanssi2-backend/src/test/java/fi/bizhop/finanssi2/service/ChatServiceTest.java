@@ -30,7 +30,7 @@ class ChatServiceTest {
 
     @Test
     void testGetNewestMessages() {
-        var newest = List.of(new ChatMessage("66f9a1b2c3d4e5f607182931", "tester@example.com", "Tester Example", "Hello", 1000L, ""));
+        var newest = List.of(new ChatMessage("0000000000000000011", "tester@example.com", "Tester Example", "Hello", 1000L, ""));
         when(chatRepository.findAllByOrderByIdDesc(Limit.of(20))).thenReturn(newest);
 
         assertEquals(newest, chatService.getMessages(null, 20));
@@ -38,17 +38,17 @@ class ChatServiceTest {
 
     @Test
     void testGetOlderMessages() {
-        var older = List.of(new ChatMessage("66f9a1b2c3d4e5f607182920", "tester@example.com", null, "Older", 500L, ""));
-        when(chatRepository.findByIdLessThanOrderByIdDesc("66f9a1b2c3d4e5f607182930", Limit.of(5))).thenReturn(older);
+        var older = List.of(new ChatMessage("0000000000000000009", "tester@example.com", null, "Older", 500L, ""));
+        when(chatRepository.findByIdLessThanOrderByIdDesc("0000000000000000010", Limit.of(5))).thenReturn(older);
 
-        assertEquals(older, chatService.getMessages("66f9a1b2c3d4e5f607182930", 5));
+        assertEquals(older, chatService.getMessages("0000000000000000010", 5));
     }
 
     @Test
     void testPostMessageSavesAndBroadcastsSavedMessage() {
         var author = new User("uid", "tester@example.com", "Tester Example", "https://example.com/photo.png");
         when(chatRepository.save(any())).thenAnswer(invocation ->
-                invocation.<ChatMessage>getArgument(0).withId("66f9a1b2c3d4e5f607182940"));
+                invocation.<ChatMessage>getArgument(0).withId("0000000000000000012"));
 
         var saved = chatService.postMessage(author, "Hello");
 
@@ -59,7 +59,7 @@ class ChatServiceTest {
         assertEquals("Tester Example", saved.name());
         assertEquals("Hello", saved.message());
         assertEquals("https://example.com/photo.png", saved.photoUrl());
-        assertEquals("66f9a1b2c3d4e5f607182940", saved.id());
+        assertEquals("0000000000000000012", saved.id());
         // Clients need the id, so the broadcast message must be the saved one
         verify(messagingService).send("/topic/chat", saved);
     }
