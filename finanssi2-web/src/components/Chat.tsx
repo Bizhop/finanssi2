@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { Alert, Avatar, Box, Divider, IconButton, List, ListItem, ListItemAvatar, ListItemText, Paper, Stack, Tooltip, Typography } from "@mui/material"
+import { Alert, Avatar, Box, Button, Divider, IconButton, List, ListItem, ListItemAvatar, ListItemText, Paper, Stack, Tooltip, Typography } from "@mui/material"
 import { User } from "firebase/auth"
 import { z } from "zod/mini"
 import { SubmitHandler, useForm } from "react-hook-form"
@@ -53,6 +53,7 @@ const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true,
     // and keeps the view anchored to the bottom (newest message) without any scrolling code.
     const [messages, setMessages] = useState<TChatMessage[]>([])
     const [hasOlderMessages, setHasOlderMessages] = useState(true)
+    const [loadingOlder, setLoadingOlder] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const loadingOlderMessages = useRef(false)
     // For async callbacks that need the messages at the time they complete
@@ -75,11 +76,13 @@ const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true,
     const loadOlderMessages = () => {
         if (loadingOlderMessages.current || !hasOlderMessages) return
         loadingOlderMessages.current = true
+        setLoadingOlder(true)
 
         fetchPage(messages.at(-1)?.id)
             .then((page) => {
                 // Cleared before the state updates, so the re-render can already trigger the next load
                 loadingOlderMessages.current = false
+                setLoadingOlder(false)
                 // Merged, as the same messages can also come from the websocket or from refreshNewestMessages
                 setMessages((prevMessages) => mergeMessages(prevMessages, page))
                 setHasOlderMessages(page.length === PAGE_SIZE)
@@ -87,6 +90,7 @@ const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true,
             .catch((error) => {
                 // No automatic retry: the next attempt comes when the user scrolls or a message arrives
                 loadingOlderMessages.current = false
+                setLoadingOlder(false)
                 if (error instanceof GameApiError && (error.status === 403 || error.status === 404)) setMessages([])
                 setError(error instanceof Error ? error.message : "Could not load chat history.")
                 console.error(error)
@@ -125,6 +129,8 @@ const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true,
     useEffect(() => {
         setMessages([])
         setHasOlderMessages(true)
+        loadingOlderMessages.current = false
+        setLoadingOlder(false)
         setError(null)
         reset()
     }, [path, user.uid, reset])
@@ -155,8 +161,8 @@ const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true,
         if (connected) refreshNewestMessages()
     }, [connected])
 
-    // Load older messages whenever the top of the list is in view: on mount (the first page), when the user scrolls up, and again after a page that didn't fill
-    // the list. Re-created on every change so the callback sees the current messages; observe() reports the current state right away.
+    // Auto-load when a scrollable list reaches the top. The button remains available when the loaded page fits without scrolling.
+    // Re-created on changes so observe() checks the current sentinel position and message count.
     const messageListRef = useRef<HTMLUListElement>(null)
     const loadMoreTriggerRef = useRef<HTMLLIElement>(null)
     useEffect(() => {
@@ -164,7 +170,8 @@ const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true,
         if (!trigger || !hasOlderMessages || !expanded) return
         const observer = new IntersectionObserver(
             ([entry]) => {
-                if (entry.isIntersecting) loadOlderMessages()
+                const list = messageListRef.current
+                if (entry.isIntersecting && list && list.scrollHeight > list.clientHeight + 1) loadOlderMessages()
             },
             // Start loading a bit before the user reaches the top
             { root: messageListRef.current, rootMargin: "200px 0px 0px 0px" },
@@ -196,7 +203,13 @@ const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true,
                 >
                     {messages.map((msg) => <ChatLine key={msg.id} message={msg} compact={compact} />)}
                     {/* Last in the DOM, so at the top of the reversed list */}
-                    <li ref={loadMoreTriggerRef} aria-hidden />
+                    {hasOlderMessages && (
+                        <ListItem ref={loadMoreTriggerRef} component="li" disablePadding sx={{ justifyContent: "center", py: 0.5 }}>
+                            <Button size="small" disabled={loadingOlder} onClick={loadOlderMessages}>
+                                {loadingOlder ? "Loading older messages…" : "Load older messages"}
+                            </Button>
+                        </ListItem>
+                    )}
                 </List>
             </Box>
             {!connected && (

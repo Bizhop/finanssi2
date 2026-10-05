@@ -24,7 +24,7 @@ export const GameWindow = ({ title, tabs, defaultExpanded = true, fill = false }
             variant="outlined"
             sx={{
                 minWidth: 0,
-                minHeight: fill && expanded ? { xs: 360, lg: 0 } : 0,
+                minHeight: fill && expanded ? { xs: 360, xl: 0 } : 0,
                 overflow: "hidden",
                 display: "flex",
                 flexDirection: "column",

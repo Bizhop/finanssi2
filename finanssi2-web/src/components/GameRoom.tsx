@@ -323,7 +323,7 @@ const GameRoomContent = () => {
             )}
             {error && <Alert severity="warning">{error}</Alert>}
             <Grid container spacing={2} sx={{ alignItems: "stretch" }}>
-                <Grid size={{ xs: 12, lg: 8 }}>
+                <Grid size={{ xs: 12, xl: 8 }}>
                     <GameBoard
                         game={game}
                         board={board}
@@ -339,8 +339,8 @@ const GameRoomContent = () => {
                         turnStockTip={turnStockTip ? String(turnStockTip.event.card) : null}
                     />
                 </Grid>
-                <Grid size={{ xs: 12, lg: 4 }} sx={{ display: "flex", minHeight: 0 }}>
-                    <Stack spacing={1.5} sx={{ width: "100%", minHeight: 0, height: { xs: "auto", lg: "100%" } }}>
+                <Grid size={{ xs: 12, xl: 4 }} sx={{ display: "flex", minHeight: 0 }}>
+                    <Stack spacing={1.5} sx={{ width: "100%", minHeight: 0, height: { xs: "auto", xl: "100%" } }}>
                         {game.state.players.map((player) => (
                             <PlayerPanel
                                 key={player.uid}
