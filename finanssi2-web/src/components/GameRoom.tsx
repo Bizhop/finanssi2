@@ -7,7 +7,7 @@ import FlagOutlined from "@mui/icons-material/FlagOutlined"
 
 import { GameBoard } from "./GameBoard.tsx"
 import Chat from "./Chat.tsx"
-import { GameWindow } from "./GameWindow.tsx"
+import { GameWindow, type GameWindowTab } from "./GameWindow.tsx"
 import { ShareCard, TitleDeedCard } from "./cards.tsx"
 import { bankSalesOpen, buildAction, ConfirmDialog, type ConfirmRequest, meetingGroups, type PlayerControls, takeoverSum, twoDiceAtMost } from "./actions.tsx"
 import { PlayerPanel } from "./PlayerPanel.tsx"
@@ -19,7 +19,8 @@ import { BOARD_ASPECT_RATIO } from "./boardLayout.ts"
 
 type GameUpdate = { version: number; events: GameLogEntry[] }
 
-const STACKED_GAME_LAYOUT = "@media (min-width: 1536px) and (max-width: 1799.95px)"
+const STACKED_GAME_LAYOUT = "@media (min-width: 1536px) and (max-width: 2199.95px)"
+const SHORT_WIDE_GAME_LAYOUT = "@media (min-width: 2200px) and (max-height: 1099.95px)"
 
 const apiError = (reason: unknown) => reason instanceof Error ? reason.message : "The request failed"
 
@@ -276,57 +277,99 @@ const GameRoomContent = () => {
         contextActions: contextActions || undefined,
         onBuyShare: bankSalesOpen(game, actingUid, "share") ? () => setBuyShareOpen(true) : undefined,
     }
+    const gameActivityTabs: GameWindowTab[] = [
+        {
+            label: "Chat",
+            content: ({ expanded }) => (
+                <Chat
+                    user={user}
+                    gameId={id}
+                    embedded
+                    compact
+                    expanded={expanded}
+                    canSend={game.mode === "DEBUG" ? game.creator === user.uid : game.state.players.some((player) => player.uid === user.uid)}
+                />
+            ),
+        },
+        {
+            label: "Event log",
+            content: () => (
+                <Stack spacing={0.5} sx={{ height: "100%", minHeight: 0, overflowY: "auto" }}>
+                    {events.slice(-200).reverse().map((entry) => (
+                        <EventLine key={entry.seq} entry={entry} text={describeEvent(entry, { playerName, board })} board={board} />
+                    ))}
+                </Stack>
+            ),
+        },
+        ...(game.mode === "DEBUG" && debugMode
+            ? [{
+                label: "Debug",
+                content: () => (
+                    <Stack spacing={1} sx={{ height: "100%", minHeight: 0, overflowY: "auto" }}>
+                        <Alert severity="info">Controlling: {actingPlayer?.name ?? "—"}</Alert>
+                        <Stack
+                            direction={{ xs: "column", sm: "row" }}
+                            spacing={1}
+                            useFlexGap
+                            sx={{ alignItems: "flex-start", flexWrap: "wrap" }}
+                        >
+                            <TextField
+                                size="small"
+                                label="Dice for next submitted command"
+                                placeholder="e.g. 3, 6"
+                                value={diceInput}
+                                onChange={(event) => setDiceInput(event.target.value)}
+                                helperText="Optional; unused values are discarded."
+                            />
+                            {game.status === "RUNNING" && !pending && (
+                                <>
+                                    <TextField
+                                        select
+                                        size="small"
+                                        label="Next Finance News"
+                                        value={nextNews}
+                                        onChange={(event) => setNextNews(event.target.value)}
+                                        slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
+                                    >
+                                        <option value="">Choose…</option>
+                                        {board?.financeNews.map((card) => <option key={card.id} value={card.id}>{card.id} · {card.chapters[0]?.text}</option>)}
+                                    </TextField>
+                                    <Button disabled={!nextNews || commandBusy} onClick={() => selectCard("FINANCE_NEWS", nextNews)}>Set next news</Button>
+                                    <TextField
+                                        select
+                                        size="small"
+                                        label="Next Stock Tip"
+                                        value={nextTip}
+                                        onChange={(event) => setNextTip(event.target.value)}
+                                        slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
+                                    >
+                                        <option value="">Choose…</option>
+                                        {board?.stockTips.filter((card) => !game.state.players.some((player) => player.heldStockTips.includes(card.id))).map((
+                                            card,
+                                        ) => <option key={card.id} value={card.id}>{card.id} · {card.chapters[0]?.text}</option>)}
+                                    </TextField>
+                                    <Button disabled={!nextTip || commandBusy} onClick={() => selectCard("STOCK_TIP", nextTip)}>Set next tip</Button>
+                                </>
+                            )}
+                        </Stack>
+                    </Stack>
+                ),
+            }]
+            : []),
+    ]
 
     return (
         <Stack component="fieldset" disabled={commandBusy} spacing={2} sx={{ border: 0, m: 0, px: 0, flex: 1, minHeight: 0, py: 2, overflowY: "auto" }}>
-            {game.mode === "DEBUG" && debugMode && (
-                <>
-                    <Alert severity="info">Controlling: {actingPlayer?.name ?? "—"}</Alert>
-                    <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                        <TextField
-                            size="small"
-                            label="Dice for next submitted command"
-                            placeholder="e.g. 3, 6"
-                            value={diceInput}
-                            onChange={(event) => setDiceInput(event.target.value)}
-                            helperText="Optional; unused values are discarded."
-                        />
-                        {game.status === "RUNNING" && !pending && (
-                            <>
-                                <TextField
-                                    select
-                                    size="small"
-                                    label="Next Finance News"
-                                    value={nextNews}
-                                    onChange={(event) => setNextNews(event.target.value)}
-                                    slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
-                                >
-                                    <option value="">Choose…</option>
-                                    {board?.financeNews.map((card) => <option key={card.id} value={card.id}>{card.id} · {card.chapters[0]?.text}</option>)}
-                                </TextField>
-                                <Button disabled={!nextNews || commandBusy} onClick={() => selectCard("FINANCE_NEWS", nextNews)}>Set next news</Button>
-                                <TextField
-                                    select
-                                    size="small"
-                                    label="Next Stock Tip"
-                                    value={nextTip}
-                                    onChange={(event) => setNextTip(event.target.value)}
-                                    slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
-                                >
-                                    <option value="">Choose…</option>
-                                    {board?.stockTips.filter((card) => !game.state.players.some((player) => player.heldStockTips.includes(card.id))).map((
-                                        card,
-                                    ) => <option key={card.id} value={card.id}>{card.id} · {card.chapters[0]?.text}</option>)}
-                                </TextField>
-                                <Button disabled={!nextTip || commandBusy} onClick={() => selectCard("STOCK_TIP", nextTip)}>Set next tip</Button>
-                            </>
-                        )}
-                    </Stack>
-                </>
-            )}
             {error && <Alert severity="warning">{error}</Alert>}
             <Grid container spacing={2} sx={{ alignItems: "stretch" }}>
-                <Grid size={{ xs: 12, xl: 8 }} sx={{ alignSelf: "start", [STACKED_GAME_LAYOUT]: { flexBasis: "100%", maxWidth: "100%" } }}>
+                <Grid
+                    size={{ xs: 12, xl: 8 }}
+                    sx={{
+                        alignSelf: "start",
+                        [STACKED_GAME_LAYOUT]: { flexBasis: "100%", maxWidth: "100%" },
+                        [SHORT_WIDE_GAME_LAYOUT]: { flexBasis: "100%", maxWidth: "100%" },
+                    }}
+                >
                     <GameBoard
                         game={game}
                         board={board}
@@ -350,11 +393,18 @@ const GameRoomContent = () => {
                         alignSelf: { xl: "start" },
                         aspectRatio: { xl: BOARD_ASPECT_RATIO / 2 },
                         [STACKED_GAME_LAYOUT]: { flexBasis: "100%", maxWidth: "100%", alignSelf: "stretch", aspectRatio: "auto" },
+                        [SHORT_WIDE_GAME_LAYOUT]: { flexBasis: "100%", maxWidth: "100%", alignSelf: "stretch", aspectRatio: "auto" },
                     }}
                 >
                     <Stack
                         spacing={1.5}
-                        sx={{ width: "100%", minHeight: 0, height: { xs: "auto", xl: "100%" }, [STACKED_GAME_LAYOUT]: { height: "auto" } }}
+                        sx={{
+                            width: "100%",
+                            minHeight: 0,
+                            height: { xs: "auto", xl: "100%" },
+                            [STACKED_GAME_LAYOUT]: { height: "auto" },
+                            [SHORT_WIDE_GAME_LAYOUT]: { height: "auto" },
+                        }}
                     >
                         {game.state.players.map((player) => (
                             <PlayerPanel
@@ -383,33 +433,7 @@ const GameRoomContent = () => {
                         )}
                         <GameWindow
                             fill
-                            tabs={[
-                                {
-                                    label: "Chat",
-                                    content: ({ expanded }) => (
-                                        <Chat
-                                            user={user}
-                                            gameId={id}
-                                            embedded
-                                            compact
-                                            expanded={expanded}
-                                            canSend={game.mode === "DEBUG"
-                                                ? game.creator === user.uid
-                                                : game.state.players.some((player) => player.uid === user.uid)}
-                                        />
-                                    ),
-                                },
-                                {
-                                    label: "Event log",
-                                    content: () => (
-                                        <Stack spacing={0.5} sx={{ height: "100%", minHeight: 0, overflowY: "auto" }}>
-                                            {events.slice(-200).reverse().map((entry) => (
-                                                <EventLine key={entry.seq} entry={entry} text={describeEvent(entry, { playerName, board })} board={board} />
-                                            ))}
-                                        </Stack>
-                                    ),
-                                },
-                            ]}
+                            tabs={gameActivityTabs}
                         />
                     </Stack>
                 </Grid>

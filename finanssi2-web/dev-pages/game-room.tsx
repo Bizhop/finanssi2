@@ -13,6 +13,7 @@ import { NavLink } from "react-router"
 import GameRoom from "../src/components/GameRoom.tsx"
 import { CurrentUserProvider, useCurrentUser } from "../src/components/CurrentUserContext.tsx"
 import { type StompConnection, StompContext } from "../src/components/StompContext.tsx"
+import { GAME_BOARD_MAX_WIDTH, GAME_ROOM_MAX_WIDTH } from "../src/components/boardLayout.ts"
 
 // Real game data, the same files the backend serves from /api/game-data
 import boardFile from "../../finanssi2-backend/src/main/resources/gamedata/pelilauta.json" with { type: "json" }
@@ -338,7 +339,19 @@ ReactDOM.createRoot(document.getElementById("app")!).render(
         <CurrentUserProvider>
             {appLayout
                 ? (
-                    <Container maxWidth={false} component={Paper} sx={{ height: "100%", display: "flex", flexDirection: "column", pb: 2 }}>
+                    <Container
+                        maxWidth={false}
+                        component={Paper}
+                        sx={{
+                            height: "100%",
+                            display: "flex",
+                            flexDirection: "column",
+                            pb: 2,
+                            "@media (min-width: 2200px) and (min-height: 1100px)": { maxWidth: GAME_ROOM_MAX_WIDTH },
+                            "@media (min-width: 1536px) and (max-width: 2199.95px)": { maxWidth: GAME_BOARD_MAX_WIDTH },
+                            "@media (min-width: 2200px) and (max-height: 1099.95px)": { maxWidth: GAME_BOARD_MAX_WIDTH },
+                        }}
+                    >
                         <Stack direction="column" sx={{ flex: 1, minHeight: 0 }}>
                             <PreviewHeader />
                             <Divider />

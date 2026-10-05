@@ -1,6 +1,12 @@
 /** Width / height of the rectified board image (assets/board.webp, 2155×1630 px) */
 export const BOARD_ASPECT_RATIO = 2155 / 1630
 
+/** Fits a full-width board below the app header, leaving 180px for app chrome and room spacing. */
+export const GAME_BOARD_MAX_WIDTH = `calc(${BOARD_ASPECT_RATIO * 100}dvh - ${BOARD_ASPECT_RATIO * 180}px)`
+
+/** Fits a two-thirds-width board below the app header, leaving 180px for app chrome and room spacing. */
+export const GAME_ROOM_MAX_WIDTH = `calc(${BOARD_ASPECT_RATIO * 1.5 * 100}dvh - ${BOARD_ASPECT_RATIO * 1.5 * 180}px)`
+
 /**
  * Square divider positions measured from the board image, in percent of the image width (top, bottom) or height (left, right).
  * Each side has its own lines because the printed board is not perfectly uniform.
