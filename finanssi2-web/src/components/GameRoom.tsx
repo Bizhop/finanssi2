@@ -323,7 +323,7 @@ const GameRoomContent = () => {
             )}
             {error && <Alert severity="warning">{error}</Alert>}
             <Grid container spacing={2} sx={{ alignItems: "stretch" }}>
-                <Grid size={{ xs: 12, xl: 8 }}>
+                <Grid size={{ xs: 12, xl: 8 }} sx={{ alignSelf: "start" }}>
                     <GameBoard
                         game={game}
                         board={board}
