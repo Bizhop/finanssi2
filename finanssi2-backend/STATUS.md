@@ -5,8 +5,8 @@ live frontend integration review and the follow-ups below remain. See [frontend 
 
 Per-game chat implementation is in progress (2026-10-05): nullable game association with database delete cascade, room-filtered
 history, game chat REST routes, participant posting/debug-owner access checks, and `/topic/games/{id}/chat` subscriptions are
-implemented. Java compilation passes. PostgreSQL migration/cascade, endpoint authorization, and STOMP delivery still need
-integration coverage; chat access revocation during a live debug session also remains to be checked.
+implemented. Focused REST/STOMP tests and PostgreSQL checks cover authorization, room isolation, sender identity, invalid messages,
+outbound debug access rechecks, and database cascade deletion. Two-account websocket delivery/reconnect acceptance remains.
 
 ## Completed features
 

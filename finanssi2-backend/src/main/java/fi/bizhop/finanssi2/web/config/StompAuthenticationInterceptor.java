@@ -13,6 +13,10 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
+import org.springframework.context.event.EventListener;
+import org.springframework.web.socket.messaging.SessionDisconnectEvent;
+
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -26,6 +30,7 @@ public class StompAuthenticationInterceptor implements ChannelInterceptor {
     final FirebaseTokenVerifier tokenVerifier;
     final GameRepository gameRepository;
     final DebugAccess debugAccess;
+    java.util.Map<String, FirebaseAuthenticationToken> sessions = new ConcurrentHashMap<>();
 
     @Override
     public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
@@ -38,7 +43,9 @@ public class StompAuthenticationInterceptor implements ChannelInterceptor {
                 var token = tokenVerifier.verifyAuthorizationHeader(accessor.getFirstNativeHeader("Authorization"))
                         .orElseThrow(() -> new MessageDeliveryException("Missing, invalid or expired Firebase ID token"));
                 // Remembered for the rest of the session, so later frames carry it too
-                accessor.setUser(new FirebaseAuthenticationToken(token));
+                var auth = new FirebaseAuthenticationToken(token);
+                accessor.setUser(auth);
+                if (accessor.getSessionId() != null) sessions.put(accessor.getSessionId(), auth);
                 yield message;
             }
             case SEND -> {
@@ -74,7 +81,16 @@ public class StompAuthenticationInterceptor implements ChannelInterceptor {
                 }
                 yield message;
             }
-            case DISCONNECT, UNSUBSCRIBE, ACK, NACK, BEGIN, COMMIT, ABORT, CONNECTED, RECEIPT, MESSAGE, ERROR -> message;
+            case DISCONNECT -> {
+                if (accessor.getSessionId() != null) sessions.remove(accessor.getSessionId());
+                yield message;
+            }
+            case UNSUBSCRIBE, ACK, NACK, BEGIN, COMMIT, ABORT, CONNECTED, RECEIPT, MESSAGE, ERROR -> message;
         };
+    }
+
+    @EventListener
+    public void onSessionDisconnect(SessionDisconnectEvent event) {
+        sessions.remove(event.getSessionId());
     }
 }

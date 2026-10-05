@@ -3,6 +3,7 @@ package fi.bizhop.finanssi2.web.config;
 import com.google.firebase.auth.FirebaseToken;
 import fi.bizhop.finanssi2.security.FirebaseAuthenticationToken;
 import fi.bizhop.finanssi2.security.FirebaseTokenVerifier;
+import fi.bizhop.finanssi2.game.db.Game;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -103,5 +104,28 @@ class StompAuthenticationInterceptorTest {
         accessor.setDestination("/topic/chat");
         var authenticated = frame(accessor);
         assertSame(authenticated, interceptor.preSend(authenticated, channel));
+    }
+
+    @Test
+    void gameChatSubscriptionAcceptsOnlyTheExactAuthorizedDestination() {
+        var firebaseToken = mock(FirebaseToken.class);
+        when(firebaseToken.getUid()).thenReturn("uid-1");
+        var auth = new FirebaseAuthenticationToken(firebaseToken);
+        var game = new Game();
+        var id = "66f9a1b2-c3d4-5e6f-8718-2931a2b3c4d5";
+        when(gameRepository.findById(id)).thenReturn(Optional.of(game));
+        for (var destination : java.util.List.of("/topic/games/" + id, "/topic/games/" + id + "/chat")) {
+            var accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+            accessor.setUser(auth);
+            accessor.setDestination(destination);
+            var message = frame(accessor);
+            assertSame(message, interceptor.preSend(message, channel));
+        }
+        for (var destination : java.util.List.of("/topic/games/" + id + "/chat/extra", "/topic/games/" + id + "/**")) {
+            var accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+            accessor.setUser(auth);
+            accessor.setDestination(destination);
+            assertThrows(MessageDeliveryException.class, () -> interceptor.preSend(frame(accessor), channel));
+        }
     }
 }

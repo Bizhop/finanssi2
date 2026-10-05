@@ -1,7 +1,11 @@
 package fi.bizhop.finanssi2.web;
 
-import fi.bizhop.finanssi2.db.ChatRepository;
 import fi.bizhop.finanssi2.db.ChatMessage;
+import fi.bizhop.finanssi2.db.ChatRepository;
+import fi.bizhop.finanssi2.game.db.Game;
+import fi.bizhop.finanssi2.game.db.GameRepository;
+import fi.bizhop.finanssi2.game.engine.PlayerState;
+import fi.bizhop.finanssi2.security.User;
 import fi.bizhop.finanssi2.service.MessagingService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,14 +14,17 @@ import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRe
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.data.domain.Limit;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -35,6 +42,8 @@ public class ChatControllerTest {
     MessagingService messagingService;
     @MockitoBean
     ChatRepository chatRepository;
+    @MockitoBean
+    GameRepository gameRepository;
 
     String url(String query) {
         return String.format("http://localhost:%d/api/chat%s", port, query);
@@ -79,5 +88,49 @@ public class ChatControllerTest {
             var response = restTemplate.getForEntity(url("?size=" + size), String.class);
             assertEquals(HttpStatus.OK, response.getStatusCode(), "size=" + size);
         }
+    }
+
+    @Test
+    void gameChatAllowsRoomReadsButOnlySeatsCanPost() {
+        var player = new User("chat-player", "player@example.com", "Player", null);
+        var id = "66f9a1b2-c3d4-5e6f-8718-2931a2b3c4d5";
+        var game = new Game();
+        game.setId(id);
+        game.getState().getPlayers().add(new PlayerState(player.uid(), player.name(), null, 0));
+        when(gameRepository.findById(id)).thenReturn(java.util.Optional.of(game));
+        when(gameRepository.findByIdForUpdate(id)).thenReturn(java.util.Optional.of(game));
+        var saved = new ChatMessage("0000000000000000012", player.email(), player.name(), "Hello game", 1000L, null);
+        when(chatRepository.save(any(ChatMessage.class), eq(java.util.UUID.fromString(id)))).thenReturn(saved);
+        when(chatRepository.findGameMessages(eq(java.util.UUID.fromString(id)), eq(null), any()))
+                .thenReturn(List.of(saved));
+
+        var playerHeaders = headersFor(player.uid());
+        var posted = restTemplate.postForEntity(gameChatUrl(id), new HttpEntity<>("{\"message\":\"Hello game\"}", playerHeaders), String.class);
+        assertEquals(HttpStatus.OK, posted.getStatusCode(), posted.getBody());
+        assertTrue(posted.getBody().contains("\"message\":\"Hello game\""));
+        assertTrue(posted.getBody().contains("\"username\":\"player@example.com\""), posted.getBody());
+
+        var viewerHeaders = headersFor("viewer");
+        var history = restTemplate.exchange(gameChatUrl(id), org.springframework.http.HttpMethod.GET,
+                new HttpEntity<>(viewerHeaders), String.class);
+        assertEquals(HttpStatus.OK, history.getStatusCode());
+        assertTrue(history.getBody().contains("\"message\":\"Hello game\""));
+        var denied = restTemplate.postForEntity(gameChatUrl(id),
+                new HttpEntity<>("{\"message\":\"Viewer message\"}", viewerHeaders), String.class);
+        assertEquals(HttpStatus.FORBIDDEN, denied.getStatusCode());
+        var invalid = restTemplate.postForEntity(gameChatUrl(id),
+                new HttpEntity<>("{\"message\":\"   \"}", playerHeaders), String.class);
+        assertEquals(HttpStatus.BAD_REQUEST, invalid.getStatusCode());
+    }
+
+    private String gameChatUrl(String id) {
+        return String.format("http://localhost:%d/api/games/%s/chat", port, id);
+    }
+
+    private HttpHeaders headersFor(String uid) {
+        var headers = new HttpHeaders();
+        headers.set("X-Test-User", uid);
+        headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+        return headers;
     }
 }

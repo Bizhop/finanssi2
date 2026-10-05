@@ -292,6 +292,33 @@ abstract class GamePostgresTests {
     }
 
     @Test
+    void gameChatUsesAccountIdentityAndEnforcesNormalSeatsAndDebugOwnership() {
+        var player = user("chat-player");
+        var viewer = user("chat-viewer");
+        var normal = create("chat-player");
+        assertTrue(chatService.getGameMessages(normal.getId(), null, 20, viewer).isEmpty());
+        assertThrows(fi.bizhop.finanssi2.game.service.NotAllowedException.class,
+                () -> chatService.postGameMessage(normal.getId(), viewer, "viewer post"));
+        var seated = chatService.postGameMessage(normal.getId(), player, "seated post");
+        assertEquals(player.email(), seated.username());
+        assertEquals(player.name(), seated.name());
+        assertThrows(IllegalArgumentException.class, () -> chatService.postGameMessage(normal.getId(), player, "   "));
+        assertThrows(IllegalArgumentException.class, () -> chatService.postGameMessage(normal.getId(), player, "x".repeat(101)));
+
+        var owner = new User("debug-owner", "owner@example.com", "Owner", null, true);
+        var other = new User("debug-other", "other@example.com", "Other", null, true);
+        var debug = gameService.createDebug(owner, 2, GameSettings.DEFAULT);
+        createdGames.add(debug.getId());
+        var debugMessage = chatService.postGameMessage(debug.getId(), owner, "owner post");
+        assertEquals(owner.email(), debugMessage.username());
+        assertEquals(owner.name(), debugMessage.name());
+        assertThrows(fi.bizhop.finanssi2.game.service.NotAllowedException.class,
+                () -> chatService.getGameMessages(debug.getId(), null, 20, other));
+        assertThrows(fi.bizhop.finanssi2.game.service.NotAllowedException.class,
+                () -> chatService.postGameMessage(debug.getId(), other, "other post"));
+    }
+
+    @Test
     void testGameAndEventsRoundTrip() {
         var id = create("a").getId();
         gameService.join(id, user("b"));
