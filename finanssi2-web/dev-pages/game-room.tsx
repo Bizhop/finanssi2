@@ -4,13 +4,15 @@ import ReactDOM from "react-dom/client"
 import { MemoryRouter, Route, Routes } from "react-router"
 import { ToastContainer } from "react-toastify"
 import type { User as FirebaseUser } from "firebase/auth"
-import { Button, Container, Divider, Paper, Stack } from "@mui/material"
+import { Box, Button, Container, Divider, Grid, IconButton, Paper, Stack, Tooltip } from "@mui/material"
+import HomeIcon from "@mui/icons-material/Home"
+import LogoutIcon from "@mui/icons-material/Logout"
+import CasinoIcon from "@mui/icons-material/Casino"
+import { NavLink } from "react-router"
 
 import GameRoom from "../src/components/GameRoom.tsx"
 import { CurrentUserProvider, useCurrentUser } from "../src/components/CurrentUserContext.tsx"
-import Header from "../src/components/Header.tsx"
 import { type StompConnection, StompContext } from "../src/components/StompContext.tsx"
-import { fakeLogin } from "./mocks.ts"
 
 // Real game data, the same files the backend serves from /api/game-data
 import boardFile from "../../finanssi2-backend/src/main/resources/gamedata/pelilauta.json" with { type: "json" }
@@ -72,7 +74,39 @@ const bondOwners: Record<number, string> = { 1: user.uid, 2: olli.uid, 5: pekka.
 const finished = new URLSearchParams(location.search).has("finished")
 const debug = new URLSearchParams(location.search).has("debug")
 const appLayout = location.pathname.endsWith("game-room-layout.html")
-if (appLayout) fakeLogin()
+
+// Visual copy of the app menu, without initializing Firebase in this mock-only page.
+const PreviewHeader = () => (
+    <Box>
+        <Grid container spacing={1}>
+            <Grid size={1} sx={{ textAlign: "center" }}>
+                <NavLink to="/">
+                    <Tooltip title="Front Page">
+                        <IconButton size="small">
+                            <HomeIcon />
+                        </IconButton>
+                    </Tooltip>
+                </NavLink>
+            </Grid>
+            <Grid size={1} sx={{ textAlign: "center" }}>
+                <NavLink to="/games">
+                    <Tooltip title="Games">
+                        <IconButton size="small">
+                            <CasinoIcon />
+                        </IconButton>
+                    </Tooltip>
+                </NavLink>
+            </Grid>
+            <Grid size={1} offset="auto">
+                <Tooltip title="Log out">
+                    <IconButton color="error" size="small">
+                        <LogoutIcon />
+                    </IconButton>
+                </Tooltip>
+            </Grid>
+        </Grid>
+    </Box>
+)
 const game = {
     mode: debug ? "DEBUG" : "NORMAL",
     id: "preview-game",
@@ -306,7 +340,7 @@ ReactDOM.createRoot(document.getElementById("app")!).render(
                 ? (
                     <Container component={Paper} sx={{ height: "100%", display: "flex", flexDirection: "column", pb: 2 }}>
                         <Stack direction="column" sx={{ flex: 1, minHeight: 0 }}>
-                            <Header />
+                            <PreviewHeader />
                             <Divider />
                             <Routes>
                                 <Route path="/games/:id" element={<PreviewRoom />} />
