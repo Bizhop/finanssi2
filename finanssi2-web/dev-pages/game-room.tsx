@@ -338,7 +338,7 @@ ReactDOM.createRoot(document.getElementById("app")!).render(
         <CurrentUserProvider>
             {appLayout
                 ? (
-                    <Container component={Paper} sx={{ height: "100%", display: "flex", flexDirection: "column", pb: 2 }}>
+                    <Container maxWidth={false} component={Paper} sx={{ height: "100%", display: "flex", flexDirection: "column", pb: 2 }}>
                         <Stack direction="column" sx={{ flex: 1, minHeight: 0 }}>
                             <PreviewHeader />
                             <Divider />

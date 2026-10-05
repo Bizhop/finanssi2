@@ -19,6 +19,8 @@ import { BOARD_ASPECT_RATIO } from "./boardLayout.ts"
 
 type GameUpdate = { version: number; events: GameLogEntry[] }
 
+const STACKED_GAME_LAYOUT = "@media (min-width: 1536px) and (max-width: 1799.95px)"
+
 const apiError = (reason: unknown) => reason instanceof Error ? reason.message : "The request failed"
 
 const GameRoomContent = () => {
@@ -324,7 +326,7 @@ const GameRoomContent = () => {
             )}
             {error && <Alert severity="warning">{error}</Alert>}
             <Grid container spacing={2} sx={{ alignItems: "stretch" }}>
-                <Grid size={{ xs: 12, xl: 8 }} sx={{ alignSelf: "start" }}>
+                <Grid size={{ xs: 12, xl: 8 }} sx={{ alignSelf: "start", [STACKED_GAME_LAYOUT]: { flexBasis: "100%", maxWidth: "100%" } }}>
                     <GameBoard
                         game={game}
                         board={board}
@@ -342,9 +344,18 @@ const GameRoomContent = () => {
                 </Grid>
                 <Grid
                     size={{ xs: 12, xl: 4 }}
-                    sx={{ display: "flex", minHeight: 0, alignSelf: { xl: "start" }, aspectRatio: { xl: BOARD_ASPECT_RATIO / 2 } }}
+                    sx={{
+                        display: "flex",
+                        minHeight: 0,
+                        alignSelf: { xl: "start" },
+                        aspectRatio: { xl: BOARD_ASPECT_RATIO / 2 },
+                        [STACKED_GAME_LAYOUT]: { flexBasis: "100%", maxWidth: "100%", alignSelf: "stretch", aspectRatio: "auto" },
+                    }}
                 >
-                    <Stack spacing={1.5} sx={{ width: "100%", minHeight: 0, height: { xs: "auto", xl: "100%" } }}>
+                    <Stack
+                        spacing={1.5}
+                        sx={{ width: "100%", minHeight: 0, height: { xs: "auto", xl: "100%" }, [STACKED_GAME_LAYOUT]: { height: "auto" } }}
+                    >
                         {game.state.players.map((player) => (
                             <PlayerPanel
                                 key={player.uid}
