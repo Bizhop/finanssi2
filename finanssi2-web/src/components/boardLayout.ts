@@ -52,3 +52,7 @@ export const CARD_PLACES = {
         drawn: { left: 59.3 + CARD.width + CARD_GAP, top: CARD.top, width: CARD.width, height: CARD.height },
     },
 }
+
+/** Which side of the board a square is on; corners are 1, 11, 24 and 34 */
+export const squareSide = (square: number): "left" | "top" | "right" | "bottom" | "corner" =>
+    [1, 11, 24, 34].includes(square) ? "corner" : square <= 10 ? "left" : square <= 23 ? "top" : square <= 33 ? "right" : "bottom"

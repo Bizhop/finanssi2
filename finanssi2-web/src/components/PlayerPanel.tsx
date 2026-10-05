@@ -1,7 +1,9 @@
-import type { ReactNode } from "react"
-import { Avatar, Box, Card, CardContent, Chip, Stack, Tooltip, Typography } from "@mui/material"
+import { type ReactNode, useState } from "react"
+import { Avatar, Box, Button, ButtonBase, Card, CardContent, Chip, IconButton, Menu, MenuItem, Stack, Tooltip, Typography } from "@mui/material"
 import { keyframes } from "@emotion/react"
 import AccountBalanceOutlined from "@mui/icons-material/AccountBalanceOutlined"
+import Casino from "@mui/icons-material/Casino"
+import CheckCircleOutlineRounded from "@mui/icons-material/CheckCircleOutlineRounded"
 import DirectionsCarOutlined from "@mui/icons-material/DirectionsCarOutlined"
 import HomeWorkOutlined from "@mui/icons-material/HomeWorkOutlined"
 import PaymentsOutlined from "@mui/icons-material/PaymentsOutlined"
@@ -9,8 +11,9 @@ import ReceiptLongOutlined from "@mui/icons-material/ReceiptLongOutlined"
 import ShowChartOutlined from "@mui/icons-material/ShowChartOutlined"
 import StyleOutlined from "@mui/icons-material/StyleOutlined"
 
-import { CardFace, playerColor, playerShade } from "./GameBoard.tsx"
-import { SquareDetails } from "./SquareDetails.tsx"
+import { CardPeek, playerColor, playerShade } from "./GameBoard.tsx"
+import { BondCard, CarCard, cardPeekSlotProps, CardRow, LoanCard, ShareCard, TitleDeedCard } from "./cards.tsx"
+import { type AssetAction, carAction, loanActions, type PlayerControls, propertyActions, shareActions, stockTipAction } from "./actions.tsx"
 import type { Game, GameBoardData, GamePlayer } from "./gameApi.ts"
 
 const pulse = keyframes`
@@ -18,45 +21,98 @@ const pulse = keyframes`
     50% { box-shadow: 0 0 0 6px rgba(25, 118, 210, 0); }
 `
 
-/** An asset icon with a count; hovering lists the details, or shows `content` instead when given */
-const Asset = ({ icon, count, title, details, content }: { icon: ReactNode; count?: ReactNode; title: string; details?: string[]; content?: ReactNode }) => (
-    <Tooltip
-        arrow
-        slotProps={{ tooltip: { sx: { maxWidth: "none" } } }}
-        title={
-            <Stack spacing={0.5}>
-                <Box sx={{ fontWeight: 700 }}>{title}</Box>
-                {details?.map((line) => <Box key={line}>{line}</Box>)}
-                {content}
-            </Stack>
-        }
-    >
-        <Stack direction="row" spacing={0.4} tabIndex={0} aria-label={title} sx={{ alignItems: "center", cursor: "default", "& svg": { fontSize: 18 } }}>
-            {icon}
-            {count != null && <Typography variant="body2">{count}</Typography>}
-        </Stack>
+const assetSx = { display: "inline-flex", alignItems: "center", gap: 0.4, px: 0.25, borderRadius: 1, "& svg": { fontSize: 18 } } as const
+
+/**
+ * An asset icon with a count. Hovering shows the asset cards (with their actions), or just the title when there are no cards.
+ * `onClick` makes the icon itself an action; `faded` shows an asset the player doesn't have, e.g. no car.
+ */
+const Asset = ({ icon, count, title, cards, onClick, faded }: {
+    icon: ReactNode
+    count?: ReactNode
+    title: string
+    cards?: ReactNode
+    onClick?: (anchor: HTMLElement) => void
+    faded?: boolean
+}) => (
+    <Tooltip arrow={!cards} leaveDelay={cards ? 150 : 0} slotProps={cards ? cardPeekSlotProps : undefined} title={cards ? <CardRow>{cards}</CardRow> : title}>
+        {onClick
+            ? (
+                <ButtonBase
+                    onClick={(event) => onClick(event.currentTarget)}
+                    aria-label={title}
+                    sx={{
+                        ...assetSx,
+                        color: faded ? "text.disabled" : undefined,
+                        "&:hover": { backgroundColor: "action.hover", color: "primary.main" },
+                    }}
+                >
+                    {icon}
+                    {count != null && <Typography variant="body2" component="span">{count}</Typography>}
+                </ButtonBase>
+            )
+            : (
+                <Box component="span" tabIndex={0} aria-label={title} sx={{ ...assetSx, color: faded ? "text.disabled" : undefined, cursor: "default" }}>
+                    {icon}
+                    {count != null && <Typography variant="body2" component="span">{count}</Typography>}
+                </Box>
+            )}
     </Tooltip>
 )
 
+/** A card in a peek, with its actions underneath */
+const ActionCard = ({ card, actions, controls }: { card: ReactNode; actions: AssetAction[]; controls?: PlayerControls }) => (
+    <Stack spacing={0.5}>
+        {card}
+        {controls && actions.length > 0 && (
+            <Stack
+                direction="row"
+                spacing={0.5}
+                useFlexGap
+                sx={{ flexWrap: "wrap", justifyContent: "center", p: 0.5, borderRadius: 1, backgroundColor: "background.paper", boxShadow: 2 }}
+            >
+                {actions.map((action) => (
+                    <Button
+                        key={action.label}
+                        size="small"
+                        variant="outlined"
+                        color={action.request.danger ? "error" : "primary"}
+                        disabled={controls.busy}
+                        onClick={() => controls.confirm(action.request)}
+                    >
+                        {action.label}
+                    </Button>
+                ))}
+            </Stack>
+        )}
+    </Stack>
+)
+
 /** A player's box; the player in turn gets a bold outline and the player the game waits for an action chip */
-export const PlayerPanel = ({ player, game, board, you, inTurn, expected }: {
+export const PlayerPanel = ({ player, game, board, you, inTurn, expected, controls }: {
     player: GamePlayer
     game: Game
     board: GameBoardData | null
     you: boolean
     inTurn: boolean
     expected: string | null
+    /** Given for the player you control: assets become actions and the turn actions show */
+    controls?: PlayerControls
 }) => {
+    const [loanMenu, setLoanMenu] = useState<HTMLElement | null>(null)
     const color = playerColor(player.piece)
+    const allowed = controls?.allowed ?? []
     const properties = game.state.properties.filter((property) => property.owner === player.uid)
     const shares = game.state.shares.filter((share) => share.owner === player.uid)
     const bonds = game.state.bonds.filter((bond) => bond.owner === player.uid)
-    const shareName = (id: string) => {
-        const share = board?.shares.find((item) => item.id === id)
-        if (!share) return "Share"
-        const group = share.group ? board?.groups.find((item) => item.id === share.group)?.name ?? share.group : "Rahasto-osake"
-        return `${group} ${share.dividendPercent} % · value €${share.value.toLocaleString()} · dividend €${share.dividend.toLocaleString()} · bank buys back €${share.buyBack.toLocaleString()}`
+    const car = carAction(allowed, player.car)
+    const loans = loanActions(allowed)
+    const tipTitle = (id: string) => {
+        const card = board?.stockTips.find((item) => item.id === id)
+        return card?.chapters.find((chapter) => chapter.type === "header")?.text ?? "Stock Tip"
     }
+    const usableTips = player.heldStockTips.map((id) => stockTipAction(allowed, id, tipTitle(id))).filter((action) => action != null)
+    const turnActions = controls && (allowed.includes("Roll") || allowed.includes("EndTurn") || inTurn)
     return (
         <Card
             variant="outlined"
@@ -78,29 +134,50 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected }: {
                             {you ? " (you)" : ""}
                             {player.out ? " · out" : ""}
                         </Typography>
-                        <Stack direction="row" spacing={1.5} useFlexGap sx={{ flexWrap: "wrap", mt: 0.25, color: "text.secondary" }}>
+                        <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", mt: 0.25, color: "text.secondary" }}>
                             <Asset icon={<PaymentsOutlined />} count={`€${player.cash.toLocaleString()}`} title="Cash" />
-                            {player.loans > 0 && (
+                            {(player.loans > 0 || controls) && (
                                 <Asset
                                     icon={<AccountBalanceOutlined />}
                                     count={player.loans}
-                                    title={`${player.loans} bank loan${player.loans === 1 ? "" : "s"}`}
+                                    faded={player.loans === 0}
+                                    title={player.loans === 0 ? "No bank loans" : `${player.loans} bank loan${player.loans === 1 ? "" : "s"}`}
+                                    cards={player.loans > 0 ? Array.from({ length: player.loans }, (_, index) => <LoanCard key={index} />) : undefined}
+                                    onClick={loans.length > 0 ? setLoanMenu : undefined}
                                 />
                             )}
-                            {player.car && <Asset icon={<DirectionsCarOutlined />} title="Owns a car" />}
+                            {(player.car || controls) && (
+                                <Asset
+                                    icon={<DirectionsCarOutlined />}
+                                    faded={!player.car}
+                                    title={player.car ? "Car" : car ? "No car: click to buy one" : "No car"}
+                                    cards={player.car ? <ActionCard card={<CarCard />} actions={car ? [car] : []} controls={controls} /> : undefined}
+                                    onClick={car && controls ? () => controls.confirm(car.request) : undefined}
+                                />
+                            )}
                             {properties.length > 0 && (
                                 <Asset
                                     icon={<HomeWorkOutlined />}
                                     count={properties.length}
                                     title="Properties"
-                                    content={
-                                        <Stack direction="row" spacing={2} useFlexGap sx={{ flexWrap: "wrap", maxWidth: 720 }}>
-                                            {properties.map((property) => {
-                                                const square = board?.squares.find((item) => item.square === property.square)
-                                                return square && <SquareDetails key={property.square} square={square} board={board} game={game} />
-                                            })}
-                                        </Stack>
-                                    }
+                                    cards={properties.map((property) => {
+                                        const deed = board?.titleDeeds.find((item) => item.square === property.square)
+                                        return deed && (
+                                            <ActionCard
+                                                key={property.square}
+                                                controls={controls}
+                                                actions={propertyActions(allowed, property, deed)}
+                                                card={
+                                                    <TitleDeedCard
+                                                        deed={deed}
+                                                        groupName={board?.groups.find((group) => group.id === deed.group)?.name}
+                                                        built={property.built}
+                                                        mortgaged={property.mortgaged}
+                                                    />
+                                                }
+                                            />
+                                        )
+                                    })}
                                 />
                             )}
                             {shares.length > 0 && (
@@ -108,7 +185,18 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected }: {
                                     icon={<ShowChartOutlined />}
                                     count={shares.length}
                                     title="Shares"
-                                    details={shares.map((share) => shareName(share.id))}
+                                    cards={shares.map((owned) => {
+                                        const share = board?.shares.find((item) => item.id === owned.id)
+                                        const name = share?.group ? board?.groups.find((group) => group.id === share.group)?.name ?? share.group : "fund"
+                                        return share && (
+                                            <ActionCard
+                                                key={share.id}
+                                                controls={controls}
+                                                actions={shareActions(allowed, share, name)}
+                                                card={<ShareCard share={share} board={board} />}
+                                            />
+                                        )
+                                    })}
                                 />
                             )}
                             {bonds.length > 0 && (
@@ -116,7 +204,7 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected }: {
                                     icon={<ReceiptLongOutlined />}
                                     count={bonds.length}
                                     title="Bonds"
-                                    details={[`No. ${bonds.map((bond) => bond.number).join(", ")}`]}
+                                    cards={bonds.map((bond) => <BondCard key={bond.number} number={bond.number} />)}
                                 />
                             )}
                             {player.heldStockTips.length > 0 && (
@@ -124,25 +212,19 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected }: {
                                     icon={<StyleOutlined />}
                                     count={player.heldStockTips.length}
                                     title="Held Stock Tips"
-                                    content={
-                                        <Stack direction="row" spacing={1}>
-                                            {player.heldStockTips.map((id) => (
-                                                <Box
-                                                    key={id}
-                                                    sx={{
-                                                        width: 200,
-                                                        minHeight: 272,
-                                                        display: "flex",
-                                                        fontSize: 13,
-                                                        "& > *": { height: "auto" },
-                                                        color: "initial",
-                                                    }}
-                                                >
-                                                    <CardFace card={board?.stockTips.find((item) => item.id === id)} fallback="Stock Tip" />
-                                                </Box>
-                                            ))}
-                                        </Stack>
-                                    }
+                                    // With a single playable card the icon plays it; with several, each card's own button does
+                                    onClick={controls && usableTips.length === 1 ? () => controls.confirm(usableTips[0].request) : undefined}
+                                    cards={player.heldStockTips.map((id) => {
+                                        const action = stockTipAction(allowed, id, tipTitle(id))
+                                        return (
+                                            <ActionCard
+                                                key={id}
+                                                controls={controls}
+                                                actions={action ? [action] : []}
+                                                card={<CardPeek card={board?.stockTips.find((item) => item.id === id)} fallback="Stock Tip" />}
+                                            />
+                                        )
+                                    })}
                                 />
                             )}
                         </Stack>
@@ -157,7 +239,59 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected }: {
                         />
                     )}
                 </Stack>
+                {controls && turnActions && (
+                    <Stack direction="row" spacing={1} sx={{ mt: 1.25, alignItems: "center" }}>
+                        <Tooltip title="Roll the dice">
+                            <span>
+                                <IconButton
+                                    aria-label="Roll"
+                                    disabled={!allowed.includes("Roll") || controls.busy}
+                                    onClick={() => controls.send({ type: "Roll" })}
+                                    sx={{
+                                        bgcolor: "primary.main",
+                                        color: "primary.contrastText",
+                                        "&:hover": { bgcolor: "primary.dark" },
+                                        "&.Mui-disabled": { bgcolor: "action.disabledBackground" },
+                                    }}
+                                >
+                                    <Casino />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+                        <Tooltip title="End turn">
+                            <span>
+                                <IconButton
+                                    aria-label="End turn"
+                                    color="success"
+                                    disabled={!allowed.includes("EndTurn") || controls.busy}
+                                    onClick={() => controls.send({ type: "EndTurn" })}
+                                    sx={{ border: 1, borderColor: "currentcolor" }}
+                                >
+                                    <CheckCircleOutlineRounded />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+                    </Stack>
+                )}
+                {controls?.contextActions && (
+                    <Stack direction="row" spacing={1} useFlexGap sx={{ mt: 1, pt: 1, borderTop: 1, borderColor: "divider", flexWrap: "wrap" }}>
+                        {controls.contextActions}
+                    </Stack>
+                )}
             </CardContent>
+            <Menu anchorEl={loanMenu} open={loanMenu != null} onClose={() => setLoanMenu(null)}>
+                {loans.map((action) => (
+                    <MenuItem
+                        key={action.label}
+                        onClick={() => {
+                            setLoanMenu(null)
+                            controls?.confirm(action.request)
+                        }}
+                    >
+                        {action.label}
+                    </MenuItem>
+                ))}
+            </Menu>
         </Card>
     )
 }

@@ -17,7 +17,19 @@ import financeNews from "../../finanssi2-backend/src/main/resources/gamedata/fin
 import stockTips from "../../finanssi2-backend/src/main/resources/gamedata/porssivihjeet.json" with { type: "json" }
 
 const player = { photoUrl: null, car: false, loans: 0, out: false, heldStockTips: [] as string[] }
-const user = { ...player, uid: "tester", name: "Maija Meikäläinen", piece: 0, cash: 93_000, position: 14, car: true, loans: 1, heldStockTips: ["PV-25"] }
+// ?afterRoll previews Maija's turn after rolling: she has moved on to Pörssivihje (20) and drawn a second card to keep
+const afterRoll = new URLSearchParams(location.search).has("afterRoll")
+// No car, so the car icon offers to buy one
+const user = {
+    ...player,
+    uid: "tester",
+    name: "Maija Meikäläinen",
+    piece: 0,
+    cash: 98_000,
+    position: afterRoll ? 20 : 17,
+    loans: 1,
+    heldStockTips: afterRoll ? ["PV-25", "PV-01"] : ["PV-25"],
+}
 const olli = { ...player, uid: "olli", name: "Olli Other", piece: 1, cash: 64_500, position: 31, loans: 2 }
 const pekka = { ...player, uid: "pekka", name: "Pekka Pörssi", piece: 2, cash: 131_000, position: 30 }
 // Shares square 30 with Pekka, whose Sahalaitos she just paid rent for
@@ -105,10 +117,12 @@ const turn = (uid: string, dice: [number, number], from: number) => {
     ]
 }
 const events = [
+    ...turn(user.uid, [3, 4], 10),
+    { type: "NotImplemented", player: user.uid, square: 17, squareType: "CONSTRUCTION" },
+    { type: "TurnEnded", player: user.uid },
     ...turn(olli.uid, [5, 6], 20),
     { type: "FinanceNewsDrawn", player: olli.uid, card: "FL-01", replaced: null },
     // FL-01 also raises the car tax: every car owner pays 5,000
-    { type: "MoneyTransferred", from: user.uid, to: null, amount: 5_000, reason: "FINANCE_NEWS" },
     { type: "MoneyTransferred", from: liisa.uid, to: null, amount: 5_000, reason: "FINANCE_NEWS" },
     { type: "TurnEnded", player: olli.uid },
     ...turn(pekka.uid, [3, 4], 23),
@@ -117,9 +131,17 @@ const events = [
     { type: "RentCharged", player: liisa.uid, owner: pekka.uid, square: 30, amount: 20_000, doubled: false },
     { type: "MoneyTransferred", from: liisa.uid, to: pekka.uid, amount: 20_000, reason: "RENT" },
     { type: "TurnEnded", player: liisa.uid },
-    // Maija's current turn: the Stock Tip she draws and keeps stays face up on the board until the turn ends
-    ...turn(user.uid, [3, 4], 7),
-    { type: "StockTipDrawn", player: user.uid, card: "PV-25", held: true },
+    // Maija starts her turn on Rakennusprojekti Oy (17), so she may build before rolling
+    { type: "TurnStarted", player: user.uid },
+    ...afterRoll
+        ? [
+            { type: "DiceRolled", player: user.uid, dice: [1, 2] },
+            { type: "PieceMoved", player: user.uid, from: 17, to: 20 },
+            { type: "LandedOn", player: user.uid, square: 20 },
+            // Stays face up on the board until the turn ends
+            { type: "StockTipDrawn", player: user.uid, card: "PV-01", held: true },
+        ]
+        : [],
 ].map((event, index) => ({ id: `preview-game:${index + 1}`, seq: index + 1, time: 0, type: event.type, event }))
 
 const PreviewRoom = () => {
@@ -139,21 +161,27 @@ globalThis.fetch = (input, init) => {
         return Promise.resolve(Response.json({
             game,
             actingPlayer: game.state.currentPlayer,
-            allowedCommands: finished ? [] : [
-                "Roll",
-                "EndTurn",
-                "BuyCar",
-                "BuyProperty",
-                "BuyShare",
-                "Mortgage",
-                "Redeem",
-                "SellBackProperty",
-                "SellBackShare",
-                "Build",
-                "CallShareholdersMeeting",
-                "UseHeldStockTip",
-                "EndGame",
-            ],
+            // What the backend allows Maija: building and buying only before the roll (she is on square 17), ending the turn only after it.
+            // FL-01 is active, so the bank grants no new loans.
+            allowedCommands: finished || game.state.currentPlayer !== user.uid
+                ? []
+                : afterRoll
+                ? ["EndTurn", "RepayLoan", "Mortgage", "SellBackProperty", "SellBackShare", "UseHeldStockTip", "Resign"]
+                : [
+                    "Roll",
+                    "BuyCar",
+                    "RepayLoan",
+                    "BuyProperty",
+                    "BuyShare",
+                    "Mortgage",
+                    "Redeem",
+                    "SellBackProperty",
+                    "SellBackShare",
+                    "Build",
+                    "UseHeldStockTip",
+                    "CallShareholdersMeeting",
+                    "Resign",
+                ],
         }))
     }
     if (path === "/api/me/capabilities") return Promise.resolve(Response.json({ debugMode: debug }))

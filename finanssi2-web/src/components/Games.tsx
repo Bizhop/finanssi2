@@ -44,6 +44,8 @@ const Games = () => {
     const [debugCreateOpen, setDebugCreateOpen] = useState(false)
     const [playerCount, setPlayerCount] = useState(2)
     const [busyGame, setBusyGame] = useState<string | null>(null)
+    // Creator controls that remove a game from play: ending a running game, or deleting a debug game
+    const [closing, setClosing] = useState<{ game: Game; action: "end" | "delete" } | null>(null)
 
     const refresh = useCallback(() => {
         if (!user) return Promise.resolve()
@@ -130,6 +132,19 @@ const Games = () => {
     const startGame = (game: Game) => {
         if (!user) return
         void run(game.id, () => gameApi(user, `/api/games/${game.id}/start`, { method: "POST" }), () => navigate(`/games/${game.id}`))
+    }
+
+    const closeGame = () => {
+        if (!user || !closing) return
+        const { game, action } = closing
+        setClosing(null)
+        void run(
+            game.id,
+            () =>
+                action === "delete"
+                    ? gameApi<void>(user, `/api/debug/games/${game.id}`, { method: "DELETE" })
+                    : gameApi(user, `/api/games/${game.id}/commands`, { method: "POST", body: JSON.stringify({ type: "EndGame" }) }),
+        )
     }
 
     const openSettings = (game: Game) => {
@@ -249,6 +264,26 @@ const Games = () => {
                                                 {game.status === "FINISHED" ? "Results" : "Open game"}
                                             </Button>
                                         )}
+                                        {creator && game.mode !== "DEBUG" && game.status === "RUNNING" && (
+                                            <Button
+                                                color="error"
+                                                sx={{ ml: "auto" }}
+                                                disabled={busyGame !== null}
+                                                onClick={() => setClosing({ game, action: "end" })}
+                                            >
+                                                End game
+                                            </Button>
+                                        )}
+                                        {creator && game.mode === "DEBUG" && (
+                                            <Button
+                                                color="error"
+                                                sx={{ ml: "auto" }}
+                                                disabled={busyGame !== null}
+                                                onClick={() => setClosing({ game, action: "delete" })}
+                                            >
+                                                Delete
+                                            </Button>
+                                        )}
                                     </CardActions>
                                 </Card>
                             )
@@ -294,6 +329,18 @@ const Games = () => {
                 <DialogActions>
                     <Button onClick={() => setDebugCreateOpen(false)}>Cancel</Button>
                     <Button disabled={busyGame !== null} onClick={createDebug}>Create</Button>
+                </DialogActions>
+            </Dialog>
+            <Dialog open={closing !== null} onClose={() => setClosing(null)}>
+                <DialogTitle>{closing?.action === "delete" ? "Delete this debug game?" : "End this game?"}</DialogTitle>
+                <DialogContent>
+                    {closing?.action === "delete" ? "This removes the game and all its history." : "The game will be closed without a winner."}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setClosing(null)}>Cancel</Button>
+                    <Button variant="contained" color="error" disabled={busyGame !== null} onClick={closeGame}>
+                        {closing?.action === "delete" ? "Delete" : "End game"}
+                    </Button>
                 </DialogActions>
             </Dialog>
             <Dialog open={settingsGame !== null} onClose={() => setSettingsGame(null)} fullWidth maxWidth="xs">

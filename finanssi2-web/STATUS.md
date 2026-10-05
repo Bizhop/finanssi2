@@ -38,12 +38,12 @@ Updated 2026-10-02 after implementing private debug games and the prerequisite a
 ## Private debug games
 
 - Capabilities load after sign-in, clear on account changes and refresh on reconnect. STOMP reconnects on account changes. Eligible users can create 2–6-seat
-  debug games with settings; lists and rooms label the mode. Debug lobbies can be opened for deletion before starting.
+  debug games with settings; lists and rooms label the mode. Creators delete debug games (any status) from the game list.
 - Rooms distinguish the authenticated account from `actingPlayer`, display “Controlling: …” and follow every turn/decision. Asset ownership, held cards and
   out-of-turn controls use the effective seat; creator closure still uses the account.
 - Debug commands submit the displayed actor/version and optional command-only dice. Inputs clear after submission; 409 reloads without replay. Controls are
   disabled while requests run. Finance News/Stock Tip selectors exclude held cards.
-- Confirmed deletion handles empty 204 and returns to the list. Private deletion notifications leave other rooms; 403/capability removal clears access and
+- Creators end running normal games and delete debug games from the game list, after confirmation; deletion handles empty 204. Private deletion notifications leave other rooms; 403/capability removal clears access and
   leaves the room. Owned lists refresh on reconnect because debug lifecycle stays off the public topic.
 - API transport accepts all empty successful bodies and preserves error status. Two Deno tests cover 200/204 and single-request 403/409 failures. Typechecking
   corrected inherited MUI 9 system props to `sx` and select configuration to `slotProps`.

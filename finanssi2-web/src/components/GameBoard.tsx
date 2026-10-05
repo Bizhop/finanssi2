@@ -1,11 +1,15 @@
-import { Avatar, Box, Stack, Tooltip, Typography } from "@mui/material"
+import { Avatar, Box, IconButton, Tooltip, Typography } from "@mui/material"
+import AddHome from "@mui/icons-material/AddHome"
+import FactoryRounded from "@mui/icons-material/FactoryRounded"
+import HomeRounded from "@mui/icons-material/HomeRounded"
 
 import boardImage from "../assets/board.webp"
 import financeNewsBack from "../assets/cards/finance-news-back.webp"
 import stockTipBack from "../assets/cards/stock-tip-back.webp"
-import { BOARD_ASPECT_RATIO, CARD_PLACES, type SquareRect, squareRect } from "./boardLayout.ts"
+import { BOARD_ASPECT_RATIO, CARD_PLACES, type SquareRect, squareRect, squareSide } from "./boardLayout.ts"
 import type { Card, Game, GameBoardData } from "./gameApi.ts"
 import { SquareDetails } from "./SquareDetails.tsx"
+import { cardPeekSlotProps } from "./cards.tsx"
 
 const playerHue = (piece: number) => piece * 61 % 360
 export const playerColor = (piece: number) => `hsl(${playerHue(piece)} 58% 44%)`
@@ -50,6 +54,8 @@ export const CardFace = ({ card, fallback, label }: { card: Card | undefined; fa
             gap: "0.45em",
             borderRadius: "0.4em",
             backgroundColor: "#f3f5f7",
+            // Printed edge of the card
+            boxShadow: "inset 0 0 0 0.06em #c3c9d1",
             color: CARD_INK,
             textAlign: "center",
             fontFamily: "Helvetica, Arial, sans-serif",
@@ -73,16 +79,23 @@ export const CardFace = ({ card, fallback, label }: { card: Card | undefined; fa
     </Box>
 )
 
+/** A Finance News or Stock Tip card at a readable size, for peeks */
+export const CardPeek = ({ card, fallback, label }: { card: Card | undefined; fallback: string; label?: string }) => (
+    <Box sx={{ width: 240, minHeight: 327, display: "flex", fontSize: 15, borderRadius: "0.4em", boxShadow: "0 0.2em 0.7em rgba(0,0,0,0.45)" }}>
+        <CardFace card={card} fallback={fallback} label={label} />
+    </Box>
+)
+
 /** A face-up card on the board; hovering or tapping shows it at a readable size */
 const DrawnCard = (
     { rect, card, fallback, label, caption }: { rect: SquareRect; card: Card | undefined; fallback: string; label?: string; caption?: string },
 ) => (
     <Tooltip
         placement="top"
-        slotProps={{ tooltip: { sx: { p: 0, maxWidth: "none", backgroundColor: "transparent", boxShadow: 6 } } }}
+        slotProps={cardPeekSlotProps}
         title={
-            <Box sx={{ width: 240, minHeight: 327, display: "flex", fontSize: 15 }}>
-                <CardFace card={card} fallback={fallback} label={label} />
+            <Box sx={{ p: 1 }}>
+                <CardPeek card={card} fallback={fallback} label={label} />
             </Box>
         }
     >
@@ -112,6 +125,32 @@ const DrawnCard = (
     </Tooltip>
 )
 
+/** Where a building stands on its square: at the outer edge over the printed price, which no longer matters once built */
+const BUILDING_POSITION = {
+    left: { left: "4%", top: "50%", transform: "translateY(-50%)" },
+    right: { right: "4%", top: "50%", transform: "translateY(-50%)" },
+    top: { top: "4%", left: "50%", transform: "translateX(-50%)" },
+    bottom: { bottom: "4%", left: "50%", transform: "translateX(-50%)" },
+    corner: { right: "4%", top: "4%" },
+}
+
+/** A building on a square: red for ordinary buildings, black for industrial plants, as in the physical game */
+const Building = ({ square, industrial }: { square: number; industrial: boolean }) => (
+    <Box
+        sx={{
+            position: "absolute",
+            ...BUILDING_POSITION[squareSide(square)],
+            display: "flex",
+            color: industrial ? "#151515" : "#c62828",
+            filter: "drop-shadow(0 0 0.15cqw #fff) drop-shadow(0 0 0.15cqw #fff) drop-shadow(0 0.15cqw 0.3cqw rgba(0,0,0,0.6))",
+            "& svg": { fontSize: "max(13px, 2.1cqw)" },
+            pointerEvents: "none",
+        }}
+    >
+        {industrial ? <FactoryRounded /> : <HomeRounded />}
+    </Box>
+)
+
 const Deck = ({ rect, image, name }: { rect: SquareRect; image: string; name: string }) => (
     <Box
         component="img"
@@ -127,10 +166,13 @@ const Deck = ({ rect, image, name }: { rect: SquareRect; image: string; name: st
     />
 )
 
-export const GameBoard = ({ game, board, lastStockTip }: {
+export const GameBoard = ({ game, board, lastStockTip, buildable = [], onBuild }: {
     game: Game
     board: GameBoardData | null
     lastStockTip: { card: string; drawnBy: string; held: boolean } | null
+    /** Squares you can build on right now; each gets a build button */
+    buildable?: number[]
+    onBuild?: (square: number) => void
 }) => {
     const propertyBySquare = new Map(game.state.properties.map((property) => [property.square, property]))
     const activeNews = game.state.activeFinanceNews
@@ -158,13 +200,8 @@ export const GameBoard = ({ game, board, lastStockTip }: {
                             key={square.square}
                             arrow
                             disableInteractive
-                            slotProps={{ tooltip: { sx: { maxWidth: "none" } } }}
-                            title={
-                                <Stack spacing={0.75}>
-                                    <SquareDetails square={square} board={board} game={game} />
-                                    {tokens.length > 0 && <Box>Here: {tokens.map((player) => player.name).join(", ")}</Box>}
-                                </Stack>
-                            }
+                            slotProps={cardPeekSlotProps}
+                            title={<SquareDetails square={square} board={board} game={game} here={tokens.map((player) => player.name)} />}
                         >
                             <Box
                                 sx={{
@@ -180,6 +217,30 @@ export const GameBoard = ({ game, board, lastStockTip }: {
                                     border: owner ? `0.35cqw ${property?.mortgaged ? "dashed" : "solid"} ${playerColor(owner.piece)}` : undefined,
                                 }}
                             >
+                                {property?.built && (
+                                    <Building
+                                        square={square.square}
+                                        industrial={board?.titleDeeds.find((deed) => deed.square === square.square)?.building?.label === "Teollisuus"}
+                                    />
+                                )}
+                                {onBuild && buildable.includes(square.square) && (
+                                    <IconButton
+                                        aria-label={`Build on ${square.name}`}
+                                        onClick={() => onBuild(square.square)}
+                                        sx={{
+                                            position: "absolute",
+                                            ...BUILDING_POSITION[squareSide(square.square)],
+                                            p: "0.2cqw",
+                                            color: "#c62828",
+                                            backgroundColor: "rgba(255,255,255,0.85)",
+                                            border: "0.12cqw dashed #c62828",
+                                            "&:hover": { backgroundColor: "#fff" },
+                                            "& svg": { fontSize: "max(13px, 1.7cqw)" },
+                                        }}
+                                    >
+                                        <AddHome />
+                                    </IconButton>
+                                )}
                                 {tokens.map((player) => (
                                     <Avatar
                                         key={player.uid}
