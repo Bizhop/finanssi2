@@ -371,7 +371,6 @@ const GameRoomContent = () => {
                             </Alert>
                         )}
                         <GameWindow
-                            title="Game activity"
                             fill
                             tabs={[
                                 {
