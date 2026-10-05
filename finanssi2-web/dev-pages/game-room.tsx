@@ -4,11 +4,13 @@ import ReactDOM from "react-dom/client"
 import { MemoryRouter, Route, Routes } from "react-router"
 import { ToastContainer } from "react-toastify"
 import type { User as FirebaseUser } from "firebase/auth"
-import { Button, Stack } from "@mui/material"
+import { Button, Container, Divider, Paper, Stack } from "@mui/material"
 
 import GameRoom from "../src/components/GameRoom.tsx"
 import { CurrentUserProvider, useCurrentUser } from "../src/components/CurrentUserContext.tsx"
+import Header from "../src/components/Header.tsx"
 import { type StompConnection, StompContext } from "../src/components/StompContext.tsx"
+import { fakeLogin } from "./mocks.ts"
 
 // Real game data, the same files the backend serves from /api/game-data
 import boardFile from "../../finanssi2-backend/src/main/resources/gamedata/pelilauta.json" with { type: "json" }
@@ -69,6 +71,8 @@ const bondOwners: Record<number, string> = { 1: user.uid, 2: olli.uid, 5: pekka.
 
 const finished = new URLSearchParams(location.search).has("finished")
 const debug = new URLSearchParams(location.search).has("debug")
+const appLayout = location.pathname.endsWith("game-room-layout.html")
+if (appLayout) fakeLogin()
 const game = {
     mode: debug ? "DEBUG" : "NORMAL",
     id: "preview-game",
@@ -190,7 +194,25 @@ const PreviewRoom = () => {
     return (
         <StompContext.Provider value={previewConnection}>
             <Stack spacing={1} sx={{ minHeight: 0, flex: 1 }}>
-                <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
+                <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{
+                        flexWrap: "wrap",
+                        ...(appLayout &&
+                            {
+                                position: "fixed",
+                                top: 16,
+                                left: "50%",
+                                transform: "translateX(-50%)",
+                                zIndex: 1300,
+                                bgcolor: "background.paper",
+                                p: 1,
+                                borderRadius: 1,
+                                boxShadow: 2,
+                            }),
+                    }}
+                >
                     <Button size="small" onClick={sendIncoming}>Simulate incoming chat</Button>
                     <Button size="small" onClick={() => setConnected((current) => !current)}>{connected ? "Disconnect" : "Reconnect"}</Button>
                     <Button size="small" onClick={() => setViewer((current) => !current)}>{viewer ? "Use seated account" : "View as spectator"}</Button>
@@ -280,9 +302,23 @@ globalThis.fetch = (input, init) => {
 ReactDOM.createRoot(document.getElementById("app")!).render(
     <MemoryRouter initialEntries={["/games/preview-game"]}>
         <CurrentUserProvider>
-            <Routes>
-                <Route path="/games/:id" element={<PreviewRoom />} />
-            </Routes>
+            {appLayout
+                ? (
+                    <Container component={Paper} sx={{ height: "100%", display: "flex", flexDirection: "column", pb: 2 }}>
+                        <Stack direction="column" sx={{ flex: 1, minHeight: 0 }}>
+                            <Header />
+                            <Divider />
+                            <Routes>
+                                <Route path="/games/:id" element={<PreviewRoom />} />
+                            </Routes>
+                        </Stack>
+                    </Container>
+                )
+                : (
+                    <Routes>
+                        <Route path="/games/:id" element={<PreviewRoom />} />
+                    </Routes>
+                )}
             <ToastContainer autoClose={1500} position="top-center" />
         </CurrentUserProvider>
     </MemoryRouter>,
