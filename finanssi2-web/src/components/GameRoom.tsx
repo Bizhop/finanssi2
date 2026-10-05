@@ -15,6 +15,7 @@ import { useCurrentUser } from "./CurrentUserContext.tsx"
 import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
 import { Game, gameApi, GameApiError, GameBoardData, GameView } from "./gameApi.ts"
 import { describeEvent, GameLogEntry } from "./gameEvents.ts"
+import { BOARD_ASPECT_RATIO } from "./boardLayout.ts"
 
 type GameUpdate = { version: number; events: GameLogEntry[] }
 
@@ -339,7 +340,10 @@ const GameRoomContent = () => {
                         turnStockTip={turnStockTip ? String(turnStockTip.event.card) : null}
                     />
                 </Grid>
-                <Grid size={{ xs: 12, xl: 4 }} sx={{ display: "flex", minHeight: 0 }}>
+                <Grid
+                    size={{ xs: 12, xl: 4 }}
+                    sx={{ display: "flex", minHeight: 0, alignSelf: { xl: "start" }, aspectRatio: { xl: BOARD_ASPECT_RATIO / 2 } }}
+                >
                     <Stack spacing={1.5} sx={{ width: "100%", minHeight: 0, height: { xs: "auto", xl: "100%" } }}>
                         {game.state.players.map((player) => (
                             <PlayerPanel
