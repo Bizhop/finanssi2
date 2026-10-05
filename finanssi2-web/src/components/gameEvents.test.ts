@@ -16,7 +16,7 @@ const expect = (actual: string, expected: string) => {
 Deno.test("event descriptions name players, squares, dice, cards and money", () => {
     expect(describeEvent(entry("DiceRolled", { player: "a", dice: [3, 4] }), context), "Alice rolled 3 + 4 = 7")
     expect(describeEvent(entry("LandedOn", { player: "a", square: 5 }), context), "Alice landed on Maalaamo (5)")
-    expect(describeEvent(entry("StockTipDrawn", { player: "b", card: "PV-03", held: false }), context), "Bob drew Stock Tip PV-03 “Rahasto-osakeanti”")
+    expect(describeEvent(entry("StockTipDrawn", { player: "b", card: "PV-03", held: false }), context), "Bob drew Stock Tip “Rahasto-osakeanti”")
     expect(
         describeEvent(entry("MoneyTransferred", { from: "a", to: null, amount: 12500, reason: "RENT" }), context),
         `Alice paid €${(12500).toLocaleString()} to the bank (rent)`,

@@ -67,7 +67,7 @@ export const assetName = (board: GameBoardData | null, asset: unknown) => {
 export const cardTitle = (board: GameBoardData | null, id: unknown) => {
     const card = [...(board?.financeNews ?? []), ...(board?.stockTips ?? [])].find((item) => item.id === id)
     const header = card?.chapters.find((chapter) => chapter.type === "header")?.text ?? card?.chapters[0]?.text
-    return header ? `${id} “${header}”` : String(id)
+    return header ? `“${header}”` : "a card"
 }
 
 const list = (values: unknown, format: (value: unknown) => string) => Array.isArray(values) && values.length > 0 ? values.map(format).join(", ") : "none"

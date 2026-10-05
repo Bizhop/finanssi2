@@ -32,7 +32,7 @@ class ShareholdersMeetingTest {
 
     @Test
     void failedMeetingCostsFeeAndDoesNotTransferAssets() {
-        var game = TestGame.players("A", "B").at("A", 35).owns("A", 12).owns("B", 15).built(15)
+        var game = TestGame.players("A", "B").at("A", 35).owns("A", 12, 13).owns("B", 15).built(15)
                 .ownsShares("A", "OS-LIIKEKESKUS-3").ownsShares("B", "OS-LIIKEKESKUS-1", "OS-LIIKEKESKUS-2")
                 .cash("A", 1_000_000).state();
 
@@ -48,7 +48,7 @@ class ShareholdersMeetingTest {
 
     @Test
     void highestFeeSucceedsWithoutRollingAndFinanceNewsCanStopMeetings() {
-        var game = TestGame.players("A", "B").at("A", 46).owns("A", 12).owns("B", 15).mortgaged(15)
+        var game = TestGame.players("A", "B").at("A", 46).owns("A", 12, 13).owns("B", 15).mortgaged(15)
                 .ownsShares("A", "OS-LIIKEKESKUS-3").ownsShares("B", "OS-LIIKEKESKUS-1", "OS-LIIKEKESKUS-2")
                 .cash("A", 1_000_000).state();
         var events = send(game, "A", new GameCommand.CallShareholdersMeeting("LIIKEKESKUS", 120_000));
@@ -64,7 +64,7 @@ class ShareholdersMeetingTest {
 
     @Test
     void lowSuccessfulFeeGoesEntirelyToBank() {
-        var game = TestGame.players("A", "B").at("A", 35).owns("A", 12).owns("B", 15)
+        var game = TestGame.players("A", "B").at("A", 35).owns("A", 12, 13).owns("B", 15)
                 .ownsShares("A", "OS-LIIKEKESKUS-3").ownsShares("B", "OS-LIIKEKESKUS-1", "OS-LIIKEKESKUS-2")
                 .cash("A", 1_000_000).state();
 
@@ -94,21 +94,54 @@ class ShareholdersMeetingTest {
     @Test
     void meetingRequiresBankLocationBeforeRollAndSufficientFunds() {
         var command = new GameCommand.CallShareholdersMeeting("LIIKEKESKUS", 20_000);
-        var outsideBank = TestGame.players("A", "B").at("A", 34).owns("A", 12).owns("B", 15)
-                .ownsShares("B", "OS-LIIKEKESKUS-1");
+        // Every asset of the group is owned, so each case is rejected for its own reason
+        var outsideBank = meetingReady().at("A", 34);
         EngineTests.assertRejected(RuleViolation.class, outsideBank.state(), "A", command);
 
-        var afterRoll = TestGame.players("A", "B").at("A", 35).owns("A", 12).owns("B", 15)
-                .ownsShares("B", "OS-LIIKEKESKUS-1").afterRoll();
+        var afterRoll = meetingReady().afterRoll();
         EngineTests.assertRejected(RuleViolation.class, afterRoll.state(), "A", command);
 
-        var insufficient = TestGame.players("A", "B").at("A", 35).owns("A", 12).owns("B", 15)
-                .ownsShares("B", "OS-LIIKEKESKUS-1").cash("A", 80_000);
+        // Takeover 70 000 (B's 15 and one share) plus the 20 000 fee
+        var insufficient = meetingReady().cash("A", 80_000);
         EngineTests.assertRejected(RuleViolation.class, insufficient.state(), "A", command);
 
-        var invalidFee = TestGame.players("A", "B").at("A", 35).owns("A", 12).owns("B", 15)
-                .ownsShares("B", "OS-LIIKEKESKUS-1").cash("A", 1_000_000);
+        var invalidFee = meetingReady().cash("A", 1_000_000);
         EngineTests.assertRejected(RuleViolation.class, invalidFee.state(), "A",
                 new GameCommand.CallShareholdersMeeting("LIIKEKESKUS", 25_000));
+    }
+
+    @Test
+    void meetingRequiresEveryAssetOfTheGroupBoughtFromTheBank() {
+        var command = new GameCommand.CallShareholdersMeeting("LIIKEKESKUS", 20_000);
+        EngineTests.assertRejected(RuleViolation.class,
+                TestGame.players("A", "B").at("A", 35).owns("A", 12, 13).owns("B", 15).ownsShares("A", "OS-LIIKEKESKUS-3")
+                        .ownsShares("B", "OS-LIIKEKESKUS-1").cash("A", 1_000_000).state(), "A", command);
+        EngineTests.assertRejected(RuleViolation.class,
+                TestGame.players("A", "B").at("A", 35).owns("A", 12).owns("B", 15)
+                        .ownsShares("A", "OS-LIIKEKESKUS-2", "OS-LIIKEKESKUS-3").ownsShares("B", "OS-LIIKEKESKUS-1")
+                        .cash("A", 1_000_000).state(), "A", command);
+        assertTrue(ENGINE.allowedCommands(meetingReady().cash("A", 1_000_000).state(), "A").contains("CallShareholdersMeeting"));
+    }
+
+    @Test
+    void printedRulesAllowMeetingWhileAssetsAreStillInTheBank() {
+        // Property 13 and share 2 are still in the bank; with the printed rules they simply stay out of the takeover
+        var game = TestGame.players("A", "B").at("A", 35).owns("A", 12).owns("B", 15).ownsShares("A", "OS-LIIKEKESKUS-3")
+                .ownsShares("B", "OS-LIIKEKESKUS-1").cash("A", 1_000_000).state();
+        game.setSettings(new GameSettings(LoanLimit.OFFICIAL, CompulsorySaleMinimumBid.NONE, ShareholdersMeeting.ANY_OTHER_OWNER));
+
+        var events = ENGINE.handle(game, "A", new GameCommand.CallShareholdersMeeting("LIIKEKESKUS", 120_000), new ScriptedDice());
+
+        assertEquals("A", game.property(15).getOwner());
+        assertNull(game.property(13).getOwner());
+        assertNull(game.share("OS-LIIKEKESKUS-2").getOwner());
+        assertTrue(events.contains(new GameEvent.ShareholdersMeetingResolved("A", "LIIKEKESKUS", 120_000, 70_000,
+                java.util.List.of(), true)));
+    }
+
+    /** A at the bank before rolling, sharing Liikekeskus Oy with B, every property and share bought */
+    private static TestGame meetingReady() {
+        return TestGame.players("A", "B").at("A", 35).owns("A", 12, 13).owns("B", 15)
+                .ownsShares("A", "OS-LIIKEKESKUS-2", "OS-LIIKEKESKUS-3").ownsShares("B", "OS-LIIKEKESKUS-1");
     }
 }

@@ -295,8 +295,8 @@ class PropertiesAndSharesTest {
     @Test
     void testBankruptcyReturnsAssets() {
         // No loans left under the official limit, and a mortgaged property adds nothing while raising funds
-        var state = TestGame.players("a", "b", "c").owns("b", 23).built(23).owns("a", 3).mortgaged(3).loans("b", 3).loans("c", 3)
-                .ownsShares("a", "OS-RAHASTO-25").cash("a", 0).at("a", 22).state();
+        var state = TestGame.players("a", "b", "c").settings(GameSettings.ORIGINAL).owns("b", 23).built(23).owns("a", 3).mortgaged(3)
+                .loans("b", 3).loans("c", 3).ownsShares("a", "OS-RAHASTO-25").cash("a", 0).at("a", 22).state();
         roll(state, 1);
         // Selling the fund share back (25 000) is not enough for the 60 000 rent, so bankruptcy is allowed; the creditor gets the cash
         assertTrue(ENGINE.allowedCommands(state, "a").contains("DeclareBankruptcy"));

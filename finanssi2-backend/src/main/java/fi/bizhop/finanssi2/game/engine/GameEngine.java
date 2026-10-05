@@ -362,6 +362,9 @@ public class GameEngine {
                                 && meeting.brokerageFee() % 10_000 == 0, "Invalid brokerage fee");
                 require(ownershipOwnsGroupAsset(state, player.getUid(), meeting.group()), "You own no asset in this group");
                 require(groupHasOtherOwner(state, player.getUid(), meeting.group()), "Other players own no assets in this group");
+                // House rule (the default): a meeting takes over all of the group from the other owners, so nothing may be left in the bank
+                require(state.getSettings().shareholdersMeeting() != ShareholdersMeeting.ALL_ASSETS_BOUGHT || groupBoughtFromBank(state, meeting.group()),
+                        "Every property and share of the group must be bought from the bank first");
                 require(player.getCash() >= shareholdersMeetingTakeoverSum(state, meeting.group(), player.getUid())
                                 + meeting.brokerageFee(), "Not enough cash for the takeover and brokerage fee");
             }
@@ -1373,6 +1376,11 @@ public class GameEngine {
         var groupData = gameData.group(group);
         return groupData.properties().stream().anyMatch(square -> uid.equals(state.property(square).getOwner()))
                 || gameData.sharesOf(group).stream().anyMatch(share -> uid.equals(state.share(share.id()).getOwner()));
+    }
+
+    private boolean groupBoughtFromBank(GameState state, String group) {
+        return gameData.group(group).properties().stream().allMatch(square -> state.property(square).getOwner() != null)
+                && gameData.sharesOf(group).stream().allMatch(share -> state.share(share.id()).getOwner() != null);
     }
 
     private boolean groupHasOtherOwner(GameState state, String uid, String group) {

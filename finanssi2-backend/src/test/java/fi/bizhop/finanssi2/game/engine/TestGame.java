@@ -45,6 +45,12 @@ public class TestGame {
         return player(uid, player -> player.setLoans(loans));
     }
 
+    /** Plays with the given rules; games default to the recommended ones, {@link GameSettings#ORIGINAL} is the printed rules */
+    public TestGame settings(GameSettings settings) {
+        state.setSettings(settings);
+        return this;
+    }
+
     public TestGame loanLimit(LoanLimit loanLimit) {
         state.setSettings(new GameSettings(loanLimit));
         return this;

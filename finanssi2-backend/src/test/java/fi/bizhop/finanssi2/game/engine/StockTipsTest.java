@@ -102,7 +102,8 @@ class StockTipsTest {
 
     @Test
     void compulsorySaleUsesSealedBidsAndCurrentTurnOrderForTies() {
-        var state = TestGame.players("a", "b", "c").owns("a", 3).state();
+        // Original rules: no minimum bid, so the 500 bids are valid
+        var state = TestGame.players("a", "b", "c").settings(GameSettings.ORIGINAL).owns("a", 3).state();
         state.getStockTipDeck().add("PV-36");
         ENGINE.drawStockTip(state, state.current(), new ScriptedDice());
         EngineTests.send(state, "a", new GameCommand.ChooseStockTipOption("P:3"));

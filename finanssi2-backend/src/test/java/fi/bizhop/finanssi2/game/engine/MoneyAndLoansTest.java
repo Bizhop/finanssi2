@@ -207,7 +207,8 @@ class MoneyAndLoansTest {
     @Test
     void testBankruptcyWhenNothingCanBeRaised() {
         // Official limit: b and c hold the other 5 loans, so a cannot borrow to pay the 5 000 interest
-        var state = TestGame.players("a", "b", "c").at("a", 45).loans("a", 1).loans("b", 3).loans("c", 2).cash("a", 1_500).state();
+        var state = TestGame.players("a", "b", "c").settings(GameSettings.ORIGINAL).at("a", 45).loans("a", 1).loans("b", 3).loans("c", 2)
+                .cash("a", 1_500).state();
         roll(state, 2);
         assertRejected(RuleViolation.class, state, "a", new Pay());
 
@@ -237,7 +238,8 @@ class MoneyAndLoansTest {
 
     @Test
     void bankruptcyLiquidatesLoansCarSharesAndBestPropertyOptionBeforePayingCreditor() {
-        var state = TestGame.players("a", "b").at("a", 45).car("a").owns("a", 3)
+        // Official loan limit: with b holding 4 loans, a can take only 2
+        var state = TestGame.players("a", "b").settings(GameSettings.ORIGINAL).at("a", 45).car("a").owns("a", 3)
                 .ownsShares("a", "OS-KASITEOLLISUUS-1").loans("b", 4).cash("a", 1_000).state();
         state.bond(1).setOwner("a");
         player(state, "a").getHeldStockTips().add("PV-01");

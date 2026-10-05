@@ -24,11 +24,13 @@ Updated 2026-10-02 after implementing private debug games and the prerequisite a
   `StompContext.tsx`. The frontend uses React, Material UI, Deno and Vite.
 - Send game commands over REST. Broadcasts contain events and a version, so the room fetches current state on every update; event sequence gaps trigger an
   incremental history fetch. Backend `allowedCommands` controls action types, and the backend remains responsible for validating their parameters.
-- The settings dialog marks unlimited bank loans as recommended, while backend-created games default to the official six-loan bank limit. Opening settings uses
-  the game's stored values; creation does not automatically apply the house rule. Compulsory sale bids default to no minimum, with half the nominal price
-  available as a house rule.
-- Visual redesign and live multiplayer review were explicitly deferred by the developer. The current board is a six-column grid; `../input/board.png` is the
-  physical-board reference for later visual work.
+- Rule settings tag the developer's house rules as recommended and the printed rules as original. Recommended options are the defaults, in the backend and
+  in the debug-game dialog: unlimited bank loans, a forced-sale minimum bid of half the nominal price and shareholders' meetings only once the whole group is
+  bought from the bank. Original rules stay available for legacy play. Opening settings uses the game's stored values.
+- Live multiplayer review was explicitly deferred by the developer. The board (`GameBoard.tsx`) draws a perspective-corrected scan of the physical board
+  (`src/assets/board.webp`) with transparent squares positioned from measured divider lines (`boardLayout.ts`). Ownership is a border in the owner's colour
+  (dashed when mortgaged), and the Finance News and Stock Tip decks sit on the marked places with the active Finance News and the Stock Tip drawn this turn face-up beside them; card faces are
+  rendered from card data rather than photographed.
 - Dev pages use a separate Vite root on port 3001. `/game-room.html` previews a running game; `/game-room.html?finished` previews standings. Mocks are display
   fixtures: their command endpoint logs requests without applying state transitions, and they do not exercise real rules or live subscriptions.
 - Production builds remain disabled in `deno.json` until a production Firebase environment/configuration exists.
@@ -36,12 +38,12 @@ Updated 2026-10-02 after implementing private debug games and the prerequisite a
 ## Private debug games
 
 - Capabilities load after sign-in, clear on account changes and refresh on reconnect. STOMP reconnects on account changes. Eligible users can create 2–6-seat
-  debug games with settings; lists and rooms label the mode. Debug lobbies can be opened for deletion before starting.
+  debug games with settings; lists and rooms label the mode. Creators delete debug games (any status) from the game list.
 - Rooms distinguish the authenticated account from `actingPlayer`, display “Controlling: …” and follow every turn/decision. Asset ownership, held cards and
   out-of-turn controls use the effective seat; creator closure still uses the account.
 - Debug commands submit the displayed actor/version and optional command-only dice. Inputs clear after submission; 409 reloads without replay. Controls are
   disabled while requests run. Finance News/Stock Tip selectors exclude held cards.
-- Confirmed deletion handles empty 204 and returns to the list. Private deletion notifications leave other rooms; 403/capability removal clears access and
+- Creators end running normal games and delete debug games from the game list, after confirmation; deletion handles empty 204. Private deletion notifications leave other rooms; 403/capability removal clears access and
   leaves the room. Owned lists refresh on reconnect because debug lifecycle stays off the public topic.
 - API transport accepts all empty successful bodies and preserves error status. Two Deno tests cover 200/204 and single-request 403/409 failures. Typechecking
   corrected inherited MUI 9 system props to `sx` and select configuration to `slotProps`.
