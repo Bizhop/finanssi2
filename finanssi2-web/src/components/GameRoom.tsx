@@ -18,14 +18,11 @@ import {
 } from "@mui/material"
 import { toast } from "react-toastify"
 
-import AddchartOutlined from "@mui/icons-material/AddchartOutlined"
-import AddHomeWorkOutlined from "@mui/icons-material/AddHomeWorkOutlined"
 import FlagOutlined from "@mui/icons-material/FlagOutlined"
-import GroupsOutlined from "@mui/icons-material/GroupsOutlined"
 
 import { GameBoard } from "./GameBoard.tsx"
 import { ShareCard, TitleDeedCard } from "./cards.tsx"
-import { buildAction, ConfirmDialog, type ConfirmRequest, type PlayerControls } from "./actions.tsx"
+import { bankSalesOpen, buildAction, ConfirmDialog, type ConfirmRequest, meetingGroups, type PlayerControls, takeoverSum, twoDiceAtMost } from "./actions.tsx"
 import { PlayerPanel } from "./PlayerPanel.tsx"
 import { useCurrentUser } from "./CurrentUserContext.tsx"
 import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
@@ -56,9 +53,9 @@ const GameRoomContent = () => {
     const [nextNews, setNextNews] = useState("")
     const [nextTip, setNextTip] = useState("")
     const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null)
-    const [buyDialog, setBuyDialog] = useState<"property" | "share" | null>(null)
-    const [meetingOpen, setMeetingOpen] = useState(false)
-    const [meetingGroup, setMeetingGroup] = useState("")
+    const [buyShareOpen, setBuyShareOpen] = useState(false)
+    // The group of the shareholders' meeting being called; null when the dialog is closed
+    const [meetingGroup, setMeetingGroup] = useState<string | null>(null)
     const [meetingFee, setMeetingFee] = useState(20000)
 
     const refresh = useCallback(async () => {
@@ -228,6 +225,31 @@ const GameRoomContent = () => {
         const deed = deedOf(property.square)
         return property.owner === actingUid && deed != null && buildAction(allowedCommands, property, deed) != null
     }).map((property) => property.square)
+    const purchasable = bankSalesOpen(game, actingUid, "property")
+        ? game.state.properties.filter((property) => property.owner === null).map((property) => property.square)
+        : []
+    const cash = actingPlayer?.cash ?? 0
+    const requestBuy = (square: number) => {
+        const deed = deedOf(square)
+        if (!deed) return
+        setConfirmRequest({
+            title: `Buy ${deed.name}?`,
+            body: (
+                <Stack spacing={1.5} sx={{ alignItems: "center", fontSize: 13 }}>
+                    <TitleDeedCard deed={deed} groupName={board?.groups.find((group) => group.id === deed.group)?.name} />
+                    <span>
+                        The bank sells it for €{deed.price.toLocaleString()}.
+                        {deed.price > cash && ` You have €${cash.toLocaleString()}: raise €${(deed.price - cash).toLocaleString()} more first.`}
+                    </span>
+                </Stack>
+            ),
+            confirmLabel: "Buy",
+            command: { type: "BuyProperty", square },
+            disabled: deed.price > cash,
+        })
+    }
+    const meetings = actingUid ? meetingGroups(game, board, actingUid).map((group) => ({ group, takeover: takeoverSum(game, board, group, actingUid) })) : []
+    const meeting = meetings.find((item) => item.group === meetingGroup)
     const requestBuild = (square: number) => {
         const property = game.state.properties.find((item) => item.square === square)
         const deed = deedOf(square)
@@ -236,36 +258,6 @@ const GameRoomContent = () => {
     }
     const contextActions = game.status === "RUNNING" && !pending && (
         <>
-            {allowedCommands.includes("BuyProperty") && (
-                <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<AddHomeWorkOutlined />}
-                    onClick={() => setBuyDialog("property")}
-                >
-                    Buy property
-                </Button>
-            )}
-            {allowedCommands.includes("BuyShare") && (
-                <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<AddchartOutlined />}
-                    onClick={() => setBuyDialog("share")}
-                >
-                    Buy share
-                </Button>
-            )}
-            {allowedCommands.includes("CallShareholdersMeeting") && (
-                <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<GroupsOutlined />}
-                    onClick={() => setMeetingOpen(true)}
-                >
-                    Shareholders' meeting
-                </Button>
-            )}
             {allowedCommands.includes("Resign") && (
                 <Button
                     size="small"
@@ -292,6 +284,7 @@ const GameRoomContent = () => {
         send: (command) => void sendCommand(command),
         confirm: setConfirmRequest,
         contextActions: contextActions || undefined,
+        onBuyShare: bankSalesOpen(game, actingUid, "share") ? () => setBuyShareOpen(true) : undefined,
     }
 
     return (
@@ -349,13 +342,14 @@ const GameRoomContent = () => {
                         board={board}
                         buildable={buildable}
                         onBuild={requestBuild}
-                        lastStockTip={turnStockTip
-                            ? {
-                                card: String(turnStockTip.event.card),
-                                drawnBy: playerName(String(turnStockTip.event.player)),
-                                held: Boolean(turnStockTip.event.held),
-                            }
-                            : null}
+                        purchasable={purchasable}
+                        onBuy={requestBuy}
+                        meetings={meetings}
+                        onMeeting={(group) => {
+                            setMeetingGroup(group)
+                            setMeetingFee(20000)
+                        }}
+                        turnStockTip={turnStockTip ? String(turnStockTip.event.card) : null}
                     />
                 </Grid>
                 <Grid size={{ xs: 12, lg: 4 }}>
@@ -438,30 +432,11 @@ const GameRoomContent = () => {
                 onClose={() => setConfirmRequest(null)}
                 onConfirm={(command) => void sendCommand(command)}
             />
-            <Dialog open={buyDialog != null} onClose={() => setBuyDialog(null)} maxWidth="lg">
-                <DialogTitle>{buyDialog === "share" ? "Buy a share from the bank" : "Buy a property from the bank"}</DialogTitle>
+            <Dialog open={buyShareOpen} onClose={() => setBuyShareOpen(false)} maxWidth="lg">
+                <DialogTitle>Buy a share from the bank</DialogTitle>
                 <DialogContent sx={{ fontSize: 13 }}>
                     <Stack direction="row" spacing={2} useFlexGap sx={{ flexWrap: "wrap", py: 1 }}>
-                        {buyDialog === "property" && game.state.properties.filter((property) => property.owner === null).map((property) => {
-                            const deed = deedOf(property.square)
-                            return deed && (
-                                <Stack key={property.square} spacing={0.75}>
-                                    <TitleDeedCard deed={deed} groupName={board?.groups.find((group) => group.id === deed.group)?.name} />
-                                    <Button
-                                        variant="contained"
-                                        size="small"
-                                        disabled={commandBusy}
-                                        onClick={() => {
-                                            setBuyDialog(null)
-                                            void sendCommand({ type: "BuyProperty", square: deed.square })
-                                        }}
-                                    >
-                                        Buy €{deed.price.toLocaleString()}
-                                    </Button>
-                                </Stack>
-                            )
-                        })}
-                        {buyDialog === "share" && game.state.shares.filter((share) => share.owner === null).map((owned) => {
+                        {game.state.shares.filter((share) => share.owner === null).map((owned) => {
                             const share = board?.shares.find((item) => item.id === owned.id)
                             return share && (
                                 <Stack key={share.id} spacing={0.75}>
@@ -469,9 +444,10 @@ const GameRoomContent = () => {
                                     <Button
                                         variant="contained"
                                         size="small"
-                                        disabled={commandBusy}
+                                        // Shown for every share for sale; one the player can't afford yet can't be bought
+                                        disabled={commandBusy || share.value > cash}
                                         onClick={() => {
-                                            setBuyDialog(null)
+                                            setBuyShareOpen(false)
                                             void sendCommand({ type: "BuyShare", share: share.id })
                                         }}
                                     >
@@ -483,45 +459,50 @@ const GameRoomContent = () => {
                     </Stack>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setBuyDialog(null)}>Cancel</Button>
+                    <Button onClick={() => setBuyShareOpen(false)}>Cancel</Button>
                 </DialogActions>
             </Dialog>
-            <Dialog open={meetingOpen} onClose={() => setMeetingOpen(false)}>
-                <DialogTitle>Call a shareholders' meeting</DialogTitle>
-                <DialogContent>
-                    <Stack spacing={2} sx={{ pt: 1 }}>
-                        <TextField
-                            select
-                            size="small"
-                            label="Takeover group"
-                            value={meetingGroup}
-                            onChange={(event) => setMeetingGroup(event.target.value)}
-                            slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
-                        >
-                            <option value="">Choose…</option>
-                            {(board?.groups ?? []).map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
-                        </TextField>
-                        <TextField
-                            select
-                            size="small"
-                            label="Brokerage fee"
-                            value={meetingFee}
-                            onChange={(event) => setMeetingFee(Number(event.target.value))}
-                            slotProps={{ select: { native: true } }}
-                        >
-                            {[20000, 30000, 40000, 50000, 60000, 70000, 80000, 90000, 100000, 110000, 120000].map((fee) => (
-                                <option key={fee} value={fee}>€{fee.toLocaleString()}</option>
-                            ))}
-                        </TextField>
-                    </Stack>
-                </DialogContent>
+            <Dialog open={meeting != null} onClose={() => setMeetingGroup(null)} maxWidth="xs" fullWidth>
+                <DialogTitle>Shareholders' meeting: {board?.groups.find((group) => group.id === meetingGroup)?.name}</DialogTitle>
+                {meeting && (
+                    <DialogContent>
+                        <Stack spacing={2} sx={{ pt: 1 }}>
+                            <Typography variant="body2">
+                                Taking over the other players' properties and shares costs €{meeting.takeover.toLocaleString()}, plus the brokerage fee. You
+                                have €{cash.toLocaleString()}.
+                            </Typography>
+                            <TextField
+                                select
+                                size="small"
+                                label="Brokerage fee"
+                                value={meetingFee}
+                                onChange={(event) => setMeetingFee(Number(event.target.value))}
+                                slotProps={{ select: { native: true } }}
+                            >
+                                {[20000, 30000, 40000, 50000, 60000, 70000, 80000, 90000, 100000, 110000, 120000].map((fee) => (
+                                    <option key={fee} value={fee} disabled={meeting.takeover + fee > cash}>
+                                        €{fee.toLocaleString()}:{" "}
+                                        {Math.round(twoDiceAtMost(fee / 10000) * 100)}% chance{meeting.takeover + fee > cash ? " (not enough cash)" : ""}
+                                    </option>
+                                ))}
+                            </TextField>
+                            <Typography variant="body2" color={meeting.takeover + meetingFee > cash ? "error" : "text.secondary"}>
+                                {meeting.takeover + meetingFee > cash
+                                    ? `You need €${(meeting.takeover + meetingFee).toLocaleString()}: raise €${
+                                        (meeting.takeover + meetingFee - cash).toLocaleString()
+                                    } more first, e.g. by mortgaging or selling.`
+                                    : `The takeover succeeds on a dice total of ${meetingFee / 10000} or less.`}
+                            </Typography>
+                        </Stack>
+                    </DialogContent>
+                )}
                 <DialogActions>
-                    <Button onClick={() => setMeetingOpen(false)}>Cancel</Button>
+                    <Button onClick={() => setMeetingGroup(null)}>Cancel</Button>
                     <Button
                         variant="contained"
-                        disabled={!meetingGroup || commandBusy}
+                        disabled={!meeting || meeting.takeover + meetingFee > cash || commandBusy}
                         onClick={() => {
-                            setMeetingOpen(false)
+                            setMeetingGroup(null)
                             void sendCommand({ type: "CallShareholdersMeeting", group: meetingGroup, brokerageFee: meetingFee })
                         }}
                     >

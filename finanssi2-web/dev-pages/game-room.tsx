@@ -19,18 +19,21 @@ import stockTips from "../../finanssi2-backend/src/main/resources/gamedata/porss
 const player = { photoUrl: null, car: false, loans: 0, out: false, heldStockTips: [] as string[] }
 // ?afterRoll previews Maija's turn after rolling: she has moved on to Pörssivihje (20) and drawn a second card to keep
 const afterRoll = new URLSearchParams(location.search).has("afterRoll")
-// No car, so the car icon offers to buy one
+// No car, so the car icon offers to buy one and she rolls one die. By default her turn starts on square 40 (a construction square
+// in the head office), so before rolling she may both build and buy from the bank.
 const user = {
     ...player,
     uid: "tester",
     name: "Maija Meikäläinen",
     piece: 0,
-    cash: 98_000,
-    position: afterRoll ? 20 : 17,
+    // Enough for the €125,000 Finanssiyhtymä takeover with a €20,000 or €30,000 brokerage fee, not more
+    cash: 158_000,
+    position: afterRoll ? 20 : 40,
     loans: 1,
     heldStockTips: afterRoll ? ["PV-25", "PV-01"] : ["PV-25"],
 }
 const olli = { ...player, uid: "olli", name: "Olli Other", piece: 1, cash: 64_500, position: 31, loans: 2 }
+// Olli and Pekka have no car either, so they roll one die; Liisa rolls two
 const pekka = { ...player, uid: "pekka", name: "Pekka Pörssi", piece: 2, cash: 131_000, position: 30 }
 // Shares square 30 with Pekka, whose Sahalaitos she just paid rent for
 const liisa = { ...player, uid: "liisa", name: "Liisa Laine", piece: 3, cash: 21_000, position: 30, car: true }
@@ -40,6 +43,8 @@ const liisa = { ...player, uid: "liisa", name: "Liisa Laine", piece: 3, cash: 21
 const owned: Record<number, { owner: string; built?: boolean; mortgaged?: boolean }> = {
     3: { owner: user.uid, mortgaged: true },
     9: { owner: user.uid, built: true },
+    // Finanssiyhtymä is split between Maija and Liisa with nothing left in the bank, so Maija may call a shareholders' meeting
+    19: { owner: user.uid },
     10: { owner: user.uid },
     12: { owner: olli.uid, mortgaged: true },
     26: { owner: olli.uid, built: true },
@@ -54,6 +59,7 @@ const shareOwners: Record<string, string> = {
     "OS-PALVELUYHTIO-2": user.uid,
     "OS-KEMIA-1": olli.uid,
     "OS-FINANSSIYHTYMA-1": liisa.uid,
+    "OS-FINANSSIYHTYMA-2": user.uid,
     "OS-RAHASTO-20": liisa.uid,
     "OS-TEKNIIKKA-1": pekka.uid,
     "OS-TEOLLISUUSKONSERNI-1": pekka.uid,
@@ -74,8 +80,11 @@ const game = {
         turnOrder: [user.uid, olli.uid, pekka.uid, liisa.uid],
         // ?turn=<uid> previews another player in turn, e.g. ?turn=olli
         currentPlayer: new URLSearchParams(location.search).get("turn") ?? user.uid,
-        settings: { loanLimit: "UNLIMITED", compulsorySaleMinimumBid: "NONE" },
-        activeFinanceNews: "FL-01",
+        settings: { loanLimit: "UNLIMITED", compulsorySaleMinimumBid: "HALF_NOMINAL_PRICE", shareholdersMeeting: "ALL_ASSETS_BOUGHT" },
+        // ?news=<id> shows another Finance News card face up, e.g. ?news=FL-19 for the longest text
+        activeFinanceNews: new URLSearchParams(location.search).get("news") ?? "FL-01",
+        phase: afterRoll ? "AFTER_ROLL" : "BEFORE_ROLL",
+        boughtThisTurn: false,
         finished,
         winner: finished ? pekka.uid : null,
         finalStandings: finished
@@ -107,8 +116,8 @@ const board = {
     stockTips,
 }
 
-const turn = (uid: string, dice: [number, number], from: number) => {
-    const to = from + dice[0] + dice[1]
+const turn = (uid: string, dice: number[], from: number) => {
+    const to = from + dice.reduce((sum, value) => sum + value, 0)
     return [
         { type: "TurnStarted", player: uid },
         { type: "DiceRolled", player: uid, dice },
@@ -117,29 +126,32 @@ const turn = (uid: string, dice: [number, number], from: number) => {
     ]
 }
 const events = [
-    ...turn(user.uid, [3, 4], 10),
-    { type: "NotImplemented", player: user.uid, square: 17, squareType: "CONSTRUCTION" },
+    // Maija's previous turn: with ?afterRoll from the branch office (11) to Rakennusprojekti Oy (17), otherwise from the bank entrance
+    // (34), where everyone rolls one die, into the head office to square 40
+    ...afterRoll ? turn(user.uid, [6], 11) : turn(user.uid, [6], 34),
+    { type: "NotImplemented", player: user.uid, square: afterRoll ? 17 : 40, squareType: "CONSTRUCTION" },
     { type: "TurnEnded", player: user.uid },
-    ...turn(olli.uid, [5, 6], 20),
+    ...turn(olli.uid, [5], 26),
     { type: "FinanceNewsDrawn", player: olli.uid, card: "FL-01", replaced: null },
     // FL-01 also raises the car tax: every car owner pays 5,000
     { type: "MoneyTransferred", from: liisa.uid, to: null, amount: 5_000, reason: "FINANCE_NEWS" },
     { type: "TurnEnded", player: olli.uid },
-    ...turn(pekka.uid, [3, 4], 23),
+    ...turn(pekka.uid, [2], 28),
     { type: "TurnEnded", player: pekka.uid },
     ...turn(liisa.uid, [1, 4], 25),
     { type: "RentCharged", player: liisa.uid, owner: pekka.uid, square: 30, amount: 20_000, doubled: false },
     { type: "MoneyTransferred", from: liisa.uid, to: pekka.uid, amount: 20_000, reason: "RENT" },
     { type: "TurnEnded", player: liisa.uid },
-    // Maija starts her turn on Rakennusprojekti Oy (17), so she may build before rolling
+    // Maija's current turn, before rolling unless ?afterRoll
     { type: "TurnStarted", player: user.uid },
     ...afterRoll
         ? [
-            { type: "DiceRolled", player: user.uid, dice: [1, 2] },
-            { type: "PieceMoved", player: user.uid, from: 17, to: 20 },
-            { type: "LandedOn", player: user.uid, square: 20 },
+            ...turn(user.uid, [3], 17).slice(1),
             // Stays face up on the board until the turn ends
-            { type: "StockTipDrawn", player: user.uid, card: "PV-01", held: true },
+            // ?tip=<id> shows another Stock Tip, e.g. ?afterRoll&tip=PV-31 for the longest text (not one she keeps)
+            new URLSearchParams(location.search).has("tip")
+                ? { type: "StockTipDrawn", player: user.uid, card: new URLSearchParams(location.search).get("tip"), held: false }
+                : { type: "StockTipDrawn", player: user.uid, card: "PV-01", held: true },
         ]
         : [],
 ].map((event, index) => ({ id: `preview-game:${index + 1}`, seq: index + 1, time: 0, type: event.type, event }))
@@ -161,7 +173,7 @@ globalThis.fetch = (input, init) => {
         return Promise.resolve(Response.json({
             game,
             actingPlayer: game.state.currentPlayer,
-            // What the backend allows Maija: building and buying only before the roll (she is on square 17), ending the turn only after it.
+            // What the backend allows Maija: building and buying (on 40) only before the roll, ending the turn only after it.
             // FL-01 is active, so the bank grants no new loans.
             allowedCommands: finished || game.state.currentPlayer !== user.uid
                 ? []
@@ -173,11 +185,11 @@ globalThis.fetch = (input, init) => {
                     "RepayLoan",
                     "BuyProperty",
                     "BuyShare",
+                    "Build",
                     "Mortgage",
                     "Redeem",
                     "SellBackProperty",
                     "SellBackShare",
-                    "Build",
                     "UseHeldStockTip",
                     "CallShareholdersMeeting",
                     "Resign",

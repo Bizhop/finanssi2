@@ -24,9 +24,9 @@ Updated 2026-10-02 after implementing private debug games and the prerequisite a
   `StompContext.tsx`. The frontend uses React, Material UI, Deno and Vite.
 - Send game commands over REST. Broadcasts contain events and a version, so the room fetches current state on every update; event sequence gaps trigger an
   incremental history fetch. Backend `allowedCommands` controls action types, and the backend remains responsible for validating their parameters.
-- The settings dialog marks unlimited bank loans as recommended, while backend-created games default to the official six-loan bank limit. Opening settings uses
-  the game's stored values; creation does not automatically apply the house rule. Compulsory sale bids default to no minimum, with half the nominal price
-  available as a house rule.
+- Rule settings tag the developer's house rules as recommended and the printed rules as original. Recommended options are the defaults, in the backend and
+  in the debug-game dialog: unlimited bank loans, a forced-sale minimum bid of half the nominal price and shareholders' meetings only once the whole group is
+  bought from the bank. Original rules stay available for legacy play. Opening settings uses the game's stored values.
 - Live multiplayer review was explicitly deferred by the developer. The board (`GameBoard.tsx`) draws a perspective-corrected scan of the physical board
   (`src/assets/board.webp`) with transparent squares positioned from measured divider lines (`boardLayout.ts`). Ownership is a border in the owner's colour
   (dashed when mortgaged), and the Finance News and Stock Tip decks sit on the marked places with the active Finance News and the Stock Tip drawn this turn face-up beside them; card faces are

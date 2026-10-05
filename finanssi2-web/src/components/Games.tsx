@@ -40,7 +40,8 @@ const Games = () => {
     const [error, setError] = useState<string | null>(null)
     const [settingsGame, setSettingsGame] = useState<Game | null>(null)
     const [loanLimit, setLoanLimit] = useState("UNLIMITED")
-    const [minimumBid, setMinimumBid] = useState("NONE")
+    const [minimumBid, setMinimumBid] = useState("HALF_NOMINAL_PRICE")
+    const [meetingRule, setMeetingRule] = useState("ALL_ASSETS_BOUGHT")
     const [debugCreateOpen, setDebugCreateOpen] = useState(false)
     const [playerCount, setPlayerCount] = useState(2)
     const [busyGame, setBusyGame] = useState<string | null>(null)
@@ -115,7 +116,7 @@ const Games = () => {
         void run(null, () =>
             gameApi<Game>(user, "/api/debug/games", {
                 method: "POST",
-                body: JSON.stringify({ playerCount, settings: { loanLimit, compulsorySaleMinimumBid: minimumBid } }),
+                body: JSON.stringify({ playerCount, settings: { loanLimit, compulsorySaleMinimumBid: minimumBid, shareholdersMeeting: meetingRule } }),
             })).then(() => setDebugCreateOpen(false))
     }
 
@@ -150,6 +151,7 @@ const Games = () => {
     const openSettings = (game: Game) => {
         setLoanLimit(game.state.settings.loanLimit)
         setMinimumBid(game.state.settings.compulsorySaleMinimumBid)
+        setMeetingRule(game.state.settings.shareholdersMeeting ?? "ALL_ASSETS_BOUGHT")
         setSettingsGame(game)
     }
 
@@ -159,7 +161,7 @@ const Games = () => {
         void run(game.id, () =>
             gameApi(user, `/api/games/${game.id}/settings`, {
                 method: "PUT",
-                body: JSON.stringify({ loanLimit, compulsorySaleMinimumBid: minimumBid }),
+                body: JSON.stringify({ loanLimit, compulsorySaleMinimumBid: minimumBid, shareholdersMeeting: meetingRule }),
             })).then(() => setSettingsGame(null))
     }
 
@@ -175,7 +177,8 @@ const Games = () => {
                             disabled={busyGame !== null}
                             onClick={() => {
                                 setLoanLimit("UNLIMITED")
-                                setMinimumBid("NONE")
+                                setMinimumBid("HALF_NOMINAL_PRICE")
+                                setMeetingRule("ALL_ASSETS_BOUGHT")
                                 setDebugCreateOpen(true)
                             }}
                         >
@@ -264,10 +267,11 @@ const Games = () => {
                                                 {game.status === "FINISHED" ? "Results" : "Open game"}
                                             </Button>
                                         )}
+                                        {/* Creator controls that close the game sit apart on the right */}
+                                        <Box sx={{ flex: 1 }} />
                                         {creator && game.mode !== "DEBUG" && game.status === "RUNNING" && (
                                             <Button
                                                 color="error"
-                                                sx={{ ml: "auto" }}
                                                 disabled={busyGame !== null}
                                                 onClick={() => setClosing({ game, action: "end" })}
                                             >
@@ -277,7 +281,6 @@ const Games = () => {
                                         {creator && game.mode === "DEBUG" && (
                                             <Button
                                                 color="error"
-                                                sx={{ ml: "auto" }}
                                                 disabled={busyGame !== null}
                                                 onClick={() => setClosing({ game, action: "delete" })}
                                             >
@@ -290,7 +293,7 @@ const Games = () => {
                         })}
                     </Stack>
                 )}
-            <Dialog open={debugMode && debugCreateOpen} onClose={() => setDebugCreateOpen(false)} fullWidth maxWidth="xs">
+            <Dialog open={debugMode && debugCreateOpen} onClose={() => setDebugCreateOpen(false)} fullWidth maxWidth="sm">
                 <DialogTitle>Create debug game</DialogTitle>
                 <DialogContent>
                     <Stack spacing={2} sx={{ pt: 1 }}>
@@ -305,25 +308,14 @@ const Games = () => {
                                 {[2, 3, 4, 5, 6].map((count) => <MenuItem key={count} value={count}>{count}</MenuItem>)}
                             </Select>
                         </FormControl>
-                        <FormControl fullWidth>
-                            <InputLabel id="debug-loan-label">Bank loans</InputLabel>
-                            <Select labelId="debug-loan-label" label="Bank loans" value={loanLimit} onChange={(event) => setLoanLimit(event.target.value)}>
-                                <MenuItem value="UNLIMITED">Unlimited (recommended)</MenuItem>
-                                <MenuItem value="OFFICIAL">Official limit: 6 total</MenuItem>
-                            </Select>
-                        </FormControl>
-                        <FormControl fullWidth>
-                            <InputLabel id="debug-bid-label">Forced sale minimum bid</InputLabel>
-                            <Select
-                                labelId="debug-bid-label"
-                                label="Forced sale minimum bid"
-                                value={minimumBid}
-                                onChange={(event) => setMinimumBid(event.target.value)}
-                            >
-                                <MenuItem value="NONE">No minimum</MenuItem>
-                                <MenuItem value="HALF_NOMINAL_PRICE">Half nominal price</MenuItem>
-                            </Select>
-                        </FormControl>
+                        <RuleSettings
+                            loanLimit={loanLimit}
+                            setLoanLimit={setLoanLimit}
+                            minimumBid={minimumBid}
+                            setMinimumBid={setMinimumBid}
+                            meetingRule={meetingRule}
+                            setMeetingRule={setMeetingRule}
+                        />
                     </Stack>
                 </DialogContent>
                 <DialogActions>
@@ -343,29 +335,18 @@ const Games = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
-            <Dialog open={settingsGame !== null} onClose={() => setSettingsGame(null)} fullWidth maxWidth="xs">
+            <Dialog open={settingsGame !== null} onClose={() => setSettingsGame(null)} fullWidth maxWidth="sm">
                 <DialogTitle>Game settings</DialogTitle>
                 <DialogContent>
                     <Stack spacing={2} sx={{ pt: 1 }}>
-                        <FormControl fullWidth>
-                            <InputLabel id="loan-limit-label">Bank loans</InputLabel>
-                            <Select labelId="loan-limit-label" label="Bank loans" value={loanLimit} onChange={(event) => setLoanLimit(event.target.value)}>
-                                <MenuItem value="UNLIMITED">Unlimited (recommended)</MenuItem>
-                                <MenuItem value="OFFICIAL">Official limit: 6 total</MenuItem>
-                            </Select>
-                        </FormControl>
-                        <FormControl fullWidth>
-                            <InputLabel id="sale-minimum-label">Forced sale minimum bid</InputLabel>
-                            <Select
-                                labelId="sale-minimum-label"
-                                label="Forced sale minimum bid"
-                                value={minimumBid}
-                                onChange={(event) => setMinimumBid(event.target.value)}
-                            >
-                                <MenuItem value="NONE">No minimum (official rule)</MenuItem>
-                                <MenuItem value="HALF_NOMINAL_PRICE">Half nominal price</MenuItem>
-                            </Select>
-                        </FormControl>
+                        <RuleSettings
+                            loanLimit={loanLimit}
+                            setLoanLimit={setLoanLimit}
+                            minimumBid={minimumBid}
+                            setMinimumBid={setMinimumBid}
+                            meetingRule={meetingRule}
+                            setMeetingRule={setMeetingRule}
+                        />
                     </Stack>
                 </DialogContent>
                 <DialogActions>
@@ -376,5 +357,45 @@ const Games = () => {
         </Stack>
     )
 }
+
+const RECOMMENDED = "(recommended)"
+const ORIGINAL = "(original)"
+
+/** The game's rule options: the recommended ones are the defaults, the original printed rules stay available for legacy play */
+const RuleSettings = ({ loanLimit, setLoanLimit, minimumBid, setMinimumBid, meetingRule, setMeetingRule }: {
+    loanLimit: string
+    setLoanLimit: (value: string) => void
+    minimumBid: string
+    setMinimumBid: (value: string) => void
+    meetingRule: string
+    setMeetingRule: (value: string) => void
+}) => (
+    <>
+        <FormControl fullWidth>
+            <InputLabel id="loan-limit-label">Bank loans</InputLabel>
+            <Select labelId="loan-limit-label" label="Bank loans" value={loanLimit} onChange={(event) => setLoanLimit(event.target.value)}>
+                <MenuItem value="UNLIMITED">Unlimited {RECOMMENDED}</MenuItem>
+                <MenuItem value="OFFICIAL">6 in total {ORIGINAL}</MenuItem>
+            </Select>
+        </FormControl>
+        <FormControl fullWidth>
+            <InputLabel id="sale-minimum-label">Forced sale minimum bid</InputLabel>
+            <Select labelId="sale-minimum-label" label="Forced sale minimum bid" value={minimumBid} onChange={(event) => setMinimumBid(event.target.value)}>
+                <MenuItem value="HALF_NOMINAL_PRICE">Half the nominal price {RECOMMENDED}</MenuItem>
+                <MenuItem value="NONE">No minimum {ORIGINAL}</MenuItem>
+            </Select>
+        </FormControl>
+        <FormControl fullWidth>
+            <InputLabel id="meeting-rule-label">Shareholders' meetings</InputLabel>
+            <Select labelId="meeting-rule-label" label="Shareholders' meetings" value={meetingRule} onChange={(event) => setMeetingRule(event.target.value)}>
+                <MenuItem value="ALL_ASSETS_BOUGHT">Whole group bought from the bank {RECOMMENDED}</MenuItem>
+                <MenuItem value="ANY_OTHER_OWNER">Any group with another owner {ORIGINAL}</MenuItem>
+            </Select>
+        </FormControl>
+        <Typography variant="caption" color="text.secondary">
+            Recommended rules are the defaults. Original rules follow the printed game and are kept for legacy play, though some of them play poorly.
+        </Typography>
+    </>
+)
 
 export default Games

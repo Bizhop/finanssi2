@@ -1,32 +1,18 @@
-import { Avatar, Box, IconButton, Tooltip, Typography } from "@mui/material"
+import { Box, IconButton, Tooltip } from "@mui/material"
 import AddHome from "@mui/icons-material/AddHome"
+import GroupsOutlined from "@mui/icons-material/GroupsOutlined"
+import { keyframes } from "@emotion/react"
 import FactoryRounded from "@mui/icons-material/FactoryRounded"
 import HomeRounded from "@mui/icons-material/HomeRounded"
 
 import boardImage from "../assets/board.webp"
 import financeNewsBack from "../assets/cards/finance-news-back.webp"
 import stockTipBack from "../assets/cards/stock-tip-back.webp"
-import { BOARD_ASPECT_RATIO, CARD_PLACES, type SquareRect, squareRect, squareSide } from "./boardLayout.ts"
+import { besideSquares, BOARD_ASPECT_RATIO, CARD_PLACES, type SquareRect, squareRect, squareSide } from "./boardLayout.ts"
 import type { Card, Game, GameBoardData } from "./gameApi.ts"
+import { playerColor, PlayerToken } from "./PlayerToken.tsx"
 import { SquareDetails } from "./SquareDetails.tsx"
 import { cardPeekSlotProps } from "./cards.tsx"
-
-const playerHue = (piece: number) => piece * 61 % 360
-export const playerColor = (piece: number) => `hsl(${playerHue(piece)} 58% 44%)`
-
-/** WCAG relative luminance of the player colour */
-const playerLuminance = (piece: number) => {
-    const s = 0.58, l = 0.44, a = s * Math.min(l, 1 - l)
-    const channel = (n: number) => {
-        const k = (n + playerHue(piece) / 30) % 12
-        const c = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))
-        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
-    }
-    return 0.2126 * channel(0) + 0.7152 * channel(8) + 0.0722 * channel(4)
-}
-
-/** A shade of the player colour that contrasts with it: lighter for dark colours, darker for light ones */
-export const playerShade = (piece: number) => `hsl(${playerHue(piece)} 60% ${playerLuminance(piece) < 0.179 ? 78 : 22}%)`
 
 const CARD_INK = "#1d4f9c"
 
@@ -86,43 +72,45 @@ export const CardPeek = ({ card, fallback, label }: { card: Card | undefined; fa
     </Box>
 )
 
-/** A face-up card on the board; hovering or tapping shows it at a readable size */
+/** Text size of the face-up cards, small enough for the longest card (FL-19) to fit */
+const DRAWN_CARD_FONT = "0.74cqw"
+
+/** A face-up card on the board; who drew it needs no caption, as it is the player in turn */
 const DrawnCard = (
-    { rect, card, fallback, label, caption }: { rect: SquareRect; card: Card | undefined; fallback: string; label?: string; caption?: string },
+    { rect, card, fallback, label }: { rect: SquareRect; card: Card | undefined; fallback: string; label?: string },
 ) => (
-    <Tooltip
-        placement="top"
-        slotProps={cardPeekSlotProps}
-        title={
-            <Box sx={{ p: 1 }}>
-                <CardPeek card={card} fallback={fallback} label={label} />
-            </Box>
-        }
-    >
-        <Box sx={{ ...placement(rect), fontSize: "0.85cqw", cursor: "zoom-in", boxShadow: "0 0.3cqw 0.8cqw rgba(0,0,0,0.6)", borderRadius: "0.4em" }}>
-            {/* The small card clips long text; the enlarged one grows to fit */}
-            <Box sx={{ height: "100%", overflow: "hidden", borderRadius: "0.4em" }}>
-                <CardFace card={card} fallback={fallback} label={label} />
-            </Box>
-            {caption && (
-                <Typography
-                    sx={{
-                        position: "absolute",
-                        top: "100%",
-                        left: "-40%",
-                        right: "-40%",
-                        mt: "0.5cqw",
-                        fontSize: "max(8px, 1cqw)",
-                        lineHeight: 1.2,
-                        textAlign: "center",
-                        color: "#fff",
-                    }}
-                >
-                    {caption}
-                </Typography>
-            )}
+    <Box sx={{ ...placement(rect), fontSize: DRAWN_CARD_FONT, boxShadow: "0 0.3cqw 0.8cqw rgba(0,0,0,0.6)", borderRadius: "0.4em" }}>
+        <Box data-card-face sx={{ height: "100%", overflow: "hidden", borderRadius: "0.4em" }}>
+            <CardFace card={card} fallback={fallback} label={label} />
         </Box>
-    </Tooltip>
+    </Box>
+)
+
+/** Glow inside a property you can buy; kept inside the square so it doesn't light up its neighbours */
+const halo = keyframes`
+    0%, 100% { box-shadow: inset 0 0 0.35cqw 0.15cqw rgba(255, 214, 64, 0.89); }
+    50% { box-shadow: inset 0 0 0.5cqw 0.25cqw rgba(255, 214, 64, 0.96); }
+`
+
+/** Gold ring around a round action button on the board, in the colour and rhythm of the property halo */
+const iconHalo = keyframes`
+    0%, 100% { box-shadow: 0 0 0.4cqw 0.25cqw rgba(255, 214, 64, 0.89); }
+    50% { box-shadow: 0 0 0.6cqw 0.35cqw rgba(255, 214, 64, 0.96); }
+`
+
+/** What calling a shareholders' meeting means, from the rules */
+const MeetingRules = ({ groupName, takeover }: { groupName: string; takeover: number }) => (
+    <Box sx={{ maxWidth: 300, "& p": { m: 0, mt: 0.75 } }}>
+        <Box sx={{ fontWeight: 700 }}>Shareholders' meeting: {groupName}</Box>
+        <p>
+            Show the purchase prices of the other players' properties (with buildings) and shares in the group, now €{takeover.toLocaleString()}, and put down a
+            brokerage fee of €20,000–€120,000.
+        </p>
+        <p>
+            Roll both dice. If the total is at most the fee divided by 10,000, you take over their properties and shares and pay them the purchase prices;
+            €30,000 of the fee goes to the bank and the rest is shared among them. Otherwise the takeover fails and the whole fee goes to the bank.
+        </p>
+    </Box>
 )
 
 /** Where a building stands on its square: at the outer edge over the printed price, which no longer matters once built */
@@ -166,13 +154,20 @@ const Deck = ({ rect, image, name }: { rect: SquareRect; image: string; name: st
     />
 )
 
-export const GameBoard = ({ game, board, lastStockTip, buildable = [], onBuild }: {
+export const GameBoard = ({ game, board, turnStockTip, buildable = [], onBuild, purchasable = [], onBuy, meetings = [], onMeeting }: {
     game: Game
     board: GameBoardData | null
-    lastStockTip: { card: string; drawnBy: string; held: boolean } | null
+    /** The Stock Tip drawn this turn, if any */
+    turnStockTip: string | null
     /** Squares you can build on right now; each gets a build button */
     buildable?: number[]
     onBuild?: (square: number) => void
+    /** Bank properties you can buy right now; they glow and buy on click */
+    purchasable?: number[]
+    onBuy?: (square: number) => void
+    /** Groups where you can call a shareholders' meeting, with what the takeover costs; each gets a meeting button by its properties */
+    meetings?: { group: string; takeover: number }[]
+    onMeeting?: (group: string) => void
 }) => {
     const propertyBySquare = new Map(game.state.properties.map((property) => [property.square, property]))
     const activeNews = game.state.activeFinanceNews
@@ -195,17 +190,31 @@ export const GameBoard = ({ game, board, lastStockTip, buildable = [], onBuild }
                     const property = propertyBySquare.get(square.square)
                     const tokens = game.state.players.filter((player) => !player.out && player.position === square.square)
                     const owner = game.state.players.find((player) => player.uid === property?.owner)
+                    const forSale = onBuy != null && purchasable.includes(square.square)
                     return (
                         <Tooltip
                             key={square.square}
                             arrow
                             disableInteractive
                             slotProps={cardPeekSlotProps}
-                            title={<SquareDetails square={square} board={board} game={game} here={tokens.map((player) => player.name)} />}
+                            // Only property squares have a peek, their title deed; other squares explain themselves on the board
+                            title={board?.titleDeeds.some((deed) => deed.square === square.square)
+                                ? <SquareDetails square={square} board={board} game={game} />
+                                : ""}
                         >
                             <Box
+                                role={forSale ? "button" : undefined}
+                                aria-label={forSale ? `Buy ${square.name}` : undefined}
+                                tabIndex={forSale ? 0 : undefined}
+                                onClick={forSale ? () => onBuy(square.square) : undefined}
+                                onKeyDown={forSale ? (event) => (event.key === "Enter" || event.key === " ") && onBuy(square.square) : undefined}
                                 sx={{
                                     ...placement(squareRect(square.square)),
+                                    ...forSale && {
+                                        cursor: "pointer",
+                                        animation: `${halo} 1.8s ease-in-out infinite`,
+                                        "&:hover": { backgroundColor: "rgba(255, 214, 64, 0.25)" },
+                                    },
                                     boxSizing: "border-box",
                                     display: "flex",
                                     flexWrap: "wrap",
@@ -241,31 +250,38 @@ export const GameBoard = ({ game, board, lastStockTip, buildable = [], onBuild }
                                         <AddHome />
                                     </IconButton>
                                 )}
-                                {tokens.map((player) => (
-                                    <Avatar
-                                        key={player.uid}
-                                        src={player.photoUrl ?? undefined}
-                                        alt={player.name}
-                                        sx={{
-                                            width: "max(14px, 1.6cqw)",
-                                            height: "max(14px, 1.6cqw)",
-                                            fontSize: "max(8px, 0.9cqw)",
-                                            fontWeight: 700,
-                                            color: "#fff",
-                                            // Outline around the initial so it stays readable on every player colour
-                                            textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
-                                            bgcolor: playerColor(player.piece),
-                                            border: `max(1.5px, 0.18cqw) solid ${playerShade(player.piece)}`,
-                                            boxShadow: "0 0.15cqw 0.35cqw rgba(0,0,0,0.55)",
-                                        }}
-                                    >
-                                        {player.name.slice(0, 1)}
-                                    </Avatar>
-                                ))}
+                                {tokens.map((player) => <PlayerToken key={player.uid} player={player} size="max(14px, 1.6cqw)" />)}
                             </Box>
                         </Tooltip>
                     )
                 })}
+            {onMeeting && meetings.map(({ group, takeover }) => {
+                const groupData = board?.groups.find((item) => item.id === group)
+                if (!groupData) return null
+                const point = besideSquares(groupData.properties)
+                return (
+                    <Tooltip key={group} arrow title={<MeetingRules groupName={groupData.name} takeover={takeover} />}>
+                        <IconButton
+                            aria-label={`Call a shareholders' meeting of ${groupData.name}`}
+                            onClick={() => onMeeting(group)}
+                            sx={{
+                                position: "absolute",
+                                left: `${point.left}%`,
+                                top: `${point.top}%`,
+                                transform: "translate(-50%, -50%)",
+                                p: "0.45cqw",
+                                color: "#1d4f9c",
+                                backgroundColor: "#fff",
+                                animation: `${iconHalo} 1.8s ease-in-out infinite`,
+                                "&:hover": { backgroundColor: "#fff8dc" },
+                                "& svg": { fontSize: "max(16px, 2.2cqw)" },
+                            }}
+                        >
+                            <GroupsOutlined />
+                        </IconButton>
+                    </Tooltip>
+                )
+            })}
             <Deck rect={CARD_PLACES.financeNews.deck} image={financeNewsBack} name="Finance News deck" />
             <Deck rect={CARD_PLACES.stockTip.deck} image={stockTipBack} name="Stock Tip deck" />
             {activeNews && (
@@ -274,15 +290,13 @@ export const GameBoard = ({ game, board, lastStockTip, buildable = [], onBuild }
                     card={board?.financeNews.find((card) => card.id === activeNews)}
                     fallback="Finance News"
                     label="FINANSSILEHTI"
-                    caption="Active Finance News"
                 />
             )}
-            {lastStockTip && (
+            {turnStockTip && (
                 <DrawnCard
                     rect={CARD_PLACES.stockTip.drawn}
-                    card={board?.stockTips.find((card) => card.id === lastStockTip.card)}
+                    card={board?.stockTips.find((card) => card.id === turnStockTip)}
                     fallback="Stock Tip"
-                    caption={`Drawn by ${lastStockTip.drawnBy}${lastStockTip.held ? " · held" : ""}`}
                 />
             )}
         </Box>

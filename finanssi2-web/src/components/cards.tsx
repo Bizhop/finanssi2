@@ -45,22 +45,31 @@ const Row = ({ label, value }: { label: ReactNode; value?: ReactNode }) => (
     </Stack>
 )
 
-const Section = ({ title, values }: { title: string; values: { unbuilt: number | null; built: number | null } }) => (
-    <Box sx={{ mt: "0.45em" }}>
-        <div>{title}</div>
-        <Row label="Rakentamaton tontti" value={amount(values.unbuilt)} />
-        <Row label="Rakennettu tontti" value={amount(values.built)} />
-    </Box>
-)
+/** A title and its unbuilt/built values; `doubled` prints the values doubled in bold, for rent in a complete group */
+const Section = ({ title, values, doubled = false }: { title: string; values: { unbuilt: number | null; built: number | null }; doubled?: boolean }) => {
+    const value = (amountValue: number | null) => amount(doubled && amountValue != null ? amountValue * 2 : amountValue)
+    return (
+        <Box sx={{ mt: "0.45em", fontWeight: doubled ? 800 : undefined }}>
+            <div>
+                {title}
+                {doubled && " ×2"}
+            </div>
+            <Row label="Rakentamaton tontti" value={value(values.unbuilt)} />
+            <Row label="Rakennettu tontti" value={value(values.built)} />
+        </Box>
+    )
+}
 
 const Warning = ({ children }: { children: ReactNode }) => <Box sx={{ mt: "0.45em", color: "#c0262d", fontWeight: 700 }}>{children}</Box>
 
 /** A title deed ("hallintatodistus"); a building shows as a house or factory in the corner and a mortgage as a stamp */
-export const TitleDeedCard = ({ deed, groupName, built = false, mortgaged = false }: {
+export const TitleDeedCard = ({ deed, groupName, built = false, mortgaged = false, rentDoubled = false }: {
     deed: TitleDeed
     groupName?: string
     built?: boolean
     mortgaged?: boolean
+    /** The owner has the whole group, so rent is doubled */
+    rentDoubled?: boolean
 }) => {
     const color = deed.group ? GROUP_COLORS[deed.group] : undefined
     const industrial = deed.building?.label === "Teollisuus"
@@ -129,7 +138,7 @@ export const TitleDeedCard = ({ deed, groupName, built = false, mortgaged = fals
                             value={amount(deed.parkingFee)}
                         />
                     )}
-                    {deed.rent && <Section title="Vuokrat:" values={deed.rent} />}
+                    {deed.rent && <Section title="Vuokrat:" values={deed.rent} doubled={rentDoubled} />}
                     {deed.mortgage ? <Section title="Lainoitus:" values={deed.mortgage} /> : <Warning>Ei lainoitusta</Warning>}
                     {deed.buyBack
                         ? deed.building ? <Section title="Takaisinosto:" values={deed.buyBack} /> : (

@@ -7,6 +7,7 @@ import fi.bizhop.finanssi2.game.db.GameLogEntry;
 import fi.bizhop.finanssi2.game.db.GameLogRepository;
 import fi.bizhop.finanssi2.game.db.GameRepository;
 import fi.bizhop.finanssi2.game.db.GameStatus;
+import fi.bizhop.finanssi2.game.engine.CompulsorySaleMinimumBid;
 import fi.bizhop.finanssi2.game.engine.GameCommand;
 import fi.bizhop.finanssi2.game.engine.GameEngine;
 import fi.bizhop.finanssi2.game.engine.GameEvent;
@@ -18,6 +19,7 @@ import fi.bizhop.finanssi2.game.engine.Rules;
 import fi.bizhop.finanssi2.game.engine.PlayerState;
 import fi.bizhop.finanssi2.game.engine.RuleViolation;
 import fi.bizhop.finanssi2.game.engine.ScriptedDice;
+import fi.bizhop.finanssi2.game.engine.ShareholdersMeeting;
 import fi.bizhop.finanssi2.security.User;
 import fi.bizhop.finanssi2.service.MessagingService;
 import org.junit.jupiter.api.BeforeAll;
@@ -119,6 +121,9 @@ class GameServiceTest {
 
         assertEquals(GameStatus.LOBBY, game.getStatus());
         assertEquals("a", game.getCreator());
+        // New games use the recommended rules
+        assertEquals(new GameSettings(LoanLimit.UNLIMITED, CompulsorySaleMinimumBid.HALF_NOMINAL_PRICE, ShareholdersMeeting.ALL_ASSETS_BOUGHT),
+                game.getState().getSettings());
         var player = game.getState().getPlayers().getFirst();
         assertEquals(new PlayerState("a", "Player a", "https://example.com/a.png", 0), player);
         var entries = savedEntries();

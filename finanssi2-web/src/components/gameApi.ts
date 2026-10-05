@@ -27,11 +27,15 @@ export type Game = {
         settings: {
             loanLimit: "OFFICIAL" | "UNLIMITED"
             compulsorySaleMinimumBid: "NONE" | "HALF_NOMINAL_PRICE"
+            /** House rule ALL_ASSETS_BOUGHT (the default): a meeting needs every asset of the group bought from the bank */
+            shareholdersMeeting: "ALL_ASSETS_BOUGHT" | "ANY_OTHER_OWNER"
         }
         activeFinanceNews: string | null
         finished: boolean
         winner: string | null
         phase: "BEFORE_ROLL" | "AFTER_ROLL" | null
+        /** A property or share has been bought this turn; only one purchase per turn is allowed */
+        boughtThisTurn?: boolean
         finalStandings: { player: string; cash: number; netWorth: number; completeGroups: string[] }[]
         properties: { square: number; owner: string | null; mortgaged: boolean; built: boolean }[]
         shares: { id: string; owner: string | null }[]

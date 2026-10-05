@@ -182,8 +182,10 @@ These retain the decisions from the former open-questions file. The physical rul
 
 ### Shareholders' meetings and game end
 
-- Meetings are before rolling on 35–46, with owned assets and another player's assets in the chosen group. Base property,
-  building and share prices determine takeover cost; mortgages transfer intact and bank-owned assets stay out of the takeover.
+- Meetings are before rolling on 35–46, with owned assets and another player's assets in the chosen group. With the recommended
+  `shareholdersMeeting` setting every property and share of the group must already be bought from the bank, since a meeting takes
+  over all of the group; the printed rules leave this out. With the original setting bank-owned assets stay out of the takeover.
+  Base property, building and share prices determine takeover cost; mortgages transfer intact.
 - Brokerage fees are multiples of 10 000 from 20 000 to 120 000. At 120 000 success is automatic; otherwise two dice must total
   at most fee / 10 000. On failure the bank gets the fee. On success the bank gets up to 30 000, sellers split the remainder
   rounded to the nearest 500, and the bank absorbs rounding. A 20 000 fee goes entirely to the bank.
@@ -198,10 +200,17 @@ Single-player debug implementation is complete; developer-run live acceptance re
 
 Implemented lobby settings, fixed once the game starts:
 
-| Setting | Backend default | Alternative |
+The recommended options are the developer's house rules and the defaults (`GameSettings.DEFAULT`). The original printed rules
+(`GameSettings.ORIGINAL`) stay available for legacy play, though some of them play poorly.
+
+| Setting | Recommended (default) | Original |
 |---|---|---|
-| `loanLimit` | `OFFICIAL`: six loans total, at most three per player | `UNLIMITED`: no bank total limit, still three per player; recommended in the frontend |
-| `compulsorySaleMinimumBid` | `NONE`: official rule, no minimum | `HALF_NOMINAL_PRICE`: half the base share price or property-plus-building price |
+| `loanLimit` | `UNLIMITED`: no bank total limit, still three per player | `OFFICIAL`: six loans total, at most three per player |
+| `compulsorySaleMinimumBid` | `HALF_NOMINAL_PRICE`: half the base share price or property-plus-building price | `NONE`: no minimum |
+| `shareholdersMeeting` | `ALL_ASSETS_BOUGHT`: the whole group bought from the bank | `ANY_OTHER_OWNER`: another player owns some of the group |
+
+Settings saved before a setting existed keep what those games were played with: no minimum bid, and the whole-group meeting rule.
+Engine tests run with the recommended rules unless they set `GameSettings.ORIGINAL` for printed-rule behaviour.
 
 - [ ] Review the frontend against a live backend with at least two Google-authenticated players, especially decisions outside
   the current player's turn, auctions, card chains and reconnects. See the frontend notes for known controls that need work.

@@ -56,3 +56,24 @@ export const CARD_PLACES = {
 /** Which side of the board a square is on; corners are 1, 11, 24 and 34 */
 export const squareSide = (square: number): "left" | "top" | "right" | "bottom" | "corner" =>
     [1, 11, 24, 34].includes(square) ? "corner" : square <= 10 ? "left" : square <= 23 ? "top" : square <= 33 ? "right" : "bottom"
+
+/** A point just inside the ring of squares, next to the middle of the given squares (all on one side of the board), in percent */
+export const besideSquares = (squares: number[]) => {
+    const rects = squares.map(squareRect)
+    const left = Math.min(...rects.map((rect) => rect.left))
+    const right = Math.max(...rects.map((rect) => rect.left + rect.width))
+    const top = Math.min(...rects.map((rect) => rect.top))
+    const bottom = Math.max(...rects.map((rect) => rect.top + rect.height))
+    // Clear of the numbered strip along the inner edge of the squares
+    const gap = { x: 3.4, y: 4.6 }
+    switch (squareSide(squares[0])) {
+        case "left":
+            return { left: INNER.left + gap.x, top: (top + bottom) / 2 }
+        case "right":
+            return { left: INNER.right - gap.x, top: (top + bottom) / 2 }
+        case "top":
+            return { left: (left + right) / 2, top: INNER.top + gap.y }
+        default:
+            return { left: (left + right) / 2, top: INNER.bottom - gap.y }
+    }
+}

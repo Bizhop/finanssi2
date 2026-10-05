@@ -11,9 +11,11 @@ import ReceiptLongOutlined from "@mui/icons-material/ReceiptLongOutlined"
 import ShowChartOutlined from "@mui/icons-material/ShowChartOutlined"
 import StyleOutlined from "@mui/icons-material/StyleOutlined"
 
-import { CardPeek, playerColor, playerShade } from "./GameBoard.tsx"
+import { CardPeek } from "./GameBoard.tsx"
+import { playerColor, playerShade } from "./PlayerToken.tsx"
 import { BondCard, CarCard, cardPeekSlotProps, CardRow, LoanCard, ShareCard, TitleDeedCard } from "./cards.tsx"
 import { type AssetAction, carAction, loanActions, type PlayerControls, propertyActions, shareActions, stockTipAction } from "./actions.tsx"
+import { rentDoubled } from "./SquareDetails.tsx"
 import type { Game, GameBoardData, GamePlayer } from "./gameApi.ts"
 
 const pulse = keyframes`
@@ -21,44 +23,75 @@ const pulse = keyframes`
     50% { box-shadow: 0 0 0 6px rgba(25, 118, 210, 0); }
 `
 
+/** Ring around an asset icon that opens a purchase, matching the glow of properties for sale on the board */
+const iconHalo = keyframes`
+    0%, 100% { box-shadow: 0 0 3px 2px rgba(255, 214, 64, 0.89); }
+    50% { box-shadow: 0 0 5px 3px rgba(255, 214, 64, 0.96); }
+`
+
 const assetSx = { display: "inline-flex", alignItems: "center", gap: 0.4, px: 0.25, borderRadius: 1, "& svg": { fontSize: 18 } } as const
 
 /**
  * An asset icon with a count. Hovering shows the asset cards (with their actions), or just the title when there are no cards.
- * `onClick` makes the icon itself an action; `faded` shows an asset the player doesn't have, e.g. no car.
+ * `onClick` makes the icon itself an action; `faded` shows an asset the player doesn't have, e.g. no car; `halo` marks an icon that
+ * opens a purchase.
  */
-const Asset = ({ icon, count, title, cards, onClick, faded }: {
+const Asset = ({ icon, count, title, cards, onClick, faded, halo }: {
     icon: ReactNode
     count?: ReactNode
     title: string
     cards?: ReactNode
     onClick?: (anchor: HTMLElement) => void
     faded?: boolean
-}) => (
-    <Tooltip arrow={!cards} leaveDelay={cards ? 150 : 0} slotProps={cards ? cardPeekSlotProps : undefined} title={cards ? <CardRow>{cards}</CardRow> : title}>
-        {onClick
-            ? (
-                <ButtonBase
-                    onClick={(event) => onClick(event.currentTarget)}
-                    aria-label={title}
-                    sx={{
-                        ...assetSx,
-                        color: faded ? "text.disabled" : undefined,
-                        "&:hover": { backgroundColor: "action.hover", color: "primary.main" },
-                    }}
-                >
-                    {icon}
-                    {count != null && <Typography variant="body2" component="span">{count}</Typography>}
-                </ButtonBase>
-            )
-            : (
-                <Box component="span" tabIndex={0} aria-label={title} sx={{ ...assetSx, color: faded ? "text.disabled" : undefined, cursor: "default" }}>
-                    {icon}
-                    {count != null && <Typography variant="body2" component="span">{count}</Typography>}
-                </Box>
-            )}
-    </Tooltip>
-)
+    halo?: boolean
+}) => {
+    const shownIcon = halo
+        ? (
+            <Box
+                component="span"
+                sx={{
+                    display: "inline-flex",
+                    p: "2px",
+                    borderRadius: "50%",
+                    backgroundColor: "rgba(255, 214, 64, 0.25)",
+                    animation: `${iconHalo} 1.8s ease-in-out infinite`,
+                }}
+            >
+                {icon}
+            </Box>
+        )
+        : icon
+    return (
+        <Tooltip
+            arrow={!cards}
+            leaveDelay={cards ? 150 : 0}
+            slotProps={cards ? cardPeekSlotProps : undefined}
+            title={cards ? <CardRow>{cards}</CardRow> : title}
+        >
+            {onClick
+                ? (
+                    <ButtonBase
+                        onClick={(event) => onClick(event.currentTarget)}
+                        aria-label={title}
+                        sx={{
+                            ...assetSx,
+                            color: faded ? "text.disabled" : undefined,
+                            "&:hover": { backgroundColor: "action.hover", color: "primary.main" },
+                        }}
+                    >
+                        {shownIcon}
+                        {count != null && <Typography variant="body2" component="span">{count}</Typography>}
+                    </ButtonBase>
+                )
+                : (
+                    <Box component="span" tabIndex={0} aria-label={title} sx={{ ...assetSx, color: faded ? "text.disabled" : undefined, cursor: "default" }}>
+                        {shownIcon}
+                        {count != null && <Typography variant="body2" component="span">{count}</Typography>}
+                    </Box>
+                )}
+        </Tooltip>
+    )
+}
 
 /** A card in a peek, with its actions underneath */
 const ActionCard = ({ card, actions, controls }: { card: ReactNode; actions: AssetAction[]; controls?: PlayerControls }) => (
@@ -173,6 +206,7 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected, contro
                                                         groupName={board?.groups.find((group) => group.id === deed.group)?.name}
                                                         built={property.built}
                                                         mortgaged={property.mortgaged}
+                                                        rentDoubled={rentDoubled(game, board, property.square)}
                                                     />
                                                 }
                                             />
@@ -180,12 +214,16 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected, contro
                                     })}
                                 />
                             )}
-                            {shares.length > 0 && (
+                            {(shares.length > 0 || controls?.onBuyShare) && (
                                 <Asset
                                     icon={<ShowChartOutlined />}
                                     count={shares.length}
-                                    title="Shares"
-                                    cards={shares.map((owned) => {
+                                    faded={shares.length === 0}
+                                    title={controls?.onBuyShare ? "Shares: click to buy one from the bank" : "Shares"}
+                                    // While the bank sells shares the icon glows and opens the purchase; hovering still shows owned shares
+                                    halo={controls?.onBuyShare != null}
+                                    onClick={controls?.onBuyShare}
+                                    cards={shares.length === 0 ? undefined : shares.map((owned) => {
                                         const share = board?.shares.find((item) => item.id === owned.id)
                                         const name = share?.group ? board?.groups.find((group) => group.id === share.group)?.name ?? share.group : "fund"
                                         return share && (

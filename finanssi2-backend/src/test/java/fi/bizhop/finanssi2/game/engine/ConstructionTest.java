@@ -99,8 +99,9 @@ class ConstructionTest {
     @Test
     void testBankruptcyRemovesBuildings() {
         // a owns a built Ompelimo, which can be neither mortgaged for enough nor sold back (Käsiteollisuus is never bought back)
-        var state = TestGame.players("a", "b", "c").owns("b", 23).built(23).owns("a", 3).built(3).loans("b", 3).loans("c", 3)
-                .cash("a", 0).at("a", 22).state();
+        // Official loan limit: b and c hold all 6 loans
+        var state = TestGame.players("a", "b", "c").settings(GameSettings.ORIGINAL).owns("b", 23).built(23).owns("a", 3).built(3)
+                .loans("b", 3).loans("c", 3).cash("a", 0).at("a", 22).state();
         roll(state, 1);
 
         send(state, "a", new DeclareBankruptcy());
