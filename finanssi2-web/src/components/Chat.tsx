@@ -37,7 +37,7 @@ const apiUrl = import.meta.env.VITE_FINANSSI_API_URL
 
 const PAGE_SIZE = 20
 
-// Union by id, newest first. Ids grow with creation time (MongoDB ObjectIds), and as equal-length hex strings they compare in the same order.
+// Union by id, newest first. Chat ids are fixed-width decimal strings, so lexical order matches database identity order.
 const mergeMessages = (messages: TChatMessage[], moreMessages: TChatMessage[]) =>
     [...new Map([...messages, ...moreMessages].map((message) => [message.id, message])).values()]
         .sort((a, b) => a.id < b.id ? 1 : a.id > b.id ? -1 : 0)

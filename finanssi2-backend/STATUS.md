@@ -20,12 +20,12 @@ live frontend integration review and the follow-ups below remain. See [frontend 
 | Stock Tips | All 41 transcribed cards, public held cards, choices, asset transfers/swaps, compulsory auctions and deck returns |
 | Shareholders' meetings | Takeover validation, success rolls, seller payments, fee distribution and transfer of mortgages |
 | Game end | Cash-and-group win, last-player win, full bankruptcy liquidation, resignation, creator closure and final standings |
-| Persistence and live updates | Optimistic locking, state/event persistence, retryable event archival, event history and lobby/game broadcasts |
+| Persistence and live updates | PostgreSQL JSONB game state, atomic event history, optimistic locking and lobby/game broadcasts |
 | Frontend API and dev support | Static board/card data, actor-aware game views and private allowlisted debug games with command dice and next-card controls |
 
 ## Implementation decisions
 
-- Code lives under `fi.bizhop.finanssi2.game`: `data` loads immutable assets, `engine` applies rules without Spring or MongoDB,
+- Code lives under `fi.bizhop.finanssi2.game`: `data` loads immutable assets, `engine` applies rules without Spring or persistence,
   `service` loads/saves/broadcasts, and `web` exposes REST models. Card effects use stable ids in code; the JSON holds card text.
 - The canonical data is in `src/main/resources/gamedata/`. Transcriptions are in `../input/data/`; the rules, board photo and
   card photos remain in `../input/`. The deeds and cards were transcribed from the physical set on 2026-09-30.
@@ -34,11 +34,10 @@ live frontend integration review and the follow-ups below remain. See [frontend 
   one of the 42 Stock Tips listed in the rules; use the 41 available cards.
 - Commands validate before changing state, then return typed events. REST receives commands and STOMP broadcasts events and
   the saved version. Invalid rules/concurrent saves return `409`; disallowed actors return `403`.
-- Each game is one MongoDB document with `@Version`. `GameState` exists from creation and holds players and settings.
-  State and new events save together in hidden `unarchivedEvents`, then archive to the separate log. Stable `gameId:seq` ids
-  make partial writes safe to retry. Reads merge the log and unarchived batch without duplicates and retry archival; subsequent
-  writes discard only batches confirmed archived. Archival failure does not reject an already saved command. This needs no
-  MongoDB transaction or second state save/version increment.
+- PostgreSQL stores game metadata in a versioned row and the complete mutable `GameState` in JSONB. Each command updates that row
+  and appends its typed JSONB events in one transaction. Chat messages use a relational table with generated, fixed-width decimal
+  string ids for descending cursor pagination. JPA entities define the schema; Hibernate updates it at startup. An incompatible
+  update can use an empty database because persisted data is currently disposable.
 - Dice are injected (`SecureRandom` normally, scripted in tests). Debug overrides belong to one command, fall back to random
   rolls when exhausted and discard unused values. The old dev dice route/profile wiring is removed. Deck order stays hidden.
 - Player ids are Firebase uids; name/photo are copied on joining. Pieces are the lowest free numbers 0–5. A creator leaving the
@@ -54,8 +53,8 @@ live frontend integration review and the follow-ups below remain. See [frontend 
 - Money uses integer currency units (€ in the transcriptions, marks in the original game), in multiples of 500. The bank's cash
   is unlimited. Cars, properties, shares and bonds are limited; building pieces are not counted because the set has enough.
 - Rejected-command tests use immutable typed snapshots of all state fields, preserving player and deck order; a coverage check
-  requires new state fields to be included. Existing tests cover data, engine, service, controller, MongoDB and authentication.
-  MongoDB tests use an in-memory server normally; the real `mongo:7` suite is tagged `container` and run manually.
+  requires new state fields to be included. Existing tests cover data, engine, service, controller, PostgreSQL and authentication.
+  PostgreSQL persistence tests use a host database (`databaseTest`) or Testcontainers (`containerTest`) for manual runs.
 
 ## Private single-player debug mode
 
@@ -73,7 +72,7 @@ live frontend integration review and the follow-ups below remain. See [frontend 
   Actor and version are checked before execution. The effective seat is `state.actor()`, including out-of-turn decisions; closure
   still uses authenticated creator authority. Normal commands reject unexpected actor/dice fields. Conflicts return 409.
 - `PUT /api/debug/games/{id}/next-card` accepts `deck` (`FINANCE_NEWS`/`STOCK_TIP`), `card` and `expectedVersion`. It moves one
-  available card to the front, preserves other order/membership and records `DebugDeckChanged` through atomic archival.
+  available card to the front, preserves other order/membership and records `DebugDeckChanged` in the same transaction.
   Held cards, unknown ids/decks, pending decisions and nonrunning games are rejected; effects change only on an ordinary draw.
 - `DELETE /api/debug/games/{id}` returns empty 204, removes state/history and emits a private deletion notification. Versioned
   removal rejects stale saves. Archival racing with a deletion can leave unreachable log entries; they are not cleaned up.
@@ -86,7 +85,7 @@ Outstanding developer-run acceptance:
 - [ ] Configure a verified Google account and play through the real frontend/backend: create/configure/start/reload a 2–6-seat
   debug game, act for every seat/decision, select both card decks, close after owner elimination and delete.
 - [ ] Use two tabs for conflicting actions and deletion notifications; verify reconnects, allowlist removal and normal games.
-- [ ] Optionally run `containerTest` against real MongoDB. The normal suite uses in-memory MongoDB.
+- [ ] Run `containerTest` against PostgreSQL in Docker.
 - On 2026-10-02 the available host endpoint `host.docker.internal:8080/api/hello` returned 500. No deployed allowlist or
   Google-authenticated browser session was supplied, so live play was not claimed.
 
@@ -207,7 +206,7 @@ Implemented lobby settings, fixed once the game starts:
 - [ ] Review the frontend against a live backend with at least two Google-authenticated players, especially decisions outside
   the current player's turn, auctions, card chains and reconnects. See the frontend notes for known controls that need work.
 - [ ] Review later implementation choices. The old decision log explicitly recorded I1–I23 as accepted; it did not record
-  acceptance for I24–I37. Those later choices cover bond queues/sealed bids/draw events and compatibility, atomic event archival,
+  acceptance for I24–I37. Those later choices cover bond queues/sealed bids/draw events and compatibility, atomic event writes,
   typed rejection snapshots, Finance News movement/dividends, Stock Tip decks/choices, the low meeting fee and net-worth formula.
 - [ ] Add decision timeouts for players who stop responding, after live frontend review. Creator closure is the current fallback.
 - [ ] Consider optional borrowing on bankruptcy: exclude untaken loans from solvency and leave borrowing voluntary. The current
@@ -220,6 +219,7 @@ Implemented lobby settings, fixed once the game starts:
   were broader than the current `FinanceNewsTest`, `StockTipsTest` and `GameEndTest` classes; implementation is not evidence
   that every planned scenario has an automated test.
 
-Validation on 2026-10-02: the full isolated Gradle suite passed (231 tests), including in-memory MongoDB,
-HTTP endpoints and real websocket clients. Container MongoDB tests were not run. Follow [AGENTS.md](AGENTS.md)
-for build isolation and [README](../README.md) for local setup.
+The last full isolated suite run was before the PostgreSQL migration, on 2026-10-02 (231 tests, including the former in-memory
+MongoDB suite, HTTP endpoints and real websocket clients). On 2026-10-05, all 212 regular tests and all 13 PostgreSQL integration
+checks passed against the host PostgreSQL 17 instance. Follow [AGENTS.md](AGENTS.md) for build isolation and [README](../README.md)
+for local setup.

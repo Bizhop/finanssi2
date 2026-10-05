@@ -37,10 +37,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-/** Saves and loads games in MongoDB; subclasses choose the database. Removes only the documents it created. */
+/** PostgreSQL persistence integration checks. */
 @SpringBootTest(properties = "finanssi2.debug.allowed-emails=owner@example.com,other@example.com")
-@ActiveProfiles("test")
-abstract class GameMongoTests {
+@ActiveProfiles("postgres-test")
+abstract class GamePostgresTests {
     @Autowired
     GameService gameService;
     @Autowired
@@ -366,7 +366,6 @@ abstract class GameMongoTests {
         assertEquals(List.of("PV-25"), loaded.getState().getPlayers().getFirst().getHeldStockTips());
         assertEquals(List.of("PV-01"), loaded.getState().getStockTipDeck());
         var json = objectMapper.readTree(objectMapper.writeValueAsString(loaded));
-        assertFalse(json.has("unarchivedEvents"));
         var decisions = json.get("state").get("pendingDecisions");
         assertEquals(3, decisions.size());
         assertEquals("GRAND_DRAW", decisions.get(0).get("after").asString());
@@ -375,26 +374,12 @@ abstract class GameMongoTests {
     }
 
     @Test
-    void testDurableEventsRecoverFromPartialArchiveWithoutDuplicates() {
-        var id = create("a").getId();
-        var game = gameService.get(id);
-        var second = GameLogEntry.of(id, 2, 1000, new GameEvent.SettingsChanged(GameSettings.DEFAULT));
-        var third = GameLogEntry.of(id, 3, 1000, new GameEvent.SettingsChanged(new GameSettings(LoanLimit.UNLIMITED)));
-        game.setLastEventSeq(3);
-        game.setUnarchivedEvents(List.of(second, third));
-        gameRepository.save(game);
-        gameLogRepository.save(second); // Only part of the archive made it before an interruption.
+    void testStateAndEventsPersistTogether() {
+        var id = create("atomic").getId();
+        gameService.changeSettings(id, user("atomic"), new GameSettings(LoanLimit.UNLIMITED));
         var stored = gameService.get(id);
-        assertEquals(List.of(second, third), stored.getUnarchivedEvents());
-
-        assertEquals(List.of(second, third), gameService.events(id, 1));
-        assertEquals(List.of(second, third), gameService.events(id, 1));
-        assertEquals(3, gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(id, 0).size());
-        assertEquals(stored.getVersion(), gameService.get(id).getVersion());
-
-        gameService.changeSettings(id, user("a"), GameSettings.DEFAULT);
-        assertEquals(List.of(4), gameService.get(id).getUnarchivedEvents().stream().map(GameLogEntry::seq).toList());
-        assertEquals(4, gameService.events(id, 0).size());
+        assertEquals(2, stored.getLastEventSeq());
+        assertEquals(2, gameService.events(id, 0).size());
     }
 
     @Test

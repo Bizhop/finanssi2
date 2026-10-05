@@ -111,12 +111,11 @@ class GameControllerTest {
     }
 
     void saveSucceeds() {
-        when(gameRepository.save(any())).thenAnswer(invocation -> {
+        when(gameRepository.saveWithEvents(any(), any())).thenAnswer(invocation -> {
             var game = invocation.<Game>getArgument(0);
             game.setVersion(game.getVersion() + 1);
             return game;
         });
-        when(gameLogRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
@@ -161,7 +160,7 @@ class GameControllerTest {
     @Test
     void testConcurrentChangeIsConflict() {
         lobby("a");
-        when(gameRepository.save(any())).thenThrow(new OptimisticLockingFailureException("version 1 changed"));
+        when(gameRepository.saveWithEvents(any(), any())).thenThrow(new OptimisticLockingFailureException("version 1 changed"));
 
         assertEquals(HttpStatus.CONFLICT, post("/" + GAME_ID + "/join", "b").getStatusCode());
     }

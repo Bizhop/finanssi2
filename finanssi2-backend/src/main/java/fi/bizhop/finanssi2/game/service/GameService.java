@@ -20,8 +20,6 @@ import fi.bizhop.finanssi2.game.engine.RuleViolation;
 import fi.bizhop.finanssi2.security.User;
 import fi.bizhop.finanssi2.service.MessagingService;
 import lombok.RequiredArgsConstructor;
-import org.bson.types.ObjectId;
-import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -29,28 +27,20 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.TreeMap;
-import java.util.function.Function;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.random.RandomGenerator;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static fi.bizhop.finanssi2.game.data.GameConstants.MAX_PLAYERS;
 
 /**
- * Saves state and new events together in the game document, then archives events and broadcasts the change. Optimistic locking
- * rejects competing changes before their new events are archived or broadcast. A failed archive is retried on event reads and
- * later changes; the events remain available from the game document. Versioned saves and removal reject changes to a deleted
- * game.
+ * Saves state and new events in one PostgreSQL transaction, then broadcasts the committed change. Optimistic locking rejects
+ * competing changes before they can be broadcast. Versioned saves and removal reject changes to a deleted game.
  */
 @Service
 @RequiredArgsConstructor
 public class GameService {
     static final String LOBBY_TOPIC = "/topic/games";
-    static final Logger logger = Logger.getLogger(GameService.class.getName());
 
     final GameRepository gameRepository;
     final GameLogRepository gameLogRepository;
@@ -69,7 +59,7 @@ public class GameService {
     /** Creates a game in the lobby with its creator as the first player */
     public Game create(User user) {
         var game = new Game();
-        game.setId(new ObjectId().toHexString());
+        game.setId(java.util.UUID.randomUUID().toString());
         game.setCreator(user.uid());
         game.setCreatedAt(System.currentTimeMillis());
         return commit(game, List.of(addPlayer(game, user)), true).game();
@@ -80,7 +70,7 @@ public class GameService {
         if (playerCount < 2 || playerCount > MAX_PLAYERS) throw new RuleViolation("playerCount must be 2–6");
         if (settings.loanLimit() == null) throw new RuleViolation("loanLimit is required");
         var game = new Game(GameMode.DEBUG);
-        game.setId(new ObjectId().toHexString());
+        game.setId(java.util.UUID.randomUUID().toString());
         game.setCreator(user.uid());
         game.setCreatedAt(System.currentTimeMillis());
         game.getState().setSettings(settings);
@@ -99,7 +89,6 @@ public class GameService {
         debugAccess.requireOwner(game, user);
         // Versioned removal makes a concurrent save fail rather than recreate the document.
         gameRepository.delete(game);
-        gameLogRepository.deleteByGameId(id);
         messagingService.send(gameTopic(id), new GameDeleted(id, true));
     }
 
@@ -137,11 +126,7 @@ public class GameService {
     }
 
     private List<GameLogEntry> events(Game game, int after) {
-        archive(game.getUnarchivedEvents());
-        var archived = gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(game.getId(), after);
-        var entries = Stream.concat(archived.stream(), game.getUnarchivedEvents().stream().filter(entry -> entry.seq() > after))
-                .collect(Collectors.toMap(GameLogEntry::seq, Function.identity(), (first, second) -> second, TreeMap::new));
-        return List.copyOf(entries.values());
+        return gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(game.getId(), after);
     }
 
     public Game join(String id, User user) {
@@ -166,7 +151,6 @@ public class GameService {
         var players = game.getState().getPlayers();
         if (players.size() == 1) {
             gameRepository.delete(game);
-            gameLogRepository.deleteByGameId(id);
             messagingService.send(LOBBY_TOPIC, new LobbyChange(id, null));
             return;
         }
@@ -321,24 +305,15 @@ public class GameService {
 
     record Committed(Game game, List<GameLogEntry> entries) {}
 
-    /**
-     * Events awaiting archival travel with the next state save. Successful archival of an earlier batch lets that save discard
-     * it; a failed state save leaves the previously stored batch intact. No second game save or version increment is needed.
-     */
+    /** Saves state and events atomically, then publishes the committed update. */
     Committed commit(Game game, List<GameEvent> events, boolean lobbyChange) {
         var firstSeq = game.getLastEventSeq() + 1;
         var time = System.currentTimeMillis();
         var entries = IntStream.range(0, events.size())
                 .mapToObj(i -> GameLogEntry.of(game.getId(), firstSeq + i, time, events.get(i)))
                 .toList();
-        var earlier = game.getUnarchivedEvents();
-        if (archive(earlier)) {
-            earlier = List.of();
-        }
-        game.setUnarchivedEvents(Stream.concat(earlier.stream(), entries.stream()).toList());
         game.setLastEventSeq(game.getLastEventSeq() + events.size());
-        var saved = gameRepository.save(game);
-        archive(saved.getUnarchivedEvents());
+        var saved = gameRepository.saveWithEvents(game, entries);
 
         messagingService.send(gameTopic(saved.getId()), new GameUpdate(saved.getId(), saved.getVersion(), entries));
         if (lobbyChange && saved.getMode() == GameMode.NORMAL) {
@@ -347,20 +322,4 @@ public class GameService {
         return new Committed(saved, entries);
     }
 
-    /**
-     * Idempotent: stable event ids make retries safe after either a complete or a partial log write. Archival racing with deletion
-     * of the game can leave its events in the log; nothing reads them.
-     */
-    boolean archive(List<GameLogEntry> entries) {
-        if (entries.isEmpty()) {
-            return true;
-        }
-        try {
-            gameLogRepository.saveAll(entries);
-            return true;
-        } catch (DataAccessException e) {
-            logger.log(Level.WARNING, "Events remain in game " + entries.getFirst().gameId() + " for archival retry", e);
-            return false;
-        }
-    }
 }

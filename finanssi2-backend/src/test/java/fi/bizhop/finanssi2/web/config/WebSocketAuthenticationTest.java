@@ -103,7 +103,7 @@ class WebSocketAuthenticationTest {
 
     @Test
     void privateGameSubscriptionsRequireVerifiedOwnerAndCannotSendUpdates() throws Exception {
-        var id = "66f9a1b2c3d4e5f607182931";
+        var id = "66f9a1b2-c3d4-5e6f-8718-2931a2b3c4d5";
         var game = new fi.bizhop.finanssi2.game.db.Game(fi.bizhop.finanssi2.game.db.GameMode.DEBUG);
         game.setCreator("a");
         when(gameRepository.findById(id)).thenReturn(Optional.of(game));

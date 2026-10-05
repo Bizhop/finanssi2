@@ -5,7 +5,6 @@ import fi.bizhop.finanssi2.service.ChatService;
 import fi.bizhop.finanssi2.web.model.ChatMessageInput;
 import fi.bizhop.finanssi2.security.User;
 import lombok.RequiredArgsConstructor;
-import org.bson.types.ObjectId;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,8 +35,14 @@ public class ChatController {
         if (size < 1 || size > MAX_PAGE_SIZE) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "size must be between 1 and " + MAX_PAGE_SIZE);
         }
-        if (before != null && !ObjectId.isValid(before)) {
+        if (before != null && !before.matches("[0-9]{1,19}")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "before must be a message id");
+        }
+        if (before != null) {
+            try { Long.parseLong(before); }
+            catch (NumberFormatException invalid) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "before must be a message id");
+            }
         }
         return chatService.getMessages(before, size);
     }

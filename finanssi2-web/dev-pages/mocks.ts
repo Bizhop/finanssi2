@@ -24,7 +24,7 @@ const fakeSenders = [
     { username: "tester@example.com", name: null },
 ]
 
-// Ids that sort in creation order, like MongoDB ObjectIds (24 hex characters)
+// Fixed-width decimal ids sort in database insertion order.
 let lastFakeId = 0
 export const nextFakeId = () => (++lastFakeId).toString(16).padStart(24, "0")
 

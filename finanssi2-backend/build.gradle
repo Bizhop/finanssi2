@@ -25,7 +25,8 @@ repositories {
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-	implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	runtimeOnly 'org.postgresql:postgresql'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.springframework.boot:spring-boot-starter-websocket'
@@ -36,16 +37,16 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
 	testImplementation 'org.springframework.boot:spring-boot-resttestclient'
 	testImplementation 'org.springframework.boot:spring-boot-restclient'
-	testImplementation 'de.bwaldvogel:mongo-java-server:1.47.0'
 	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
 	testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
-	testImplementation 'org.testcontainers:testcontainers-mongodb'
+	testImplementation 'org.testcontainers:testcontainers-postgresql'
+	testRuntimeOnly 'com.h2database:h2'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {
 	useJUnitPlatform {
-		excludeTags 'container'
+		excludeTags 'container', 'database'
 	}
 }
 
@@ -57,5 +58,16 @@ tasks.register('containerTest', Test) {
 	classpath = sourceSets.test.runtimeClasspath
 	useJUnitPlatform {
 		includeTags 'container'
+	}
+}
+
+// Persistence checks against a running PostgreSQL at host.docker.internal (or DATABASE_URL)
+tasks.register('databaseTest', Test) {
+	description = 'Runs PostgreSQL persistence tests against the configured database.'
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform {
+		includeTags 'database'
 	}
 }

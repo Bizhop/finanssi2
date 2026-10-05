@@ -45,7 +45,7 @@ class DebugGameControllerTest {
 
     @BeforeEach
     void repository() {
-        when(games.save(any())).thenAnswer(call -> {
+        when(games.saveWithEvents(any(), any())).thenAnswer(call -> {
             var game = call.<Game>getArgument(0);
             game.setVersion(game.getVersion() == null ? 0 : game.getVersion() + 1);
             stored.put(game.getId(), game);
@@ -54,7 +54,6 @@ class DebugGameControllerTest {
         when(games.findById(anyString())).thenAnswer(call -> Optional.ofNullable(stored.get(call.<String>getArgument(0))));
         when(games.findByStatusOrPlayer(any(), anyString(), any())).thenAnswer(call -> List.copyOf(stored.values()));
         doAnswer(call -> { stored.remove(call.<Game>getArgument(0).getId()); return null; }).when(games).delete(any(Game.class));
-        when(history.saveAll(any())).thenAnswer(call -> call.getArgument(0));
         when(dice.forGame(any())).thenReturn(new ScriptedDice(6, 6, 1, 1));
     }
 
@@ -93,7 +92,7 @@ class DebugGameControllerTest {
         assertEquals(HttpStatus.NO_CONTENT, deleted.getStatusCode());
         assertNull(deleted.getBody());
         assertEquals(HttpStatus.NOT_FOUND, request(HttpMethod.GET, "/api/games/" + id, "a", null).getStatusCode());
-        verify(history).deleteByGameId(id);
+        verify(games).delete(any(Game.class));
     }
 
     @Test
@@ -124,7 +123,7 @@ class DebugGameControllerTest {
         version = stored.get(id).getVersion();
         assertEquals(HttpStatus.OK, request(HttpMethod.POST, endpoint, "a",
                 "{\"actor\":\"a\",\"expectedVersion\":" + version + ",\"command\":{\"type\":\"Roll\"},\"dice\":[1]}").getStatusCode());
-        doThrow(new OptimisticLockingFailureException("other tab")).when(games).save(any());
+        doThrow(new OptimisticLockingFailureException("other tab")).when(games).saveWithEvents(any(), any());
         version = stored.get(id).getVersion();
         assertEquals(HttpStatus.CONFLICT, request(HttpMethod.POST, endpoint, "a",
                 "{\"actor\":\"a\",\"expectedVersion\":" + version + ",\"command\":{\"type\":\"EndTurn\"}}").getStatusCode());
