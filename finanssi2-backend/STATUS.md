@@ -220,6 +220,6 @@ Implemented lobby settings, fixed once the game starts:
   that every planned scenario has an automated test.
 
 The last full isolated suite run was before the PostgreSQL migration, on 2026-10-02 (231 tests, including the former in-memory
-MongoDB suite, HTTP endpoints and real websocket clients). On 2026-10-05, Java and test sources compiled and all 13 PostgreSQL
-integration checks passed against the host PostgreSQL 17 instance. Follow [AGENTS.md](AGENTS.md) for build isolation and
-[README](../README.md) for local setup.
+MongoDB suite, HTTP endpoints and real websocket clients). On 2026-10-05, all 212 regular tests and all 13 PostgreSQL integration
+checks passed against the host PostgreSQL 17 instance. Follow [AGENTS.md](AGENTS.md) for build isolation and [README](../README.md)
+for local setup.

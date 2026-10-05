@@ -68,7 +68,7 @@ public class GameRepository {
             var event = new GameEventEntity();
             event.id = entry.id();
             event.game = entityManager.getReference(GameEntity.class, UUID.fromString(entry.gameId()));
-            event.gameId = entry.gameId();
+            event.gameId = UUID.fromString(entry.gameId());
             event.seq = entry.seq();
             event.time = entry.time();
             event.type = entry.type();

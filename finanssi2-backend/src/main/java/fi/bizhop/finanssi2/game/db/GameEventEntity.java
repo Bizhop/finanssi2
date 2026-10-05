@@ -20,8 +20,8 @@ public class GameEventEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "game_id", nullable = false, referencedColumnName = "id")
     GameEntity game;
-    @Column(name = "game_id", insertable = false, updatable = false, length = 36)
-    String gameId;
+    @Column(name = "game_id", insertable = false, updatable = false)
+    java.util.UUID gameId;
     @Column(nullable = false)
     int seq;
     @Column(nullable = false)

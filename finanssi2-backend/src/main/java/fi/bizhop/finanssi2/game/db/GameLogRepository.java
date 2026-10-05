@@ -31,7 +31,7 @@ public class GameLogRepository {
         for (var entry : entries) {
             var row = new GameEventEntity();
             row.id = entry.id(); row.game = entityManager.getReference(GameEntity.class, java.util.UUID.fromString(entry.gameId()));
-            row.gameId = entry.gameId();
+            row.gameId = java.util.UUID.fromString(entry.gameId());
             row.seq = entry.seq(); row.time = entry.time();
             row.type = entry.type();
             try {
@@ -54,7 +54,7 @@ public class GameLogRepository {
 
     private GameLogEntry model(GameEventEntity row) {
         try {
-            return new GameLogEntry(row.id, row.gameId, row.seq, row.time, row.type,
+            return new GameLogEntry(row.id, row.gameId.toString(), row.seq, row.time, row.type,
                     persistenceEventMapper.treeToValue(row.event, GameEvent.class));
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             throw new IllegalStateException("Could not decode game event JSONB", e);

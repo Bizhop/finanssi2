@@ -366,6 +366,7 @@ class GameServiceTest {
 
     @Test
     void testEventsReadFromPostgresLog() {
+        lobby("a");
         var entry = GameLogEntry.of(GAME_ID, 1, 1000, new GameEvent.PlayerJoined("a", "Player a", 0));
         when(gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(GAME_ID, 0)).thenReturn(List.of(entry));
         assertEquals(List.of(entry), service().events(GAME_ID, 0));

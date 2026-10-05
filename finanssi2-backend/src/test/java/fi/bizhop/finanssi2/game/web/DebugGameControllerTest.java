@@ -123,7 +123,7 @@ class DebugGameControllerTest {
         version = stored.get(id).getVersion();
         assertEquals(HttpStatus.OK, request(HttpMethod.POST, endpoint, "a",
                 "{\"actor\":\"a\",\"expectedVersion\":" + version + ",\"command\":{\"type\":\"Roll\"},\"dice\":[1]}").getStatusCode());
-        doThrow(new OptimisticLockingFailureException("other tab")).when(games).save(any());
+        doThrow(new OptimisticLockingFailureException("other tab")).when(games).saveWithEvents(any(), any());
         version = stored.get(id).getVersion();
         assertEquals(HttpStatus.CONFLICT, request(HttpMethod.POST, endpoint, "a",
                 "{\"actor\":\"a\",\"expectedVersion\":" + version + ",\"command\":{\"type\":\"EndTurn\"}}").getStatusCode());
