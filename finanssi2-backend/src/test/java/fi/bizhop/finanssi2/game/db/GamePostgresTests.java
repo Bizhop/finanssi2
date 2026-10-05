@@ -15,6 +15,7 @@ import fi.bizhop.finanssi2.game.service.DiceSource;
 import fi.bizhop.finanssi2.game.service.GameService;
 import fi.bizhop.finanssi2.security.User;
 import fi.bizhop.finanssi2.service.MessagingService;
+import fi.bizhop.finanssi2.service.ChatService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -49,6 +51,8 @@ abstract class GamePostgresTests {
     GameLogRepository gameLogRepository;
     @Autowired
     ChatRepository chatRepository;
+    @Autowired
+    ChatService chatService;
     @Autowired
     ObjectMapper objectMapper;
     @MockitoBean
@@ -262,6 +266,29 @@ abstract class GamePostgresTests {
         assertFalse(gameRepository.existsById(game.getId()));
         assertTrue(gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(game.getId(), 0).isEmpty());
         assertThrows(OptimisticLockingFailureException.class, () -> gameRepository.save(stale));
+    }
+
+    @Test
+    void gameChatIsRoomScopedAndCascadesOnGameDeletion() {
+        var player = user("chat-room");
+        var game = create("chat-room");
+        var global = chatRepository.save(new ChatMessage(null, player.email(), player.name(), "global", 1000, null));
+        var inGame = chatService.postGameMessage(game.getId(), player, "game message");
+        var other = create("other-room");
+        var otherMessage = chatService.postGameMessage(other.getId(), user("other-room"), "other game message");
+
+        assertEquals(List.of(inGame), chatRepository.findGameMessages(UUID.fromString(game.getId()), null,
+                org.springframework.data.domain.Limit.of(20)));
+        assertEquals(List.of(otherMessage), chatRepository.findGameMessages(UUID.fromString(other.getId()), null,
+                org.springframework.data.domain.Limit.of(20)));
+        assertEquals("global", chatRepository.findById(global.id()).orElseThrow().message());
+        gameRepository.delete(game);
+
+        assertTrue(chatRepository.findById(inGame.id()).isEmpty());
+        assertEquals(List.of(otherMessage), chatRepository.findGameMessages(UUID.fromString(other.getId()), null,
+                org.springframework.data.domain.Limit.of(20)));
+        assertEquals("global", chatRepository.findById(global.id()).orElseThrow().message());
+        chatRepository.deleteById(global.id());
     }
 
     @Test
