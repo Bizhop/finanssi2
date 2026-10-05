@@ -161,13 +161,13 @@ const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true,
         if (connected) refreshNewestMessages()
     }, [connected])
 
-    // Auto-load when a scrollable list reaches the top. The button remains available when the loaded page fits without scrolling.
-    // Re-created on changes so observe() checks the current sentinel position and message count.
+    // Global chat auto-loads at the top of a scrollable list. The compact game tab uses its button so a tall sidebar cannot
+    // consume every older page automatically.
     const messageListRef = useRef<HTMLUListElement>(null)
     const loadMoreTriggerRef = useRef<HTMLLIElement>(null)
     useEffect(() => {
         const trigger = loadMoreTriggerRef.current
-        if (!trigger || !hasOlderMessages || !expanded) return
+        if (!trigger || !hasOlderMessages || !expanded || compact) return
         const observer = new IntersectionObserver(
             ([entry]) => {
                 const list = messageListRef.current
@@ -178,7 +178,7 @@ const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true,
         )
         observer.observe(trigger)
         return () => observer.disconnect()
-    }, [messages, hasOlderMessages, expanded])
+    }, [messages, hasOlderMessages, expanded, compact])
 
     return (
         <Stack direction="column" sx={{ flex: 1, minHeight: 0 }}>
