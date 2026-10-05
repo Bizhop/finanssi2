@@ -35,6 +35,7 @@ type TChatProps = {
     gameId?: string
     embedded?: boolean
     canSend?: boolean
+    expanded?: boolean
 }
 
 const PAGE_SIZE = 20
@@ -44,7 +45,7 @@ const mergeMessages = (messages: TChatMessage[], moreMessages: TChatMessage[]) =
     [...new Map([...messages, ...moreMessages].map((message) => [message.id, message])).values()]
         .sort((a, b) => a.id < b.id ? 1 : a.id > b.id ? -1 : 0)
 
-const Chat = ({ user, gameId, embedded = false, canSend = true }: TChatProps) => {
+const Chat = ({ user, gameId, embedded = false, canSend = true, expanded = true }: TChatProps) => {
     const path = gameId ? `/api/games/${gameId}/chat` : "/api/chat"
     const topic = gameId ? `/topic/games/${gameId}/chat` : "/topic/chat"
     // Newest first, like the backend returns them. The list is rendered with column-reverse, which shows them oldest at the top
@@ -85,6 +86,8 @@ const Chat = ({ user, gameId, embedded = false, canSend = true }: TChatProps) =>
             .catch((error) => {
                 // No automatic retry: the next attempt comes when the user scrolls or a message arrives
                 loadingOlderMessages.current = false
+                if (error instanceof GameApiError && (error.status === 403 || error.status === 404)) setMessages([])
+                setError(error instanceof Error ? error.message : "Could not load chat history.")
                 console.error(error)
             })
     }
@@ -96,9 +99,13 @@ const Chat = ({ user, gameId, embedded = false, canSend = true }: TChatProps) =>
             if (saved) setMessages((current) => mergeMessages(current, [ChatMessageSchema.parse(saved)]))
             reset()
         } catch (reason) {
-            setError(reason instanceof GameApiError && (reason.status === 403 || reason.status === 404)
-                ? "Chat access changed. Return to the games list and reopen this game."
-                : reason instanceof Error ? reason.message : "Message could not be sent. Your draft is still here.")
+            setError(
+                reason instanceof GameApiError && (reason.status === 403 || reason.status === 404)
+                    ? "Chat access changed. Return to the games list and reopen this game."
+                    : reason instanceof Error
+                    ? reason.message
+                    : "Message could not be sent. Your draft is still here.",
+            )
         }
     }
 
@@ -136,7 +143,11 @@ const Chat = ({ user, gameId, embedded = false, canSend = true }: TChatProps) =>
                     setMessages((prevMessages) => mergeMessages(prevMessages, page))
                 }
             })
-            .catch(console.error)
+            .catch((reason) => {
+                if (reason instanceof GameApiError && (reason.status === 403 || reason.status === 404)) setMessages([])
+                setError(reason instanceof Error ? reason.message : "Could not load chat history.")
+                console.error(reason)
+            })
 
     const connected = useStompConnected()
     useEffect(() => {
@@ -149,7 +160,7 @@ const Chat = ({ user, gameId, embedded = false, canSend = true }: TChatProps) =>
     const loadMoreTriggerRef = useRef<HTMLLIElement>(null)
     useEffect(() => {
         const trigger = loadMoreTriggerRef.current
-        if (!trigger || !hasOlderMessages) return
+        if (!trigger || !hasOlderMessages || !expanded) return
         const observer = new IntersectionObserver(
             ([entry]) => {
                 if (entry.isIntersecting) loadOlderMessages()
@@ -159,7 +170,7 @@ const Chat = ({ user, gameId, embedded = false, canSend = true }: TChatProps) =>
         )
         observer.observe(trigger)
         return () => observer.disconnect()
-    }, [messages, hasOlderMessages])
+    }, [messages, hasOlderMessages, expanded])
 
     return (
         <Stack direction="column" sx={{ flex: 1, minHeight: 0 }}>
@@ -187,29 +198,31 @@ const Chat = ({ user, gameId, embedded = false, canSend = true }: TChatProps) =>
             )}
             {error && <Alert severity="error" sx={{ mt: 1 }}>{error}</Alert>}
             {canSend
-                ? <form onSubmit={handleSubmit(sendChatMessage)}>
-                {/* useFlexGap: with margin-based spacing, Stack would reset the send button's top margin */}
-                <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: "flex-start", mt: 2 }}>
-                    <Box sx={{ flexGrow: 1 }}>
-                        <InputField
-                            control={control}
-                            name="message"
-                            label="Message"
-                            type="text"
-                            // An empty field only disables sending, it's not worth an error message
-                            error={errors.message?.type === "too_small" ? undefined : errors.message}
-                        />
-                    </Box>
-                    <IconButton
-                        color="primary"
-                        type="submit"
-                        sx={{ mt: 1 }}
-                        disabled={isSubmitting || !isDirty || !isValid}
-                    >
-                        <SendIcon />
-                    </IconButton>
-                </Stack>
-                </form>
+                ? (
+                    <form onSubmit={handleSubmit(sendChatMessage)}>
+                        {/* useFlexGap: with margin-based spacing, Stack would reset the send button's top margin */}
+                        <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: "flex-start", mt: 2 }}>
+                            <Box sx={{ flexGrow: 1 }}>
+                                <InputField
+                                    control={control}
+                                    name="message"
+                                    label="Message"
+                                    type="text"
+                                    // An empty field only disables sending, it's not worth an error message
+                                    error={errors.message?.type === "too_small" ? undefined : errors.message}
+                                />
+                            </Box>
+                            <IconButton
+                                color="primary"
+                                type="submit"
+                                sx={{ mt: 1 }}
+                                disabled={isSubmitting || !isDirty || !isValid}
+                            >
+                                <SendIcon />
+                            </IconButton>
+                        </Stack>
+                    </form>
+                )
                 : <Typography variant="caption" sx={{ mt: 1 }}>Join this game to send messages.</Typography>}
         </Stack>
     )

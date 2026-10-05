@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Index;
 import fi.bizhop.finanssi2.game.db.GameEntity;
@@ -27,7 +28,7 @@ public class ChatMessageEntity {
     @Column(nullable = false)
     long timestamp;
     String photoUrl;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "game_id", foreignKey = @jakarta.persistence.ForeignKey(name = "chat_messages_game_id_fkey"))
     @OnDelete(action = OnDeleteAction.CASCADE)
     GameEntity game;

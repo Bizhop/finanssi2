@@ -3,6 +3,11 @@
 Updated 2026-10-02 after implementing single-player debug mode. Gameplay and private debug controls are implemented;
 live frontend integration review and the follow-ups below remain. See [frontend status](../finanssi2-web/STATUS.md) for UI gaps.
 
+Per-game chat implementation is in progress (2026-10-05): nullable game association with database delete cascade, room-filtered
+history, game chat REST routes, participant posting/debug-owner access checks, and `/topic/games/{id}/chat` subscriptions are
+implemented. Java compilation passes. PostgreSQL migration/cascade, endpoint authorization, and STOMP delivery still need
+integration coverage; chat access revocation during a live debug session also remains to be checked.
+
 ## Completed features
 
 | Area | Implemented |

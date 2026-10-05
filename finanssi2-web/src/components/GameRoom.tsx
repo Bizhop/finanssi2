@@ -1,19 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router"
-import {
-    Alert,
-    Box,
-    Button,
-    CircularProgress,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    Grid,
-    Stack,
-    TextField,
-    Typography,
-} from "@mui/material"
+import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Grid, Stack, TextField, Typography } from "@mui/material"
 import { toast } from "react-toastify"
 
 import FlagOutlined from "@mui/icons-material/FlagOutlined"
@@ -373,14 +360,22 @@ const GameRoomContent = () => {
                             />
                         ))}
                         <GameWindow title="Game chat">
-                            <Chat user={user} gameId={id} embedded canSend={game.mode === "DEBUG" ? game.creator === user.uid : game.state.players.some((player) => player.uid === user.uid)} />
+                            {(expanded) => (
+                                <Chat
+                                    user={user}
+                                    gameId={id}
+                                    embedded
+                                    expanded={expanded}
+                                    canSend={game.mode === "DEBUG" ? game.creator === user.uid : game.state.players.some((player) => player.uid === user.uid)}
+                                />
+                            )}
                         </GameWindow>
                         <GameWindow title="Event log">
-                                <Stack spacing={0.5} sx={{ maxHeight: 480, overflowY: "auto", mt: 0.5 }}>
-                                    {events.slice(-200).reverse().map((entry) => (
-                                        <EventLine key={entry.seq} entry={entry} text={describeEvent(entry, { playerName, board })} board={board} />
-                                    ))}
-                                </Stack>
+                            <Stack spacing={0.5} sx={{ maxHeight: 480, overflowY: "auto", mt: 0.5 }}>
+                                {events.slice(-200).reverse().map((entry) => (
+                                    <EventLine key={entry.seq} entry={entry} text={describeEvent(entry, { playerName, board })} board={board} />
+                                ))}
+                            </Stack>
                         </GameWindow>
                         {game.state.finished && (
                             <Alert severity="success">

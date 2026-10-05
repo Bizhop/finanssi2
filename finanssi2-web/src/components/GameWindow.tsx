@@ -1,10 +1,10 @@
-import { useId, useState, type ReactNode } from "react"
+import { type ReactNode, useId, useState } from "react"
 import { Box, ButtonBase, Paper, Stack, Typography } from "@mui/material"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 
 type GameWindowProps = {
     title: string
-    children: ReactNode
+    children: ReactNode | ((expanded: boolean) => ReactNode)
     defaultExpanded?: boolean
 }
 
@@ -23,8 +23,13 @@ export const GameWindow = ({ title, children, defaultExpanded = true }: GameWind
                 <Typography sx={{ fontWeight: 700 }}>{title}</Typography>
                 <ExpandMoreIcon sx={{ transform: expanded ? "rotate(180deg)" : "none", transition: "transform 150ms" }} />
             </ButtonBase>
-            <Box id={bodyId} hidden={!expanded} inert={!expanded} sx={{ p: 1.5, pt: 0, maxHeight: "min(55vh, 560px)", minHeight: 0, display: expanded ? "flex" : "none", flexDirection: "column" }}>
-                <Stack sx={{ minHeight: 0, flex: 1 }}>{children}</Stack>
+            <Box
+                id={bodyId}
+                hidden={!expanded}
+                inert={!expanded}
+                sx={{ p: 1.5, pt: 0, maxHeight: "min(55vh, 560px)", minHeight: 0, display: expanded ? "flex" : "none", flexDirection: "column" }}
+            >
+                <Stack sx={{ minHeight: 0, flex: 1 }}>{typeof children === "function" ? children(expanded) : children}</Stack>
             </Box>
         </Paper>
     )
