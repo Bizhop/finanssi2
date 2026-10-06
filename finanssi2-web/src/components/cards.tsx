@@ -249,7 +249,7 @@ export const ShareCard = ({ share, board }: { share: Share; board: GameBoardData
 }
 
 /** A bond ("obligaatio") */
-export const BondCard = ({ number }: { number: number }) => (
+export const BondCard = ({ number }: { number: number | "?" }) => (
     <Box sx={{ ...landscape, ...ornament, p: "0.75em" }}>
         <Box
             sx={{

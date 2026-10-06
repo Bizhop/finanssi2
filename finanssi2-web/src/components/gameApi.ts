@@ -51,7 +51,15 @@ export class GameApiError extends Error {
         super(message)
     }
 }
-export type GameSquare = { square: number; name: string; type: string; group: string | null; price: number | null; text: string | null }
+export type GameSquare = {
+    square: number
+    name: string
+    type: string
+    mandatoryStop?: boolean
+    group: string | null
+    price: number | null
+    text: string | null
+}
 export type GameBoardData = {
     squares: GameSquare[]
     groups: { id: string; name: string; color: string; properties: number[] }[]

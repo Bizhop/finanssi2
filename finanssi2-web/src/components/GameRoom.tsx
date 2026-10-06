@@ -13,8 +13,9 @@ import { bankSalesOpen, buildAction, ConfirmDialog, type ConfirmRequest, meeting
 import { PlayerPanel } from "./PlayerPanel.tsx"
 import { useCurrentUser } from "./CurrentUserContext.tsx"
 import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
-import { Game, gameApi, GameApiError, GameBoardData, GameView } from "./gameApi.ts"
+import { gameApi, GameApiError, GameBoardData, GameView } from "./gameApi.ts"
 import { describeEvent, GameLogEntry } from "./gameEvents.ts"
+import { DecisionDialog } from "./DecisionDialog.tsx"
 import { BOARD_ASPECT_RATIO } from "./boardLayout.ts"
 
 type GameUpdate = { version: number; events: GameLogEntry[] }
@@ -32,14 +33,13 @@ const GameRoomContent = () => {
     const mounted = useRef(true)
     const refreshSequence = useRef(0)
     const busyRef = useRef(false)
+    const boardAnchor = useRef<HTMLDivElement>(null)
     const connected = useStompConnected()
     const [view, setView] = useState<GameView | null>(null)
     const [board, setBoard] = useState<GameBoardData | null>(null)
     const [events, setEvents] = useState<GameLogEntry[]>([])
     const [error, setError] = useState<string | null>(null)
     const [commandBusy, setCommandBusy] = useState(false)
-    const [bid, setBid] = useState("0")
-    const [choiceOpen, setChoiceOpen] = useState(false)
     const [diceInput, setDiceInput] = useState("")
     const [nextNews, setNextNews] = useState("")
     const [nextTip, setNextTip] = useState("")
@@ -370,20 +370,39 @@ const GameRoomContent = () => {
                         [SHORT_WIDE_GAME_LAYOUT]: { flexBasis: "100%", maxWidth: "100%" },
                     }}
                 >
-                    <GameBoard
-                        game={game}
-                        board={board}
-                        buildable={buildable}
-                        onBuild={requestBuild}
-                        purchasable={purchasable}
-                        onBuy={requestBuy}
-                        meetings={meetings}
-                        onMeeting={(group) => {
-                            setMeetingGroup(group)
-                            setMeetingFee(20000)
-                        }}
-                        turnStockTip={turnStockTip ? String(turnStockTip.event.card) : null}
-                    />
+                    <Box ref={boardAnchor} sx={{ position: "relative" }}>
+                        <GameBoard
+                            game={game}
+                            board={board}
+                            buildable={buildable}
+                            onBuild={requestBuild}
+                            purchasable={purchasable}
+                            onBuy={requestBuy}
+                            meetings={meetings}
+                            onMeeting={(group) => {
+                                setMeetingGroup(group)
+                                setMeetingFee(20000)
+                            }}
+                            turnStockTip={turnStockTip ? String(turnStockTip.event.card) : null}
+                        />
+                        {pending && !decisionActor && (
+                            <Alert
+                                severity="info"
+                                role="status"
+                                sx={{
+                                    position: "absolute",
+                                    top: "22%",
+                                    left: "50%",
+                                    transform: "translateX(-50%)",
+                                    width: "max-content",
+                                    maxWidth: "80%",
+                                    boxShadow: 3,
+                                }}
+                            >
+                                Waiting for {playerName(pending.player)} to decide.
+                            </Alert>
+                        )}
+                    </Box>
                 </Grid>
                 <Grid
                     size={{ xs: 12, xl: 4 }}
@@ -438,29 +457,6 @@ const GameRoomContent = () => {
                     </Stack>
                 </Grid>
             </Grid>
-            {pending && (
-                <Alert severity="warning">
-                    Waiting for {game.state.players.find((player) => player.uid === pending.player)?.name ?? "a player"} to resolve{" "}
-                    {pending.type.replace(/([A-Z])/g, " $1").trim()}.
-                </Alert>
-            )}
-            {decisionActor && pending && (
-                <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
-                    <Typography sx={{ fontWeight: 600, width: "100%" }}>Your decision</Typography>
-                    {decisionCommands(
-                        pending,
-                        allowedCommands,
-                        sendCommand,
-                        bid,
-                        setBid,
-                        () => setChoiceOpen(true),
-                        game.state.properties,
-                        game.state.shares,
-                        game.state.bonds,
-                        board,
-                    )}
-                </Stack>
-            )}
             {game.state.finished && game.state.finalStandings.length > 0 && (
                 <>
                     <Typography variant="h6">Final standings</Typography>
@@ -471,6 +467,19 @@ const GameRoomContent = () => {
                         </Typography>
                     ))}
                 </>
+            )}
+            {decisionActor && pending && (
+                <DecisionDialog
+                    key={JSON.stringify(pending)}
+                    pending={pending}
+                    allowed={allowedCommands}
+                    send={sendCommand}
+                    game={game}
+                    board={board}
+                    busy={commandBusy}
+                    sourceStockTip={turnStockTip ? String(turnStockTip.event.card) : null}
+                    anchor={boardAnchor}
+                />
             )}
             <ConfirmDialog
                 request={confirmRequest}
@@ -556,31 +565,6 @@ const GameRoomContent = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
-            <Dialog open={choiceOpen} onClose={() => setChoiceOpen(false)}>
-                <DialogTitle>Choose a Stock Tip effect</DialogTitle>
-                <DialogContent>
-                    <Stack spacing={1} sx={{ pt: 1 }}>
-                        {pending?.type === "StockTipChoice" && (
-                            <CardChapters card={board?.stockTips.find((item) => item.id === pending.card)} fallback={String(pending.card ?? "Stock Tip")} />
-                        )}
-                        {Array.isArray(pending?.options) && pending.options.map((option) => (
-                            <Button
-                                key={String(option)}
-                                disabled={commandBusy}
-                                onClick={() => {
-                                    setChoiceOpen(false)
-                                    void sendCommand({ type: "ChooseStockTipOption", option })
-                                }}
-                            >
-                                {String(option)}
-                            </Button>
-                        ))}
-                    </Stack>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setChoiceOpen(false)}>Cancel</Button>
-                </DialogActions>
-            </Dialog>
         </Stack>
     )
 }
@@ -625,103 +609,6 @@ const EventLine = ({ entry, text, board }: { entry: GameLogEntry; text: string; 
             )}
         </Box>
     )
-}
-
-const decisionCommands = (
-    pending: Game["state"]["pendingDecisions"][number],
-    allowed: string[],
-    send: (command: Record<string, unknown>) => Promise<void>,
-    bid: string,
-    setBid: (value: string) => void,
-    openChoice: () => void,
-    properties: Game["state"]["properties"],
-    shares: Game["state"]["shares"],
-    bonds: Game["state"]["bonds"],
-    board: GameBoardData | null,
-) => {
-    switch (pending.type) {
-        case "RaiseFunds":
-            return (
-                <>
-                    {allowed.includes("TakeLoan") && <Button onClick={() => void send({ type: "TakeLoan" })}>Take loan</Button>}
-                    {allowed.includes("SellCar") && <Button onClick={() => void send({ type: "SellCar" })}>Sell car</Button>}
-                    {allowed.includes("Mortgage") && properties.filter((property) =>
-                        property.owner === pending.player && !property.mortgaged &&
-                        board?.titleDeeds.find((deed) => deed.square === property.square)?.mortgage?.[property.built ? "built" : "unbuilt"] != null
-                    ).map((property) => (
-                        <Button key={`mortgage-${property.square}`} onClick={() => void send({ type: "Mortgage", square: property.square })}>
-                            Mortgage {board?.squares.find((square) => square.square === property.square)?.name ?? property.square}
-                        </Button>
-                    ))}
-                    {allowed.includes("SellBackProperty") && properties.filter((property) =>
-                        property.owner === pending.player && !property.mortgaged &&
-                        board?.titleDeeds.find((deed) => deed.square === property.square)?.buyBack?.[property.built ? "built" : "unbuilt"] != null
-                    ).map((property) => (
-                        <Button
-                            key={`sell-${property.square}`}
-                            onClick={() => void send({ type: "SellBackProperty", square: property.square })}
-                        >
-                            Sell {board?.squares.find((square) => square.square === property.square)?.name ?? property.square}
-                        </Button>
-                    ))}
-                    {allowed.includes("SellBackShare") && shares.filter((share) => share.owner === pending.player).map((share) => (
-                        <Button
-                            key={share.id}
-                            onClick={() => void send({ type: "SellBackShare", share: share.id })}
-                        >
-                            Sell {share.id}
-                        </Button>
-                    ))}
-                    {allowed.includes("Pay") && <Button onClick={() => void send({ type: "Pay" })}>Pay now</Button>}
-                    {allowed.includes("DeclareBankruptcy") && (
-                        <Button
-                            color="error"
-                            onClick={() => void send({ type: "DeclareBankruptcy" })}
-                        >
-                            Declare bankruptcy
-                        </Button>
-                    )}
-                </>
-            )
-        case "BondOffer":
-            return (
-                <>
-                    {allowed.includes("BuyBond") && bonds.filter((bond) => !bond.owner).map((bond) => (
-                        <Button
-                            key={bond.number}
-                            onClick={() => void send({ type: "BuyBond", number: bond.number })}
-                        >
-                            Buy bond {bond.number}
-                        </Button>
-                    ))}
-                    <Button onClick={() => void send({ type: "Pass" })}>Pass</Button>
-                </>
-            )
-        case "BondAuction":
-        case "AssetAuction":
-            return (
-                <>
-                    <TextField size="small" label="Bid" type="number" value={bid} onChange={(event) => setBid(event.target.value)} />
-                    <Button
-                        disabled={Number(bid) < 0}
-                        onClick={() => void send({ type: pending.type === "BondAuction" ? "BidBond" : "BidAsset", amount: Number(bid) })}
-                    >
-                        Submit bid / pass
-                    </Button>
-                </>
-            )
-        case "NewsDirection":
-            return (
-                <>
-                    <Button onClick={() => void send({ type: "ChooseNewsDirection", forward: true })}>Forward</Button>
-                    <Button onClick={() => void send({ type: "ChooseNewsDirection", forward: false })}>Backward</Button>
-                </>
-            )
-        case "StockTipChoice":
-            return <Button onClick={openChoice}>Choose card option</Button>
-        default:
-            return null
-    }
 }
 
 const GameRoom = () => {

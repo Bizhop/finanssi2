@@ -1,6 +1,6 @@
 # Frontend status
 
-Updated 2026-10-02 after implementing private debug games and the prerequisite asset controls. The functional gaps and deferred live reviews below remain. See
+Updated 2026-10-06 after polishing pending decisions and adding linked decision previews. The functional gaps and deferred live reviews below remain. See
 [backend status](../finanssi2-backend/STATUS.md) for gameplay and rule decisions.
 
 Per-game chat UI implementation is in progress (2026-10-05): game rooms use their own chat endpoint/topic, viewers without a seat get a read-only composer, and
@@ -35,8 +35,18 @@ messages, reconnect controls, and spectator mode. Frontend checks pass; responsi
   (`src/assets/board.webp`) with transparent squares positioned from measured divider lines (`boardLayout.ts`). Ownership is a border in the owner's colour
   (dashed when mortgaged), and the Finance News and Stock Tip decks sit on the marked places with the active Finance News and the Stock Tip drawn this turn
   face-up beside them; card faces are rendered from card data rather than photographed.
-- Dev pages use a separate Vite root on port 3001. `/game-room.html` previews a running game; `/game-room.html?finished` previews standings. Mocks are display
-  fixtures: their command endpoint logs requests without applying state transitions, and they do not exercise real rules or live subscriptions.
+- Dev pages use a separate Vite root on port 3001. The index links running/finished games, after-roll and other-player turns, long cards, debug controls and
+  every pending-decision/Stock Tip choice format. `/game-room.html?decision=PV-24` previews a free bond choice; named fixtures are in
+  `dev-pages/decision-fixtures.ts`. The same query parameters work in `game-room-layout.html`. Commands are displayed on the page without applying state
+  transitions; fixtures do not exercise real rules or live game subscriptions. Chat messages and reconnect controls remain interactive.
+- Pending decisions use a compact modal over the board's open area, with the game dimmed and blocked behind it; opening a decision does not shift the board or
+  sidebar. Assets use miniature versions of the existing deed, share, bond, car and loan cards, with hover/focus peeks and tap-to-read buttons. Card text
+  appears directly in the dialog; auctions use their originating Stock Tip, and payment dialogs use available Finance News/Stock Tip context. Stock Tip choices
+  preserve the backend option strings when submitted. Payment controls show the creditor, amount, cash and shortfall; bond offers show their €500 cost. Sealed
+  auctions name the seller/asset and minimum bid, and reject blank, non-€500, unaffordable or below-minimum bids while allowing zero to pass. Bids default to
+  zero; plus/minus buttons and arrow keys jump between passing and the minimum bid, then step by €500.
+- Finance News direction choices show actual landing squares, including mandatory stops. Kokous uses a highlighted board picker and confirms the chosen
+  destination. Fire previews include three buildings to choose two from, plus a forced-pair confirmation case. Bond transfers show the donor's token and colour.
 - Production builds remain disabled in `deno.json` until a production Firebase environment/configuration exists.
 
 ## Private debug games
@@ -68,8 +78,10 @@ Private single-player debug mode is implemented. Live Google-authenticated accep
 - [ ] Align parameterized controls with valid options and current prices. Share buttons show base prices despite Finance News modifiers, and some asset/meeting
       choices can be invalid even when their command type is allowed. Consider concrete options in the backend response instead of duplicating rule calculations
       in the UI.
-- [ ] Explain obligations and choices: show payment amount/creditor, asset auction details/minimum bid and meaningful labels for the backend's Stock Tip option
-      strings. Show costs/proceeds for purchases, redemption, construction and meetings.
+- [x] Explain obligations and choices: payment amount/creditor, asset auction details/minimum bid and meaningful Stock Tip labels, including free bond choices.
+- [x] Use icon actions below every fundraising asset card, including loans and cars. Sale tooltips show bank proceeds, with Finance News modifiers and €500
+      rounding for shares; clicking the card face opens a peek.
+- [ ] Align other displayed purchase/sale costs with Finance News modifiers.
 - [x] Render useful event details. `gameEvents.ts` describes every backend event type (dice, squares, money and reasons, cards, auctions with bids,
       unimplemented squares); the room's event log shows the latest 200, newest first, with drawn card text inline. A sidebar card shows the last drawn Stock
       Tip, immediate or held. Unknown event types fall back to their type name. Card text remains Finnish.
@@ -81,8 +93,12 @@ Private single-player debug mode is implemented. Live Google-authenticated accep
 - [x] Run frontend typecheck, lint, formatting and transport tests using Deno on 2026-10-02 (via `npx deno`).
 - [ ] Review live multiplayer with at least two Google-authenticated players: lobby/settings/start, all pending decisions, out-of-turn payments, held-card
       effects, auctions, game end and reconnect/missed-event recovery.
-- [ ] Review mocked pages and responsive layouts, then do the deferred visual redesign. Mock command responses cannot validate gameplay transitions; add
-      representative decision fixtures if needed for UI work.
+- [x] Check all 35 linked game-room previews in Chromium (2026-10-06), including submitted free-bond codes, auction bid constraints, unaffordable travel,
+      desktop bond offers and mobile share-swap rendering. Modal checks verify stable board geometry when showing card details, trapped keyboard focus, required
+      decisions surviving Escape/background clicks, and portrait/landscape sizing. Asset peeks, default-zero bidding/minimum stepping, Kokous board selection,
+      landing previews, donor tokens and both Fire cases are also checked. Typecheck, lint, formatting and all eight frontend tests pass.
+- [ ] Complete the deferred visual redesign and broader responsive review. Linked decision fixtures now cover all six pending-decision types and every Stock Tip
+      choice format, including insufficient cash, bankruptcy and out-of-turn decisions. Mock command responses cannot validate gameplay transitions.
 - [ ] Configure production Firebase/environment values and re-enable the production build task.
 
 Local setup and Deno tasks are in the [root README](../README.md). Start the preview server with `deno task dev:pages` from this folder. Automated checks

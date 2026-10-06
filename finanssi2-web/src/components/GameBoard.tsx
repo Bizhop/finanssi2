@@ -154,21 +154,28 @@ const Deck = ({ rect, image, name }: { rect: SquareRect; image: string; name: st
     />
 )
 
-export const GameBoard = ({ game, board, turnStockTip, buildable = [], onBuild, purchasable = [], onBuy, meetings = [], onMeeting }: {
-    game: Game
-    board: GameBoardData | null
-    /** The Stock Tip drawn this turn, if any */
-    turnStockTip: string | null
-    /** Squares you can build on right now; each gets a build button */
-    buildable?: number[]
-    onBuild?: (square: number) => void
-    /** Bank properties you can buy right now; they glow and buy on click */
-    purchasable?: number[]
-    onBuy?: (square: number) => void
-    /** Groups where you can call a shareholders' meeting, with what the takeover costs; each gets a meeting button by its properties */
-    meetings?: { group: string; takeover: number }[]
-    onMeeting?: (group: string) => void
-}) => {
+export const GameBoard = (
+    { game, board, turnStockTip, buildable = [], onBuild, purchasable = [], onBuy, meetings = [], onMeeting, selectable = [], onSelectSquare, selectedSquare }:
+        {
+            game: Game
+            board: GameBoardData | null
+            /** The Stock Tip drawn this turn, if any */
+            turnStockTip: string | null
+            /** Squares you can build on right now; each gets a build button */
+            buildable?: number[]
+            onBuild?: (square: number) => void
+            /** Bank properties you can buy right now; they glow and buy on click */
+            purchasable?: number[]
+            onBuy?: (square: number) => void
+            /** Groups where you can call a shareholders' meeting, with what the takeover costs; each gets a meeting button by its properties */
+            meetings?: { group: string; takeover: number }[]
+            onMeeting?: (group: string) => void
+            /** A decision's legal destinations; selecting a square does not execute a purchase. */
+            selectable?: number[]
+            onSelectSquare?: (square: number) => void
+            selectedSquare?: number | null
+        },
+) => {
     const propertyBySquare = new Map(game.state.properties.map((property) => [property.square, property]))
     const activeNews = game.state.activeFinanceNews
     return (
@@ -190,6 +197,7 @@ export const GameBoard = ({ game, board, turnStockTip, buildable = [], onBuild, 
                     const property = propertyBySquare.get(square.square)
                     const tokens = game.state.players.filter((player) => !player.out && player.position === square.square)
                     const owner = game.state.players.find((player) => player.uid === property?.owner)
+                    const canSelect = onSelectSquare != null && selectable.includes(square.square)
                     const forSale = onBuy != null && purchasable.includes(square.square)
                     return (
                         <Tooltip
@@ -203,18 +211,27 @@ export const GameBoard = ({ game, board, turnStockTip, buildable = [], onBuild, 
                                 : ""}
                         >
                             <Box
-                                role={forSale ? "button" : undefined}
-                                aria-label={forSale ? `Buy ${square.name}` : undefined}
-                                tabIndex={forSale ? 0 : undefined}
-                                onClick={forSale ? () => onBuy(square.square) : undefined}
-                                onKeyDown={forSale ? (event) => (event.key === "Enter" || event.key === " ") && onBuy(square.square) : undefined}
+                                role={canSelect || forSale ? "button" : undefined}
+                                aria-label={canSelect ? `Select ${square.name}` : forSale ? `Buy ${square.name}` : undefined}
+                                tabIndex={canSelect || forSale ? 0 : undefined}
+                                onClick={canSelect ? () => onSelectSquare(square.square) : forSale ? () => onBuy(square.square) : undefined}
+                                onKeyDown={canSelect || forSale
+                                    ? (event) => {
+                                        if (event.key !== "Enter" && event.key !== " ") return
+                                        event.preventDefault()
+                                        if (canSelect) onSelectSquare(square.square)
+                                        else onBuy?.(square.square)
+                                    }
+                                    : undefined}
                                 sx={{
                                     ...placement(squareRect(square.square)),
-                                    ...forSale && {
+                                    ...(forSale || canSelect) && {
                                         cursor: "pointer",
                                         animation: `${halo} 1.8s ease-in-out infinite`,
                                         "&:hover": { backgroundColor: "rgba(255, 214, 64, 0.25)" },
                                     },
+                                    ...(selectedSquare === square.square &&
+                                        { backgroundColor: "rgba(255, 214, 64, 0.6)", outline: "0.5cqw solid #ffd640", outlineOffset: "-0.5cqw" }),
                                     boxSizing: "border-box",
                                     display: "flex",
                                     flexWrap: "wrap",

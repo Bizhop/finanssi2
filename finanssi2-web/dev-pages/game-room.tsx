@@ -4,12 +4,14 @@ import ReactDOM from "react-dom/client"
 import { MemoryRouter, Route, Routes } from "react-router"
 import { ToastContainer } from "react-toastify"
 import type { User as FirebaseUser } from "firebase/auth"
-import { Box, Button, Container, Divider, Grid, IconButton, Paper, Stack, Tooltip } from "@mui/material"
+import { Alert, Box, Button, Container, Divider, Grid, IconButton, Paper, Stack, Tooltip } from "@mui/material"
 import HomeIcon from "@mui/icons-material/Home"
 import LogoutIcon from "@mui/icons-material/Logout"
 import CasinoIcon from "@mui/icons-material/Casino"
 import { NavLink } from "react-router"
 
+import { decisionFixtures } from "./decision-fixtures.ts"
+import type { Game } from "../src/components/gameApi.ts"
 import GameRoom from "../src/components/GameRoom.tsx"
 import { CurrentUserProvider, useCurrentUser } from "../src/components/CurrentUserContext.tsx"
 import { type StompConnection, StompContext } from "../src/components/StompContext.tsx"
@@ -24,7 +26,9 @@ import stockTips from "../../finanssi2-backend/src/main/resources/gamedata/porss
 
 const player = { photoUrl: null, car: false, loans: 0, out: false, heldStockTips: [] as string[] }
 // ?afterRoll previews Maija's turn after rolling: she has moved on to Pörssivihje (20) and drawn a second card to keep
-const afterRoll = new URLSearchParams(location.search).has("afterRoll")
+const params = new URLSearchParams(location.search)
+const fixture = decisionFixtures[params.get("decision") ?? ""]
+const afterRoll = params.has("afterRoll") || !!fixture
 // No car, so the car icon offers to buy one and she rolls one die. By default her turn starts on square 40 (a construction square
 // in the head office), so before rolling she may both build and buy from the bank.
 const user = {
@@ -33,7 +37,7 @@ const user = {
     name: "Maija Meikäläinen",
     piece: 0,
     // Enough for the €125,000 Finanssiyhtymä takeover with a €20,000 or €30,000 brokerage fee, not more
-    cash: 158_000,
+    cash: fixture?.cash ?? 158_000,
     position: afterRoll ? 20 : 40,
     loans: 1,
     heldStockTips: afterRoll ? ["PV-25", "PV-01"] : ["PV-25"],
@@ -108,7 +112,7 @@ const PreviewHeader = () => (
         </Grid>
     </Box>
 )
-const game = {
+const game: Game = {
     mode: debug ? "DEBUG" : "NORMAL",
     id: "preview-game",
     status: finished ? "FINISHED" : "RUNNING",
@@ -143,9 +147,33 @@ const game = {
         })),
         shares: shareFile.shares.map((share) => ({ id: share.id, owner: shareOwners[share.id] ?? null })),
         bonds: Array.from({ length: 12 }, (_, i) => ({ number: i + 1, owner: bondOwners[i + 1] ?? null })),
-        pendingDecisions: [],
+        pendingDecisions: fixture && !finished ? [fixture.pending] : [],
     },
 }
+
+if (params.get("decision") === "raise-funds-assets") {
+    user.car = true
+    game.state.activeFinanceNews = "FL-02"
+}
+if (params.get("decision") === "news-payment") {
+    game.state.activeFinanceNews = "FL-19"
+    user.position = 1
+    user.loans = 0
+}
+if (fixture?.pending.type === "NewsDirection") game.state.activeFinanceNews = "FL-04"
+if (params.get("decision") === "bond-transfer") {
+    game.state.bonds.forEach((bond) => {
+        bond.owner = bond.number === 2 ? olli.uid : user.uid
+    })
+}
+if (params.get("decision") === "PV-17") {
+    fixture!.pending.options = titleDeedFile.titleDeeds.map((deed) => String(deed.square))
+}
+if (["PV-10", "fire-forced", "PV-31"].includes(params.get("decision") ?? "")) game.state.properties.find((property) => property.square === 19)!.built = true
+if (params.get("decision") === "PV-10") game.state.properties.find((property) => property.square === 10)!.built = true
+if (fixture?.pending.type === "BondOffer") user.position = 45
+if (fixture?.pending.type === "BondAuction") user.position = 38
+if (fixture?.pending.type === "NewsDirection") user.position = 31
 
 const board = {
     squares: boardFile.squares,
@@ -157,7 +185,7 @@ const board = {
 }
 
 const turn = (uid: string, dice: number[], from: number) => {
-    const to = from + dice.reduce((sum, value) => sum + value, 0)
+    const to = (from + dice.reduce((sum, value) => sum + value, 0) - 1) % 46 + 1
     return [
         { type: "TurnStarted", player: uid },
         { type: "DiceRolled", player: uid, dice },
@@ -186,12 +214,14 @@ const events = [
     { type: "TurnStarted", player: user.uid },
     ...afterRoll
         ? [
-            ...turn(user.uid, [3], 17).slice(1),
+            ...turn(user.uid, [3], (user.position + 42) % 46 + 1).slice(1),
             // Stays face up on the board until the turn ends
             // ?tip=<id> shows another Stock Tip, e.g. ?afterRoll&tip=PV-31 for the longest text (not one she keeps)
-            new URLSearchParams(location.search).has("tip")
-                ? { type: "StockTipDrawn", player: user.uid, card: new URLSearchParams(location.search).get("tip"), held: false }
-                : { type: "StockTipDrawn", player: user.uid, card: "PV-01", held: true },
+            ...fixture && fixture.pending.type !== "StockTipChoice" ? [] : [
+                params.has("tip") || fixture?.pending.type === "StockTipChoice"
+                    ? { type: "StockTipDrawn", player: user.uid, card: fixture?.pending.card ?? params.get("tip"), held: false }
+                    : { type: "StockTipDrawn", player: user.uid, card: "PV-01", held: true },
+            ],
         ]
         : [],
 ].map((event, index) => ({ id: `preview-game:${index + 1}`, seq: index + 1, time: 0, type: event.type, event }))
@@ -200,6 +230,12 @@ const PreviewRoom = () => {
     const { setUser } = useCurrentUser()
     const [connected, setConnected] = useState(true)
     const [viewer, setViewer] = useState(false)
+    const [lastCommand, setLastCommand] = useState("")
+    useEffect(() => {
+        const receive = (event: Event) => setLastCommand((event as CustomEvent<string>).detail)
+        globalThis.addEventListener("preview-command", receive)
+        return () => globalThis.removeEventListener("preview-command", receive)
+    }, [])
     const previewConnection = useMemo<StompConnection>(() => ({
         connected,
         subscribe: (destination, onMessage) => {
@@ -252,6 +288,12 @@ const PreviewRoom = () => {
                     <Button size="small" onClick={() => setConnected((current) => !current)}>{connected ? "Disconnect" : "Reconnect"}</Button>
                     <Button size="small" onClick={() => setViewer((current) => !current)}>{viewer ? "Use seated account" : "View as spectator"}</Button>
                 </Stack>
+                {fixture && <Alert severity="info">Decision preview: {params.get("decision")}. Commands are recorded below; game rules do not run here.</Alert>}
+                {lastCommand && (
+                    <Alert severity="success">
+                        Submitted: <code>{lastCommand}</code>
+                    </Alert>
+                )}
                 <GameRoom />
             </Stack>
         </StompContext.Provider>
@@ -301,11 +343,17 @@ globalThis.fetch = (input, init) => {
     if (path === "/api/games/preview-game") {
         return Promise.resolve(Response.json({
             game,
-            actingPlayer: game.state.currentPlayer,
+            actingPlayer: game.state.pendingDecisions[0]?.player ?? game.state.currentPlayer,
             // What the backend allows Maija: building and buying (on 40) only before the roll, ending the turn only after it.
             // FL-01 is active, so the bank grants no new loans.
-            allowedCommands: finished || game.state.currentPlayer !== user.uid
+            allowedCommands: finished
                 ? []
+                : fixture
+                ? fixture.commands
+                : !debug && game.state.currentPlayer !== user.uid
+                ? []
+                : debug && game.state.currentPlayer !== user.uid
+                ? [afterRoll ? "EndTurn" : "Roll", "RepayLoan", "Mortgage", "Redeem", "SellBackProperty", "SellBackShare", "Resign"]
                 : afterRoll
                 ? ["EndTurn", "RepayLoan", "Mortgage", "SellBackProperty", "SellBackShare", "UseHeldStockTip", "Resign"]
                 : [
@@ -329,6 +377,7 @@ globalThis.fetch = (input, init) => {
     if (path === "/api/game-data") return Promise.resolve(Response.json(board))
     if (init?.method === "POST") {
         console.info("[mock game] command", init.body)
+        globalThis.dispatchEvent(new CustomEvent("preview-command", { detail: String(init.body) }))
         return Promise.resolve(Response.json([]))
     }
     return Promise.resolve(Response.json({ detail: `No mock for ${path}` }, { status: 404 }))

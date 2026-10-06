@@ -2,16 +2,65 @@
 <html lang="en">
     <head>
         <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Finanssi2 test pages</title>
     </head>
     <body>
         <h1>Finanssi2 test pages</h1>
         <p>Components rendered with a fake login and a fake backend. Not part of the app build.</p>
+        <h2>Components and lobby</h2>
         <ul>
-            <li><a href="chat.html">Chat</a> – logged-in front page with chat history loaded lazily (<code>?count=N</code>, default 100), simulated incoming messages and websocket disconnects</li>
-            <li><a href="games.html">Game list</a> – one game for each status and role, with a fake backend that applies create, join, leave, settings, start, end game and delete; add <code>?debug</code> for debug games</li>
-            <li><a href="game-room.html">Game room</a> – mocked board and running game, with Maija on square 40 where she may build and buy before rolling; <code>?afterRoll</code> for the turn after rolling, <code>?turn=olli</code> for another player's turn, <code>?news=FL-19</code> or <code>?afterRoll&amp;tip=PV-31</code> for other face-up cards, <code>?finished</code> for results, <code>?debug</code> for debug controls</li>
-            <li><a href="game-room-layout.html">Game room with app layout</a> – the same preview inside the app container, with the top menu bar and a viewport-sized layout</li>
+            <li><a href="chat.html">Chat</a> — lazy history, incoming messages and disconnects (<code>?count=N</code>, default 100)</li>
+            <li><a href="games.html">Game list</a> — create, join, leave, settings, start, end and delete</li>
+            <li><a href="games.html?debug">Debug game list</a></li>
         </ul>
+        <h2>Game room</h2>
+        <p>Display fixtures using real board and card data. Commands are shown on the page; they do not apply game rules or change the state.
+            Use the preview buttons to simulate incoming chat, disconnect/reconnect or view as a spectator.</p>
+        <ul>
+            <li><a href="game-room.html">Before rolling — build and buy on square 40</a></li>
+            <li><a href="game-room.html?afterRoll">After rolling — held Stock Tip and end turn</a></li>
+            <li><a href="game-room.html?turn=olli">Another player's turn</a></li>
+            <li><a href="game-room.html?news=FL-19">Long Finance News card</a></li>
+            <li><a href="game-room.html?afterRoll&amp;tip=PV-31">Long Stock Tip card</a></li>
+            <li><a href="game-room.html?finished">Finished game and standings</a></li>
+            <li><a href="game-room.html?debug">Debug controls</a></li>
+            <li><a href="game-room.html?debug&amp;turn=olli">Debug controls for another player's turn</a></li>
+            <li><a href="game-room-layout.html">Game room inside the app layout</a></li>
+            <li><a href="game-room-layout.html?afterRoll">App layout after rolling</a></li>
+        </ul>
+        <h2>Payments and auctions</h2>
+        <ul>
+            <li><a href="game-room.html?decision=raise-funds">Raise funds for rent</a></li>
+            <li><a href="game-room.html?decision=raise-funds-assets">Raise funds with car, loan and asset cards</a></li>
+            <li><a href="game-room.html?decision=news-payment">Raise funds for a Finance News payment, with card text</a></li>
+            <li><a href="game-room.html?decision=payment-ready">Payment ready to settle</a></li>
+            <li><a href="game-room.html?decision=bankruptcy">Cannot cover a payment — bankruptcy</a></li>
+            <li><a href="game-room.html?decision=bond-offer">Buy a bond or pass</a></li>
+            <li><a href="game-room.html?decision=bond-auction">Sealed bond bid</a></li>
+            <li><a href="game-room.html?decision=property-auction">Compulsory property auction with minimum bid</a></li>
+            <li><a href="game-room.html?decision=share-auction">Compulsory share auction with minimum bid</a></li>
+            <li><a href="game-room.html?decision=news-direction">Finance News movement direction</a></li>
+            <li><a href="game-room.html?decision=raise-funds&amp;turn=olli">Payment outside your turn</a></li>
+            <li><a href="game-room.html?debug&amp;decision=property-auction&amp;turn=olli">Debug auction outside the current player's turn</a></li>
+            <li><a href="game-room-layout.html?decision=bond-offer">Bond offer inside the app layout</a></li>
+        </ul>
+        <h2>Stock Tip decisions</h2>
+        <ul>
+            <li><a href="game-room.html?decision=PV-10">Fire — choose two of three buildings</a></li>
+            <li><a href="game-room.html?decision=fire-forced">Fire — only one possible pair, confirm and continue</a></li>
+            <li><a href="game-room.html?decision=PV-17">Choose a property to move to</a></li>
+            <li><a href="game-room.html?decision=PV-24">Receive a free bond from the bank</a></li>
+            <li><a href="game-room.html?decision=bond-transfer">Receive a bond from your neighbour (bank empty)</a></li>
+            <li><a href="game-room.html?decision=PV-26">Pay for travel or stay</a></li>
+            <li><a href="game-room.html?decision=travel-no-cash">Travel with insufficient cash</a></li>
+            <li><a href="game-room.html?decision=PV-30">Jail or bail</a></li>
+            <li><a href="game-room.html?decision=PV-31">Sell a property at its nominal value</a></li>
+            <li><a href="game-room.html?decision=PV-35">Transfer a property or share to your neighbour</a></li>
+            <li><a href="game-room.html?decision=PV-36">Choose a property or share for compulsory sale</a></li>
+            <li><a href="game-room.html?decision=PV-38">Swap equal-value shares or keep them</a></li>
+        </ul>
+        <p>All game room query parameters also work on <code>game-room-layout.html</code>.
+            Combine <code>?decision=…</code> with <code>&amp;debug</code> or <code>&amp;turn=olli</code> to inspect debug and out-of-turn controls.</p>
     </body>
 </html>
