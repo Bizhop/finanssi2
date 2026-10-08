@@ -22,6 +22,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
     final FirebaseTokenVerifier tokenVerifier;
+    final AuthenticatedUserService authenticatedUserService;
 
     @Value("${finanssi2.endpoints.whitelist}")
     String whitelist;
@@ -39,7 +40,8 @@ public class SecurityConfig {
                                         .requestMatchers(whitelistArray).permitAll()
                                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(new FirebaseTokenFilter(tokenVerifier), UsernamePasswordAuthenticationFilter.class);
+                .exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, exception) -> response.sendError(401)))
+                .addFilterBefore(new FirebaseTokenFilter(tokenVerifier, authenticatedUserService), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

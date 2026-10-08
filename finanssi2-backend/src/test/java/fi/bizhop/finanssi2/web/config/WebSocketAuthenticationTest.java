@@ -2,6 +2,7 @@ package fi.bizhop.finanssi2.web.config;
 
 import com.google.firebase.auth.FirebaseToken;
 import fi.bizhop.finanssi2.db.ChatRepository;
+import fi.bizhop.finanssi2.db.ApplicationUserRepository;
 import fi.bizhop.finanssi2.security.FirebaseTokenVerifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,8 @@ class WebSocketAuthenticationTest {
     FirebaseTokenVerifier tokenVerifier;
     @MockitoBean
     ChatRepository chatRepository;
+    @Autowired
+    ApplicationUserRepository applicationUserRepository;
 
     @MockitoBean
     fi.bizhop.finanssi2.game.db.GameRepository gameRepository;
@@ -109,6 +112,7 @@ class WebSocketAuthenticationTest {
         when(gameRepository.findById(id)).thenReturn(Optional.of(game));
         verifiedToken("b");
         var nonowner = connect("Bearer b");
+        var nonownerId = profileId("b");
         var received = new LinkedBlockingQueue<String>();
         nonowner.subscribe("/topic/games/" + id, receiver(received));
         var error = errorFrames.poll(5, TimeUnit.SECONDS);
@@ -117,6 +121,8 @@ class WebSocketAuthenticationTest {
 
         verifiedToken("a");
         var owner = connect("Bearer a");
+        var ownerId = profileId("a");
+        game.setCreator(ownerId);
         owner.subscribe("/topic/games/" + id, receiver(received));
         String message = null;
         for (int attempt = 0; attempt < 50 && message == null; attempt++) {
@@ -142,6 +148,8 @@ class WebSocketAuthenticationTest {
         var firebaseToken = mock(FirebaseToken.class);
         // The session's user name, never null for real tokens
         when(firebaseToken.getUid()).thenReturn("uid-1");
+        when(firebaseToken.getEmail()).thenReturn("user@example.com");
+        when(firebaseToken.isEmailVerified()).thenReturn(true);
         when(tokenVerifier.verifyAuthorizationHeader("Bearer valid")).thenReturn(Optional.of(firebaseToken));
         var session = connect("Bearer valid");
 
@@ -165,5 +173,9 @@ class WebSocketAuthenticationTest {
             message = received.poll(100, TimeUnit.MILLISECONDS);
         }
         assertEquals("hello", message);
+    }
+
+    String profileId(String firebaseUid) {
+        return applicationUserRepository.findByFirebaseUid(firebaseUid).orElseThrow().getId().toString();
     }
 }

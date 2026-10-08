@@ -15,6 +15,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class FirebaseTokenFilter extends AbstractPreAuthenticatedProcessingFilter {
     final FirebaseTokenVerifier tokenVerifier;
+    final AuthenticatedUserService authenticatedUserService;
 
     @Override
     protected Object getPreAuthenticatedPrincipal(@NonNull HttpServletRequest request) {
@@ -30,14 +31,20 @@ public class FirebaseTokenFilter extends AbstractPreAuthenticatedProcessingFilte
     public void doFilter(@NonNull ServletRequest request, @NonNull ServletResponse response, @NonNull FilterChain chain)
             throws IOException, ServletException {
         var httpRequest = (HttpServletRequest)request;
-        tokenVerifier.verifyAuthorizationHeader(httpRequest.getHeader("Authorization")).ifPresentOrElse(
-                decodedToken -> {
-                    var user = User.fromToken(decodedToken);
-                    request.setAttribute("user", user);
-                    SecurityContextHolder.getContext().setAuthentication(new FirebaseAuthenticationToken(decodedToken));
-                },
-                SecurityContextHolder::clearContext);
+        var token = tokenVerifier.verifyAuthorizationHeader(httpRequest.getHeader("Authorization"));
+        if (token.isPresent()) {
+            try {
+                var resolved = authenticatedUserService.resolve(token.get());
+                request.setAttribute("user", resolved);
+                SecurityContextHolder.getContext().setAuthentication(new FirebaseAuthenticationToken(token.get(), resolved));
+            } catch (AuthenticatedUserService.UnverifiedEmailException e) {
+                ((jakarta.servlet.http.HttpServletResponse) response).sendError(403, "EMAIL_VERIFICATION_REQUIRED");
+                return;
+            } catch (AuthenticatedUserService.AccountLinkConflictException e) {
+                ((jakarta.servlet.http.HttpServletResponse) response).sendError(409, "ACCOUNT_LINKING_CONFLICT");
+                return;
+            }
+        } else SecurityContextHolder.clearContext();
         chain.doFilter(request, response);
     }
 }
-

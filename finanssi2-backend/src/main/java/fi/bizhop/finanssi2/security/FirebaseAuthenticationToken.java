@@ -6,15 +6,21 @@ import org.springframework.security.core.authority.AuthorityUtils;
 
 public class FirebaseAuthenticationToken extends AbstractAuthenticationToken {
     private final FirebaseToken firebaseToken;
+    private final User resolvedUser;
 
     public FirebaseAuthenticationToken(FirebaseToken firebaseToken) {
+        this(firebaseToken, User.fromToken(firebaseToken));
+    }
+
+    public FirebaseAuthenticationToken(FirebaseToken firebaseToken, User resolvedUser) {
         super(AuthorityUtils.NO_AUTHORITIES);
         this.firebaseToken = firebaseToken;
+        this.resolvedUser = resolvedUser;
         setAuthenticated(true);
     }
 
     public User user() {
-        return User.fromToken(firebaseToken);
+        return resolvedUser;
     }
 
     @Override
@@ -27,9 +33,8 @@ public class FirebaseAuthenticationToken extends AbstractAuthenticationToken {
         return firebaseToken;
     }
 
-    /** Firebase user id; also the user name of the websocket session */
     @Override
     public String getName() {
-        return firebaseToken.getUid();
+        return resolvedUser.uid();
     }
 }
