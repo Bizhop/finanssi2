@@ -1,5 +1,9 @@
 # Frontend status
 
+Updated 2026-10-08 after centralized Firebase auth, verified email/password flows, application profile bootstrap/editing and custom avatar controls. Automated
+frontend checks passed during phase 4; backend phase 5 checks also pass. Real Firebase verification/linking, reset and browser upload acceptance still require a
+configured Firebase project, account credentials and mailbox access.
+
 Updated 2026-10-06 after polishing pending decisions and adding linked decision previews. The functional gaps and deferred live reviews below remain. See
 [backend status](../finanssi2-backend/STATUS.md) for gameplay and rule decisions.
 
@@ -9,8 +13,8 @@ messages, reconnect controls, and spectator mode. Frontend checks pass; responsi
 
 ## Completed features
 
-- Firebase/Google sign-in, authenticated REST calls and chat. STOMP connects with a fresh Firebase token on every attempt, reconnects automatically and
-  recreates subscriptions.
+- Firebase Google and email/password sign-in, registration, verification, password reset, linked-provider handling, authenticated REST calls and chat. STOMP
+  connects with a fresh Firebase token on every attempt, reconnects automatically and recreates subscriptions.
 - Games page at `/games`: list, create, join, leave, start, creator settings, loading/errors and refresh on `/topic/games`.
 - Game room at `/games/:id`: load state and static board/card data, subscribe to `/topic/games/{id}`, reload state after updates, merge events by sequence and
   fetch missing events after gaps/reconnects.

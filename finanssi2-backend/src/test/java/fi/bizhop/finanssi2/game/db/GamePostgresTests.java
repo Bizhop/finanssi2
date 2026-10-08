@@ -36,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -79,7 +80,7 @@ abstract class GamePostgresTests {
         var email = playerId + "@example.com";
         var profile = applicationUserRepository.findByFirebaseUid(firebaseUid)
                 .orElseGet(() -> applicationUserRepository.saveAndFlush(new ApplicationUser(firebaseUid, email, "Player " + playerId, null)));
-        return new User(profile.getId().toString(), email, profile.getDisplayName(), null, true, firebaseUid);
+        return new User(profile.getId().toString(), email, profile.getDisplayName(), profile.effectiveAvatar(), true, firebaseUid);
     }
 
     Game create(String playerId) {
@@ -327,6 +328,34 @@ abstract class GamePostgresTests {
     }
 
     @Test
+    void avatarAndDisplayNameAreCopiedIntoNewGameAndChatSnapshots() {
+        var original = user("profile-snapshot");
+        var beforeEdit = create("profile-snapshot");
+        var profile = applicationUserRepository.findById(UUID.fromString(original.userId())).orElseThrow();
+        profile.updateDisplayName("New Display Name");
+        profile.setCustomAvatar("data:image/jpeg;base64,first-avatar");
+        applicationUserRepository.saveAndFlush(profile);
+
+        var updatedUser = user("profile-snapshot");
+        var message = chatService.postGameMessage(beforeEdit.getId(), updatedUser, "snapshot message");
+        var afterEdit = create("profile-snapshot");
+        var joined = afterEdit.getState().getPlayers().getFirst();
+        assertEquals("New Display Name", joined.getName());
+        assertEquals("data:image/jpeg;base64,first-avatar", joined.getPhotoUrl());
+        assertEquals("New Display Name", message.name());
+        assertEquals("data:image/jpeg;base64,first-avatar", message.photoUrl());
+
+        var latestProfile = applicationUserRepository.findById(UUID.fromString(original.userId())).orElseThrow();
+        latestProfile.setCustomAvatar("data:image/jpeg;base64,second-avatar");
+        applicationUserRepository.saveAndFlush(latestProfile);
+        var storedOldMessage = chatRepository.findById(message.id()).orElseThrow();
+        var storedGame = gameRepository.findById(afterEdit.getId()).orElseThrow();
+        assertEquals("data:image/jpeg;base64,first-avatar", storedOldMessage.photoUrl());
+        assertEquals("data:image/jpeg;base64,first-avatar", storedGame.getState().getPlayers().getFirst().getPhotoUrl());
+        assertNull(gameRepository.findById(beforeEdit.getId()).orElseThrow().getState().getPlayers().getFirst().getPhotoUrl());
+    }
+
+    @Test
     void testGameAndEventsRoundTrip() {
         var id = create("a").getId();
         gameService.join(id, user("b"));
@@ -345,9 +374,10 @@ abstract class GamePostgresTests {
 
         // A pending decision is stored with its type
         var game = gameService.get(id);
-        game.getState().getBonds().getFirst().setOwner("it-a");
+        var aId = user("a").userId();
+        game.getState().getBonds().getFirst().setOwner(aId);
         game.getState().getPendingDecisions().add(
-                new PendingDecision.RaiseFunds("it-a", null, List.of(new Charge(10_000, MoneyReason.LOAN_INTEREST))));
+                new PendingDecision.RaiseFunds(aId, null, List.of(new Charge(10_000, MoneyReason.LOAN_INTEREST))));
         var saved = gameRepository.save(game);
 
         var loaded = gameRepository.findById(id).orElseThrow();
@@ -355,15 +385,15 @@ abstract class GamePostgresTests {
         assertEquals(game.getState(), loaded.getState());
         assertEquals(LoanLimit.UNLIMITED, loaded.getState().getSettings().loanLimit());
         assertEquals(21, loaded.getState().getFinanceNewsDeck().size());
-        assertEquals("it-a", loaded.getState().getBonds().getFirst().getOwner());
+        assertEquals(aId, loaded.getState().getBonds().getFirst().getOwner());
         assertInstanceOf(PendingDecision.RaiseFunds.class, loaded.getState().getPendingDecisions().getFirst());
 
         var log = gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(id, 0);
         assertEquals(loaded.getLastEventSeq(), log.size());
         assertEquals(List.of(1, 2, 3), log.stream().limit(3).map(GameLogEntry::seq).toList());
-        assertEquals(new GameEvent.PlayerJoined("it-b", "Player b", 1), log.get(1).event());
+        assertEquals(new GameEvent.PlayerJoined(user("b").userId(), "Player b", 1), log.get(1).event());
         assertEquals(new GameEvent.SettingsChanged(new GameSettings(LoanLimit.UNLIMITED)), log.get(2).event());
-        assertEquals(new GameEvent.DiceRolled("it-a", List.of(4)),
+        assertEquals(new GameEvent.DiceRolled(user("a").userId(), List.of(4)),
                 log.stream().filter(entry -> entry.type().equals("DiceRolled")).findFirst().orElseThrow().event());
         assertEquals(List.of("FinanceNewsDrawn"), gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(id, log.size() - 1)
                 .stream().map(GameLogEntry::type).toList());
@@ -391,7 +421,7 @@ abstract class GamePostgresTests {
             gameRepository.save(game);
         }
 
-        var ids = gameRepository.findByStatusOrPlayer(GameStatus.LOBBY, "it-b", Sort.by(Sort.Direction.DESC, "createdAt"))
+        var ids = gameRepository.findByStatusOrPlayer(GameStatus.LOBBY, user("b").userId(), Sort.by(Sort.Direction.DESC, "createdAt"))
                 .stream().map(Game::getId).toList();
 
         assertTrue(ids.contains(lobby));
@@ -413,11 +443,14 @@ abstract class GamePostgresTests {
     void testAuctionBidsSurvivePersistenceAndStayHiddenInJson() {
         var id = create("a").getId();
         var game = gameService.get(id);
-        var offer = new PendingDecision.BondOffer("it-a", BondContinuation.GRAND_DRAW);
-        var auction = new PendingDecision.BondAuction("it-b", List.of("it-a", "it-b"), 1,
-                List.of(new PendingDecision.Bid("it-a", 1_000)));
-        var assetAuction = new PendingDecision.AssetAuction("it-a", "P:3", 0, List.of("it-b"), 0,
-                List.of(new PendingDecision.Bid("it-c", 500)));
+        var a = user("a").userId();
+        var b = user("b").userId();
+        var c = user("c").userId();
+        var offer = new PendingDecision.BondOffer(a, BondContinuation.GRAND_DRAW);
+        var auction = new PendingDecision.BondAuction(b, List.of(a, b), 1,
+                List.of(new PendingDecision.Bid(a, 1_000)));
+        var assetAuction = new PendingDecision.AssetAuction(a, "P:3", 0, List.of(b), 0,
+                List.of(new PendingDecision.Bid(c, 500)));
         game.getState().getPendingDecisions().addAll(List.of(offer, auction, assetAuction));
         game.getState().getPlayers().getFirst().getHeldStockTips().add("PV-25");
         game.getState().getStockTipDeck().add("PV-01");

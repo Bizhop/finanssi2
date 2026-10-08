@@ -11,7 +11,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 
 @Configuration
-@Profile("!test")
+@Profile("!test & !auth-test")
 public class FirebaseConfig {
     @Bean
     public FirebaseApp firebaseApp() throws IOException {

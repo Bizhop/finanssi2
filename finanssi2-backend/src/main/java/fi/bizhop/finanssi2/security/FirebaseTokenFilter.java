@@ -41,13 +41,19 @@ public class FirebaseTokenFilter extends AbstractPreAuthenticatedProcessingFilte
                 request.setAttribute("user", resolved);
                 SecurityContextHolder.getContext().setAuthentication(new FirebaseAuthenticationToken(token.get(), resolved));
             } catch (AuthenticatedUserService.UnverifiedEmailException e) {
-                ((jakarta.servlet.http.HttpServletResponse) response).sendError(403, "EMAIL_VERIFICATION_REQUIRED");
+                writeError((jakarta.servlet.http.HttpServletResponse) response, 403, "EMAIL_VERIFICATION_REQUIRED");
                 return;
             } catch (AuthenticatedUserService.AccountLinkConflictException e) {
-                ((jakarta.servlet.http.HttpServletResponse) response).sendError(409, "ACCOUNT_LINKING_CONFLICT");
+                writeError((jakarta.servlet.http.HttpServletResponse) response, 409, "ACCOUNT_LINKING_CONFLICT");
                 return;
             }
         } else SecurityContextHolder.clearContext();
         chain.doFilter(request, response);
+    }
+
+    private static void writeError(jakarta.servlet.http.HttpServletResponse response, int status, String code) throws IOException {
+        response.setStatus(status);
+        response.setContentType("application/json");
+        response.getWriter().write("{\"code\":\"" + code + "\"}");
     }
 }

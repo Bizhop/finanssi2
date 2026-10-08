@@ -42,6 +42,13 @@ cd finanssi2-backend
 
 The API runs at http://localhost:8080.
 
+Firebase Authentication must have Google and email/password providers enabled. Email/password users must verify their address before
+the backend provisions a profile or allows game/chat access. Google and password sign-in share an application profile only when Firebase
+has linked them to the same Firebase account. The app lets signed-in users edit their display name and upload/remove a custom avatar;
+avatars are processed and stored in PostgreSQL, and game/chat entries keep the name and avatar snapshot from when they were created.
+`GET /api/me` supplies the profile and debug capability used by the frontend. Backend upload limits and image validation are configured
+for JPEG/PNG input up to 2 MiB; processed images are bounded JPEGs.
+
 ### 3. Frontend
 
 Create `finanssi2-web/.env.development` (not in git) with the Firebase web config and the backend URL:
@@ -86,7 +93,7 @@ or pass it locally when starting the backend:
 ./gradlew bootRun --args='--finanssi2.debug.allowed-emails=you@example.com'
 ```
 
-Use the exact email of a Google/Firebase account with a verified email claim. Comma-separated addresses are trimmed and
+Use the exact email of a Firebase account with a verified email claim. Comma-separated addresses are trimmed and
 compared case-insensitively; domains and wildcard patterns do not grant access. Restart the backend and reconnect after changes.
 Keep actual accounts in local/deployment configuration.
 
