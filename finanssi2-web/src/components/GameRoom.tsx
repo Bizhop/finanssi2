@@ -11,9 +11,9 @@ import { GameWindow, type GameWindowTab } from "./GameWindow.tsx"
 import { ShareCard, TitleDeedCard } from "./cards.tsx"
 import { bankSalesOpen, buildAction, ConfirmDialog, type ConfirmRequest, meetingGroups, type PlayerControls, takeoverSum, twoDiceAtMost } from "./actions.tsx"
 import { PlayerPanel } from "./PlayerPanel.tsx"
-import { useCurrentUser } from "./CurrentUserContext.tsx"
+import { useCurrentUser, usePublicProfiles } from "./CurrentUserContext.tsx"
 import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
-import { gameApi, GameApiError, GameBoardData, GameView } from "./gameApi.ts"
+import { avatarSrc, gameApi, GameApiError, GameBoardData, GameView } from "./gameApi.ts"
 import { describeEvent, GameLogEntry } from "./gameEvents.ts"
 import { DecisionDialog } from "./DecisionDialog.tsx"
 import { BOARD_ASPECT_RATIO } from "./boardLayout.ts"
@@ -48,6 +48,10 @@ const GameRoomContent = () => {
     // The group of the shareholders' meeting being called; null when the dialog is closed
     const [meetingGroup, setMeetingGroup] = useState<string | null>(null)
     const [meetingFee, setMeetingFee] = useState(20000)
+    const profiles = usePublicProfiles([
+        ...(view?.game.state.players.map((player) => player.playerId) ?? []),
+        ...events.flatMap((entry) => Object.values(entry.event).filter((value): value is string => typeof value === "string")),
+    ])
 
     const refresh = useCallback(async () => {
         if (!user || !id) return
@@ -201,7 +205,18 @@ const GameRoomContent = () => {
     if (!view) return null
     if (view.game.mode === "DEBUG" && !debugMode) return <CircularProgress />
 
-    const { game, allowedCommands } = view
+    const { game: rawGame, allowedCommands } = view
+    const game = {
+        ...rawGame,
+        state: {
+            ...rawGame.state,
+            players: rawGame.state.players.map((player) => ({
+                ...player,
+                name: profiles[player.playerId]?.displayName ?? (player.playerId.startsWith("debug:") ? `Debug player ${player.piece + 1}` : player.playerId),
+                photoUrl: avatarSrc(profiles[player.playerId]?.avatar) ?? null,
+            })),
+        },
+    }
     const identityId = profile?.id ?? ""
     const actingUid = game.mode === "DEBUG" ? view.actingPlayer : identityId
     const actingPlayer = game.state.players.find((player) => player.playerId === actingUid)
@@ -209,7 +224,10 @@ const GameRoomContent = () => {
     const decisionActor = pending?.player === actingUid
     // Whoever the game is waiting for: the player of a pending decision, otherwise the player in turn
     const expectedUid = pending?.player ?? game.state.currentPlayer
-    const playerName = (playerId: string) => game.state.players.find((player) => player.playerId === playerId)?.name ?? "a former player"
+    const playerName = (playerId: string) =>
+        profiles[playerId]?.displayName ??
+            game.state.players.find((player) => player.playerId === playerId)?.name ??
+            (playerId.startsWith("debug:") ? "Debug player" : "a former player")
     // Only a Stock Tip drawn during the current turn stays face up on the board
     const turnStockTip = events.slice(events.findLastIndex((entry) => entry.type === "TurnStarted") + 1).findLast((entry) => entry.type === "StockTipDrawn")
     const deedOf = (square: number) => board?.titleDeeds.find((deed) => deed.square === square)

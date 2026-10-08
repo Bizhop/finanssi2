@@ -51,7 +51,7 @@ outbound debug access rechecks, and database cascade deletion. Two-account webso
   update can use an empty database because persisted data is currently disposable.
 - Dice are injected (`SecureRandom` normally, scripted in tests). Debug overrides belong to one command, fall back to random
   rolls when exhausted and discard unused values. The old dev dice route/profile wiring is removed. Deck order stays hidden.
-- Normal player ids and creator/chat references use generated application-user UUIDs; name/avatar are copied on joining/posting. Pieces are the lowest free numbers 0–5. A creator leaving the
+- Normal player ids and creator/chat references use generated application-user UUIDs. Game seats and chat rows store references only; current names come from the batch profile endpoint and custom avatars use versioned image URLs. Pieces are the lowest free numbers 0–5. A creator leaving the
   lobby passes ownership to the earliest remaining player; the last departure deletes the lobby. Lobby changes also enter the log.
 - All table information is public, including held Stock Tips. Upcoming deck order and sealed bids stay hidden. There is one
   game topic, `/topic/games/{id}`, plus `/topic/games` for lobby changes.

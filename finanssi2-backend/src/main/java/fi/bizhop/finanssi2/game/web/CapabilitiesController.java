@@ -30,7 +30,7 @@ public class CapabilitiesController {
     @GetMapping("/api/me")
     public Me me(@RequestAttribute("user") User user) {
         var profile = users.findById(java.util.UUID.fromString(user.userId())).orElseThrow();
-        var avatar = profile.effectiveAvatar();
+        var avatar = profile.avatarUrl();
         var source = profile.getCustomAvatar() != null ? "custom" : profile.getProviderPhotoUrl() != null ? "provider" : null;
         return new Me(user.userId(), profile.getEmail(), profile.getDisplayName(), avatar, source, profile.getVersion(),
                 new Capabilities(debugAccess.allowed(user)));
@@ -52,7 +52,7 @@ public class CapabilitiesController {
         catch (org.springframework.orm.ObjectOptimisticLockingFailureException stale) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "PROFILE_VERSION_CONFLICT", stale);
         }
-        return new Me(user.userId(), profile.getEmail(), profile.getDisplayName(), profile.effectiveAvatar(),
+        return new Me(user.userId(), profile.getEmail(), profile.getDisplayName(), profile.avatarUrl(),
                 profile.getCustomAvatar() != null ? "custom" : profile.getProviderPhotoUrl() != null ? "provider" : null,
                 profile.getVersion(), new Capabilities(debugAccess.allowed(user)));
     }

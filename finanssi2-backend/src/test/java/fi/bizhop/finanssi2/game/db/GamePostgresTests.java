@@ -281,7 +281,7 @@ abstract class GamePostgresTests {
     void gameChatIsRoomScopedAndCascadesOnGameDeletion() {
         var player = user("chat-room");
         var game = create("chat-room");
-        var global = chatRepository.save(new ChatMessage(null, player.userId(), player.name(), "global", 1000, null), null, UUID.fromString(player.userId()));
+        var global = chatRepository.save(new ChatMessage(null, player.userId(), "global", 1000), null, UUID.fromString(player.userId()));
         var inGame = chatService.postGameMessage(game.getId(), player, "game message");
         var other = create("other-room");
         var otherMessage = chatService.postGameMessage(other.getId(), user("other-room"), "other game message");
@@ -310,7 +310,6 @@ abstract class GamePostgresTests {
                 () -> chatService.postGameMessage(normal.getId(), viewer, "viewer post"));
         var seated = chatService.postGameMessage(normal.getId(), player, "seated post");
         assertEquals(player.userId(), seated.userId());
-        assertEquals(player.name(), seated.name());
         assertThrows(IllegalArgumentException.class, () -> chatService.postGameMessage(normal.getId(), player, "   "));
         assertThrows(IllegalArgumentException.class, () -> chatService.postGameMessage(normal.getId(), player, "x".repeat(101)));
 
@@ -320,7 +319,6 @@ abstract class GamePostgresTests {
         createdGames.add(debug.getId());
         var debugMessage = chatService.postGameMessage(debug.getId(), owner, "owner post");
         assertEquals(owner.userId(), debugMessage.userId());
-        assertEquals(owner.name(), debugMessage.name());
         assertThrows(fi.bizhop.finanssi2.game.service.NotAllowedException.class,
                 () -> chatService.getGameMessages(debug.getId(), null, 20, other));
         assertThrows(fi.bizhop.finanssi2.game.service.NotAllowedException.class,
@@ -328,7 +326,7 @@ abstract class GamePostgresTests {
     }
 
     @Test
-    void avatarAndDisplayNameAreCopiedIntoNewGameAndChatSnapshots() {
+    void gameAndChatStoreUserReferencesInsteadOfProfileSnapshots() {
         var original = user("profile-snapshot");
         var beforeEdit = create("profile-snapshot");
         var profile = applicationUserRepository.findById(UUID.fromString(original.userId())).orElseThrow();
@@ -340,19 +338,16 @@ abstract class GamePostgresTests {
         var message = chatService.postGameMessage(beforeEdit.getId(), updatedUser, "snapshot message");
         var afterEdit = create("profile-snapshot");
         var joined = afterEdit.getState().getPlayers().getFirst();
-        assertEquals("New Display Name", joined.getName());
-        assertEquals("data:image/jpeg;base64,first-avatar", joined.getPhotoUrl());
-        assertEquals("New Display Name", message.name());
-        assertEquals("data:image/jpeg;base64,first-avatar", message.photoUrl());
+        assertEquals(original.userId(), joined.getPlayerId());
+        assertEquals(original.userId(), message.userId());
 
         var latestProfile = applicationUserRepository.findById(UUID.fromString(original.userId())).orElseThrow();
         latestProfile.setCustomAvatar("data:image/jpeg;base64,second-avatar");
         applicationUserRepository.saveAndFlush(latestProfile);
         var storedOldMessage = chatRepository.findById(message.id()).orElseThrow();
         var storedGame = gameRepository.findById(afterEdit.getId()).orElseThrow();
-        assertEquals("data:image/jpeg;base64,first-avatar", storedOldMessage.photoUrl());
-        assertEquals("data:image/jpeg;base64,first-avatar", storedGame.getState().getPlayers().getFirst().getPhotoUrl());
-        assertNull(gameRepository.findById(beforeEdit.getId()).orElseThrow().getState().getPlayers().getFirst().getPhotoUrl());
+        assertEquals(original.userId(), storedOldMessage.userId());
+        assertEquals(original.userId(), storedGame.getState().getPlayers().getFirst().getPlayerId());
     }
 
     @Test
@@ -391,7 +386,7 @@ abstract class GamePostgresTests {
         var log = gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(id, 0);
         assertEquals(loaded.getLastEventSeq(), log.size());
         assertEquals(List.of(1, 2, 3), log.stream().limit(3).map(GameLogEntry::seq).toList());
-        assertEquals(new GameEvent.PlayerJoined(user("b").userId(), "Player b", 1), log.get(1).event());
+        assertEquals(new GameEvent.PlayerJoined(user("b").userId(), 1), log.get(1).event());
         assertEquals(new GameEvent.SettingsChanged(new GameSettings(LoanLimit.UNLIMITED)), log.get(2).event());
         assertEquals(new GameEvent.DiceRolled(user("a").userId(), List.of(4)),
                 log.stream().filter(entry -> entry.type().equals("DiceRolled")).findFirst().orElseThrow().event());
@@ -480,7 +475,7 @@ abstract class GamePostgresTests {
     @Test
     void testChatRecordGetsGeneratedIdAndRoundTrips() {
         var sender = user("test");
-        var message = new ChatMessage(null, sender.userId(), null, "Hello", 1000, null);
+        var message = new ChatMessage(null, sender.userId(), "Hello", 1000);
         var saved = chatRepository.save(message, null, UUID.fromString(sender.userId()));
         assertNotNull(saved.id());
         try {

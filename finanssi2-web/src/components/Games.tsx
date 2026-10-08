@@ -23,9 +23,9 @@ import {
 import AddIcon from "@mui/icons-material/Add"
 import { toast } from "react-toastify"
 
-import { useCurrentUser } from "./CurrentUserContext.tsx"
+import { useCurrentUser, usePublicProfiles } from "./CurrentUserContext.tsx"
 import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
-import { Game, gameApi, GameApiError } from "./gameApi.ts"
+import { avatarSrc, Game, gameApi, GameApiError } from "./gameApi.ts"
 
 const Games = () => {
     const { user, profile, debugMode, refreshCapabilities, clearDebugAccess } = useCurrentUser()
@@ -36,6 +36,7 @@ const Games = () => {
     const connected = useStompConnected()
     const navigate = useNavigate()
     const [games, setGames] = useState<Game[]>([])
+    const profiles = usePublicProfiles(games.flatMap((game) => game.state.players.map((player) => player.playerId)))
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [settingsGame, setSettingsGame] = useState<Game | null>(null)
@@ -214,20 +215,18 @@ const Games = () => {
                                                     {game.status === "LOBBY" ? "Waiting for players" : game.status === "RUNNING" ? "In progress" : "Finished"}
                                                     {creator
                                                         ? " · You are the creator"
-                                                        : ` · Created by ${
-                                                            game.state.players.find((player) => player.playerId === game.creator)?.name ?? "another player"
-                                                        }`}
+                                                        : ` · Created by ${profiles[game.creator]?.displayName ?? "another player"}`}
                                                 </Typography>
                                             </Box>
                                             <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
                                                 {game.state.players.map((player) => (
                                                     <Avatar
                                                         key={player.playerId}
-                                                        src={player.photoUrl ?? undefined}
-                                                        alt={player.name}
+                                                        src={avatarSrc(profiles[player.playerId]?.avatar)}
+                                                        alt={profiles[player.playerId]?.displayName ?? "Player"}
                                                         sx={{ width: 32, height: 32 }}
                                                     >
-                                                        {player.name.slice(0, 1)}
+                                                        {(profiles[player.playerId]?.displayName ?? "?").slice(0, 1)}
                                                     </Avatar>
                                                 ))}
                                                 <Typography variant="caption">

@@ -51,7 +51,7 @@ public class ChatControllerTest {
 
     @Test
     public void testNewestPageWithDefaultSize() {
-        var newest = new ChatMessage("0000000000000000011", "tester@example.com", "Tester Example", "Hello", 1000L, "");
+        var newest = new ChatMessage("0000000000000000011", "tester@example.com", "Hello", 1000L);
         when(chatRepository.findAllByOrderByIdDesc(Limit.of(20))).thenReturn(List.of(newest));
 
         var response = restTemplate.getForEntity(url(""), ChatMessage[].class);
@@ -62,7 +62,7 @@ public class ChatControllerTest {
 
     @Test
     public void testOlderPage() {
-        var older = new ChatMessage("0000000000000000009", "tester@example.com", null, "Older", 500L, "");
+        var older = new ChatMessage("0000000000000000009", "tester@example.com", "Older", 500L);
         when(chatRepository.findByIdLessThanOrderByIdDesc(OLDEST_LOADED_ID, Limit.of(5))).thenReturn(List.of(older));
 
         var response = restTemplate.getForEntity(url("?before=" + OLDEST_LOADED_ID + "&size=5"), ChatMessage[].class);
@@ -96,10 +96,10 @@ public class ChatControllerTest {
         var id = "66f9a1b2-c3d4-5e6f-8718-2931a2b3c4d5";
         var game = new Game();
         game.setId(id);
-        game.getState().getPlayers().add(new PlayerState(player.userId(), player.name(), null, 0));
+        game.getState().getPlayers().add(new PlayerState(player.userId(), 0));
         when(gameRepository.findById(id)).thenReturn(java.util.Optional.of(game));
         when(gameRepository.findByIdForUpdate(id)).thenReturn(java.util.Optional.of(game));
-        var saved = new ChatMessage("0000000000000000012", player.userId(), player.name(), "Hello game", 1000L, null);
+        var saved = new ChatMessage("0000000000000000012", player.userId(), "Hello game", 1000L);
         when(chatRepository.save(any(ChatMessage.class), eq(java.util.UUID.fromString(id)), eq(java.util.UUID.fromString(player.userId())))).thenReturn(saved);
         when(chatRepository.findGameMessages(eq(java.util.UUID.fromString(id)), eq(null), any()))
                 .thenReturn(List.of(saved));

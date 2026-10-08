@@ -65,14 +65,14 @@ public final class EngineTests {
         }
     }
 
-    record PlayerSnapshot(String playerId, String name, String photoUrl, int piece, int cash, int position,
+    record PlayerSnapshot(String playerId, int piece, int cash, int position,
                           boolean car, int loans, boolean out, int missedTurns, boolean missedTurnsInJail,
                           boolean jailExemption, boolean bailRollPending,
                           boolean transportNewsDue,
                           boolean noMovementRollThisTurn,
                           List<String> heldStockTips) {
         static PlayerSnapshot of(PlayerState player) {
-            return new PlayerSnapshot(player.getPlayerId(), player.getName(), player.getPhotoUrl(), player.getPiece(),
+            return new PlayerSnapshot(player.getPlayerId(), player.getPiece(),
                     player.getCash(), player.getPosition(), player.isCar(), player.getLoans(), player.isOut(),
                     player.getMissedTurns(), player.isMissedTurnsInJail(), player.isJailExemption(), player.isBailRollPending(),
                     player.isTransportNewsDue(), player.isNoMovementRollThisTurn(),

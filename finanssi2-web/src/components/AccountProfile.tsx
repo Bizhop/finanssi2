@@ -3,7 +3,7 @@ import { Alert, Avatar, Button, Stack, TextField, Typography } from "@mui/materi
 import { EmailAuthProvider, GoogleAuthProvider, linkWithCredential, reauthenticateWithPopup, validatePassword } from "firebase/auth"
 import { auth } from "./firebase.ts"
 import { useCurrentUser } from "./CurrentUserContext.tsx"
-import { gameApi } from "./gameApi.ts"
+import { avatarSrc, gameApi } from "./gameApi.ts"
 
 const AccountProfile = () => {
     const { user, profile, refreshProfile } = useCurrentUser()
@@ -93,7 +93,7 @@ const AccountProfile = () => {
             <Typography variant="h5">Account</Typography>
             <Typography>Email: {profile.email}</Typography>
             <Typography variant="h6">Avatar</Typography>
-            <Avatar src={profile.avatar ?? undefined} alt={profile.displayName} sx={{ width: 96, height: 96, fontSize: 36 }}>
+            <Avatar src={avatarSrc(profile.avatar)} alt={profile.displayName} sx={{ width: 96, height: 96, fontSize: 36 }}>
                 {profile.displayName.slice(0, 1).toUpperCase()}
             </Avatar>
             <Stack direction="row" spacing={1}>

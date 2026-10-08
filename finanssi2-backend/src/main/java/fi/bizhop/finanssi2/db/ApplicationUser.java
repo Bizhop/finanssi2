@@ -43,5 +43,6 @@ public class ApplicationUser {
     public void setCustomAvatar(String customAvatar) { this.customAvatar = customAvatar; }
     public void removeCustomAvatar() { this.customAvatar = null; }
     public String effectiveAvatar() { return customAvatar != null ? customAvatar : providerPhotoUrl; }
+    public String avatarUrl() { return customAvatar != null ? "/api/users/" + id + "/avatar?v=" + version : providerPhotoUrl; }
     public void updateIdentity(String email, String providerPhotoUrl) { this.email = email; if (this.providerPhotoUrl == null) this.providerPhotoUrl = providerPhotoUrl; }
 }

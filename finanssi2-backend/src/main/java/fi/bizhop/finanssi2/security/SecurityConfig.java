@@ -38,6 +38,7 @@ public class SecurityConfig {
                         authorizeRequests ->
                                 authorizeRequests
                                         .requestMatchers(whitelistArray).permitAll()
+                                        .requestMatchers("/api/users/*/avatar").permitAll()
                                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, exception) -> response.sendError(401)))

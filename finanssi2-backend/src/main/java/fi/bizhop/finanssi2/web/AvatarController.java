@@ -57,7 +57,7 @@ public class AvatarController {
     }
 
     private CapabilitiesController.Me view(User user, fi.bizhop.finanssi2.db.ApplicationUser profile) {
-        return new CapabilitiesController.Me(user.userId(), profile.getEmail(), profile.getDisplayName(), profile.effectiveAvatar(),
+        return new CapabilitiesController.Me(user.userId(), profile.getEmail(), profile.getDisplayName(), profile.avatarUrl(),
                 profile.getCustomAvatar() != null ? "custom" : profile.getProviderPhotoUrl() != null ? "provider" : null,
                 profile.getVersion(), new CapabilitiesController.Capabilities(debugAccess.allowed(user)));
     }

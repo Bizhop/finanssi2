@@ -11,7 +11,7 @@ public sealed interface GameEvent {
     /** Debug owner changed the next draw; ordinary gameplay still executes the card. */
     record DebugDeckChanged(String owner, String deck, String card) implements GameEvent {}
 
-    record PlayerJoined(String player, String name, int piece) implements GameEvent {}
+    record PlayerJoined(String player, int piece) implements GameEvent {}
 
     record PlayerLeft(String player) implements GameEvent {}
 

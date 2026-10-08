@@ -104,7 +104,7 @@ class GameControllerTest {
         game.setVersion(1L);
         game.setCreator(uids[0]);
         for (int i = 0; i < uids.length; i++) {
-            game.getState().getPlayers().add(new PlayerState(uids[i], "Player " + uids[i], null, i));
+            game.getState().getPlayers().add(new PlayerState(uids[i], i));
         }
         when(gameRepository.findById(GAME_ID)).thenReturn(Optional.of(game));
         return game;
@@ -168,7 +168,7 @@ class GameControllerTest {
     @Test
     void testEventsCarryTheirType() {
         lobby("a");
-        var entry = new GameLogEntry("e1", GAME_ID, 1, 1000L, "PlayerJoined", new GameEvent.PlayerJoined("a", "Player a", 0));
+        var entry = new GameLogEntry("e1", GAME_ID, 1, 1000L, "PlayerJoined", new GameEvent.PlayerJoined("a", 0));
         when(gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(GAME_ID, 0)).thenReturn(List.of(entry));
 
         var response = get("/" + GAME_ID + "/events", "a");

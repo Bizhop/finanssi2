@@ -41,7 +41,7 @@ public class ChatService {
     /** Saves the message and broadcasts it to the chat topic */
     public ChatMessage postMessage(User author, String message) {
         validateMessage(message);
-        var newMessage = new ChatMessage(null, author.userId(), author.name(), message, System.currentTimeMillis(), author.photoUrl());
+        var newMessage = new ChatMessage(null, author.userId(), message, System.currentTimeMillis());
         // Broadcast the saved message so clients get its id
         var savedMessage = chatRepository.save(newMessage, null, UUID.fromString(author.userId()));
 
@@ -64,8 +64,8 @@ public class ChatService {
                 && game.getState().player(author.userId()).isEmpty()) {
             throw new NotAllowedException("Join the game before sending messages");
         }
-        var saved = chatRepository.save(new ChatMessage(null, author.userId(), author.name(), message,
-                System.currentTimeMillis(), author.photoUrl()), UUID.fromString(gameId), UUID.fromString(author.userId()));
+        var saved = chatRepository.save(new ChatMessage(null, author.userId(), message,
+                System.currentTimeMillis()), UUID.fromString(gameId), UUID.fromString(author.userId()));
         var topic = "/topic/games/" + gameId + "/chat";
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override public void afterCommit() { messagingService.send(topic, saved); }

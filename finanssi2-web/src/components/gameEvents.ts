@@ -84,7 +84,7 @@ export const describeEvent = (entry: GameLogEntry, { playerName, board }: EventC
         case "DebugDeckChanged":
             return `Debug: next ${e.deck === "FINANCE_NEWS" ? "Finance News" : "Stock Tip"} set to ${cardTitle(board, e.card)}`
         case "PlayerJoined":
-            return `${e.name} joined`
+            return `${playerName(String(e.player))} joined`
         case "PlayerLeft":
             return `${p()} left`
         case "StartingRoll":

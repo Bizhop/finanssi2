@@ -9,11 +9,8 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 public class PlayerState {
-    // Firebase playerId
+    // Application user UUID, or a game-local debug seat ID
     String playerId;
-    // Name and photo copied from the user when joining
-    String name;
-    String photoUrl;
     // Piece 0–5, unique within a game
     int piece;
     int cash;
@@ -34,10 +31,8 @@ public class PlayerState {
     // Held Stock Tip card ids, in acquisition order.
     List<String> heldStockTips = new ArrayList<>();
 
-    public PlayerState(String playerId, String name, String photoUrl, int piece) {
+    public PlayerState(String playerId, int piece) {
         this.playerId = playerId;
-        this.name = name;
-        this.photoUrl = photoUrl;
         this.piece = piece;
     }
 }

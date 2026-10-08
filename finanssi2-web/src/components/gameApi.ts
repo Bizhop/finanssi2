@@ -82,6 +82,12 @@ export type GameBoardData = {
 }
 export type Card = { id: string; type: string; chapters: { type: string | null; text: string; "font-style": string | null }[] }
 
+export const avatarSrc = (avatar: string | null | undefined) => {
+    if (!avatar) return undefined
+    if (!avatar.startsWith("/")) return avatar
+    return `${(import.meta.env?.VITE_FINANSSI_API_URL ?? "").replace(/\/$/, "")}${avatar}`
+}
+
 export async function gameApi<T>(user: User, path: string, init: RequestInit = {}): Promise<T> {
     const token = await user.getIdToken()
     const response = await fetch(`${(import.meta.env?.VITE_FINANSSI_API_URL ?? "")}${path}`, {

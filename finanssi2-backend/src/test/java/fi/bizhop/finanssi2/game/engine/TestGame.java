@@ -12,7 +12,7 @@ public class TestGame {
     public static TestGame players(String... uids) {
         var game = new TestGame();
         for (int i = 0; i < uids.length; i++) {
-            var player = new PlayerState(uids[i], "Player " + uids[i], null, i);
+            var player = new PlayerState(uids[i], i);
             player.setCash(STARTING_CASH);
             player.setPosition(1);
             game.state.getPlayers().add(player);

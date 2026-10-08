@@ -29,7 +29,8 @@ docker compose up -d
 
 Starts PostgreSQL on port 5432. The database uses a local Docker volume and survives application restarts. Game state and game events
 use JSONB payloads; Hibernate creates and updates the schema from the Java persistence entities. For an empty database reset, run
-`docker compose down -v` before starting it again.
+`docker compose down -v` before starting it again. Existing databases should be reset after the profile-reference change to remove
+legacy name/avatar snapshots in chat rows and JSON game state; the schema updater does not drop those old fields automatically.
 
 ### 2. Backend
 

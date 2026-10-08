@@ -13,6 +13,7 @@ export type UserProfile = {
     capabilities: { debugMode: boolean }
 }
 export type AuthStatus = "initializing" | "signedOut" | "verificationRequired" | "profileLoading" | "ready" | "recoverableError"
+export type PublicProfile = { id: string; displayName: string; avatar: string | null }
 
 const CurrentUserContext = createContext<UserState | null>(null)
 type CurrentUserProviderProps = { children: React.ReactNode }
@@ -115,4 +116,34 @@ export const useCurrentUser = () => {
     const context = useContext(CurrentUserContext)
     if (!context) throw new Error("useCurrentUser must be used within a CurrentUserProvider")
     return context
+}
+
+export const usePublicProfiles = (ids: string[]) => {
+    const { user } = useCurrentUser()
+    const [profiles, setProfiles] = useState<Record<string, PublicProfile>>({})
+    const key = [...new Set(ids.filter((id) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)))].sort().join(",")
+    useEffect(() => {
+        if (!user || !key) {
+            setProfiles({})
+            return
+        }
+        let active = true
+        const chunks: string[][] = []
+        const profileIds = key.split(",")
+        for (let index = 0; index < profileIds.length; index += 100) chunks.push(profileIds.slice(index, index + 100))
+        const load = () => Promise.all(chunks.map((chunk) => {
+            const params = new URLSearchParams()
+            chunk.forEach((id) => params.append("ids", id))
+            return gameApi<PublicProfile[]>(user, `/api/users?${params}`)
+        })).then((groups) => {
+            if (active) setProfiles(Object.fromEntries(groups.flat().map((item) => [item.id, item])))
+        }).catch(() => undefined)
+        void load()
+        const timer = window.setInterval(() => void load(), 15_000)
+        return () => {
+            active = false
+            window.clearInterval(timer)
+        }
+    }, [user, key])
+    return profiles
 }

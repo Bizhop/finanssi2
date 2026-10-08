@@ -38,8 +38,8 @@ public class ChatRepository {
     @Transactional
     public ChatMessage save(ChatMessage message, UUID gameId, UUID senderId) {
         var row = new ChatMessageEntity();
-        row.name = message.name(); row.message = message.message();
-        row.timestamp = message.timestamp(); row.photoUrl = message.photoUrl();
+        row.message = message.message();
+        row.timestamp = message.timestamp();
         row.sender = entityManager.getReference(ApplicationUser.class, senderId);
         if (gameId != null) row.game = entityManager.getReference(fi.bizhop.finanssi2.game.db.GameEntity.class, gameId);
         entityManager.persist(row);
@@ -62,7 +62,7 @@ public class ChatRepository {
     }
 
     private static ChatMessage model(ChatMessageEntity row) {
-        return new ChatMessage(String.format(java.util.Locale.ROOT, "%019d", row.id), row.sender.getId().toString(), row.name,
-                row.message, row.timestamp, row.photoUrl);
+        return new ChatMessage(String.format(java.util.Locale.ROOT, "%019d", row.id), row.sender.getId().toString(),
+                row.message, row.timestamp);
     }
 }

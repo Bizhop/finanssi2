@@ -87,7 +87,7 @@ class GameServiceTest {
         game.setVersion(3L);
         game.setCreator(uids[0]);
         for (int i = 0; i < uids.length; i++) {
-            game.getState().getPlayers().add(new PlayerState(uids[i], "Player " + uids[i], null, i));
+            game.getState().getPlayers().add(new PlayerState(uids[i], i));
         }
         game.setLastEventSeq(uids.length);
         lenient().when(gameRepository.findById(GAME_ID)).thenReturn(Optional.of(game));
@@ -125,10 +125,10 @@ class GameServiceTest {
         assertEquals(new GameSettings(LoanLimit.UNLIMITED, CompulsorySaleMinimumBid.HALF_NOMINAL_PRICE, ShareholdersMeeting.ALL_ASSETS_BOUGHT),
                 game.getState().getSettings());
         var player = game.getState().getPlayers().getFirst();
-        assertEquals(new PlayerState("a", "Player a", "https://example.com/a.png", 0), player);
+        assertEquals(new PlayerState("a", 0), player);
         var entries = savedEntries();
         assertEquals(1, entries.size());
-        assertEquals(GameLogEntry.of(id, 1, entries.getFirst().time(), new GameEvent.PlayerJoined("a", "Player a", 0)),
+        assertEquals(GameLogEntry.of(id, 1, entries.getFirst().time(), new GameEvent.PlayerJoined("a", 0)),
                 entries.getFirst());
         verify(messagingService).send("/topic/games/" + id, new GameUpdate(id, 0, entries));
         verify(messagingService).send("/topic/games", new LobbyChange(id, game));
@@ -145,7 +145,7 @@ class GameServiceTest {
         assertEquals(1, game.getState().player("d").orElseThrow().getPiece());
         var entry = savedEntries().getFirst();
         assertEquals(4, entry.seq());
-        assertEquals(new GameEvent.PlayerJoined("d", "Player d", 1), entry.event());
+        assertEquals(new GameEvent.PlayerJoined("d", 1), entry.event());
     }
 
     @Test
@@ -372,7 +372,7 @@ class GameServiceTest {
     @Test
     void testEventsReadFromPostgresLog() {
         lobby("a");
-        var entry = GameLogEntry.of(GAME_ID, 1, 1000, new GameEvent.PlayerJoined("a", "Player a", 0));
+        var entry = GameLogEntry.of(GAME_ID, 1, 1000, new GameEvent.PlayerJoined("a", 0));
         when(gameLogRepository.findByGameIdAndSeqGreaterThanOrderBySeq(GAME_ID, 0)).thenReturn(List.of(entry));
         assertEquals(List.of(entry), service().events(GAME_ID, 0));
     }

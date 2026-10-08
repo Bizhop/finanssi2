@@ -299,8 +299,8 @@ public class GameService {
         var players = game.getState().getPlayers();
         var taken = players.stream().map(PlayerState::getPiece).toList();
         var piece = IntStream.range(0, MAX_PLAYERS).filter(p -> !taken.contains(p)).findFirst().orElseThrow();
-        players.add(new PlayerState(user.userId(), user.name(), user.photoUrl(), piece));
-        return new GameEvent.PlayerJoined(user.userId(), user.name(), piece);
+        players.add(new PlayerState(user.userId(), piece));
+        return new GameEvent.PlayerJoined(user.userId(), piece);
     }
 
     record Committed(Game game, List<GameLogEntry> entries) {}
