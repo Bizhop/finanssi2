@@ -69,8 +69,8 @@ class GameServiceTest {
         gameData = new GameDataConfig().gameData();
     }
 
-    static User user(String uid) {
-        return new User(uid, uid + "@example.com", "Player " + uid, "https://example.com/" + uid + ".png");
+    static User user(String playerId) {
+        return new User(playerId, playerId + "@example.com", "Player " + playerId, "https://example.com/" + playerId + ".png");
     }
 
     GameService service(Integer... dice) {
@@ -183,7 +183,7 @@ class GameServiceTest {
         service().leave(GAME_ID, user("a"));
 
         assertEquals("b", game.getCreator());
-        assertEquals(List.of("b", "c"), game.getState().getPlayers().stream().map(PlayerState::getUid).toList());
+        assertEquals(List.of("b", "c"), game.getState().getPlayers().stream().map(PlayerState::getPlayerId).toList());
         assertEquals(new GameEvent.PlayerLeft("a"), savedEntries().getFirst().event());
     }
 
@@ -337,7 +337,7 @@ class GameServiceTest {
     @Test
     void engineWinMarksPersistedGameFinished() {
         var game = running();
-        game.getState().getPlayers().stream().filter(player -> player.getUid().equals("a")).findFirst().orElseThrow().setCash(1_000_000);
+        game.getState().getPlayers().stream().filter(player -> player.getPlayerId().equals("a")).findFirst().orElseThrow().setCash(1_000_000);
         new GameSetup(gameData).initAssets(game.getState(), gameData);
         for (var group : List.of("KASITEOLLISUUS", "PALVELUYHTIO")) {
             gameData.group(group).properties().forEach(square -> game.getState().property(square).setOwner("a"));

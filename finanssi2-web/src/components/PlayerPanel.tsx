@@ -135,9 +135,9 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected, contro
     const [loanMenu, setLoanMenu] = useState<HTMLElement | null>(null)
     const color = playerColor(player.piece)
     const allowed = controls?.allowed ?? []
-    const properties = game.state.properties.filter((property) => property.owner === player.uid)
-    const shares = game.state.shares.filter((share) => share.owner === player.uid)
-    const bonds = game.state.bonds.filter((bond) => bond.owner === player.uid)
+    const properties = game.state.properties.filter((property) => property.owner === player.playerId)
+    const shares = game.state.shares.filter((share) => share.owner === player.playerId)
+    const bonds = game.state.bonds.filter((bond) => bond.owner === player.playerId)
     const car = carAction(allowed, player.car)
     const loans = loanActions(allowed)
     const tipTitle = (id: string) => {

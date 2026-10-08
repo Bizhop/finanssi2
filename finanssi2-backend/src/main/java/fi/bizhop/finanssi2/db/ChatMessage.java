@@ -4,7 +4,7 @@ import org.springframework.data.annotation.Id;
 public record ChatMessage(
     // Monotonic PostgreSQL identity, exposed as a string for the existing API.
     @Id String id,
-    String username,
+    String userId,
     // Sender's display name at the time of posting; null in messages saved before it was stored
     String name,
     String message,
@@ -12,7 +12,7 @@ public record ChatMessage(
     String photoUrl) {
 
     public ChatMessage withId(String id) {
-        return new ChatMessage(id, username, name, message, timestamp, photoUrl);
+        return new ChatMessage(id, userId, name, message, timestamp, photoUrl);
     }
 
 }

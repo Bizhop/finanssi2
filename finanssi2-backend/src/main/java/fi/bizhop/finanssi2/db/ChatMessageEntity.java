@@ -20,14 +20,15 @@ public class ChatMessageEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
-    @Column(nullable = false)
-    String username;
     String name;
     @Column(nullable = false)
     String message;
     @Column(nullable = false)
     long timestamp;
     String photoUrl;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "sender_user_id", nullable = false, foreignKey = @jakarta.persistence.ForeignKey(name = "chat_messages_sender_user_id_fkey"))
+    ApplicationUser sender;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "game_id", foreignKey = @jakarta.persistence.ForeignKey(name = "chat_messages_game_id_fkey"))
     @OnDelete(action = OnDeleteAction.CASCADE)

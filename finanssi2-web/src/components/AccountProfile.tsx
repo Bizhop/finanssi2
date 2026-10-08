@@ -1,0 +1,109 @@
+import { FormEvent, useState } from "react"
+import { Alert, Button, Stack, TextField, Typography } from "@mui/material"
+import { EmailAuthProvider, GoogleAuthProvider, linkWithCredential, reauthenticateWithPopup, validatePassword } from "firebase/auth"
+import { auth } from "./firebase.ts"
+import { useCurrentUser } from "./CurrentUserContext.tsx"
+import { gameApi } from "./gameApi.ts"
+
+const AccountProfile = () => {
+    const { user, profile, refreshProfile } = useCurrentUser()
+    const [displayName, setDisplayName] = useState(profile?.displayName ?? "")
+    const [busy, setBusy] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const [saved, setSaved] = useState(false)
+    const [password, setPassword] = useState("")
+    const [passwordConfirmation, setPasswordConfirmation] = useState("")
+    const [passwordMessage, setPasswordMessage] = useState<string | null>(null)
+    const [passwordError, setPasswordError] = useState<string | null>(null)
+    const submit = async (event: FormEvent) => {
+        event.preventDefault()
+        if (!user || !profile) return
+        setBusy(true)
+        setError(null)
+        setSaved(false)
+        try {
+            await gameApi(user, "/api/me/profile", { method: "PUT", body: JSON.stringify({ displayName, version: profile.version }) })
+            await refreshProfile()
+            setSaved(true)
+        } catch (reason) {
+            setError(reason instanceof Error ? reason.message : "Unable to save your profile")
+        } finally {
+            setBusy(false)
+        }
+    }
+    const addPassword = async (event: FormEvent) => {
+        event.preventDefault()
+        if (!user || !profile) return
+        setBusy(true)
+        setPasswordError(null)
+        setPasswordMessage(null)
+        try {
+            if (password !== passwordConfirmation) throw new Error("Passwords do not match.")
+            const policy = await validatePassword(auth, password)
+            if (!policy.isValid) throw new Error("Password does not meet the configured Firebase password policy.")
+            const credential = EmailAuthProvider.credential(profile.email, password)
+            try {
+                await linkWithCredential(user, credential)
+            } catch (reason) {
+                if (!(typeof reason === "object" && reason && "code" in reason && reason.code === "auth/requires-recent-login")) throw reason
+                await reauthenticateWithPopup(user, new GoogleAuthProvider())
+                await linkWithCredential(user, credential)
+            }
+            setPassword("")
+            setPasswordConfirmation("")
+            setPasswordMessage("Password sign-in added to this Google account.")
+        } catch (reason) {
+            setPasswordError(reason instanceof Error ? reason.message : "Unable to add password sign-in")
+        } finally {
+            setBusy(false)
+        }
+    }
+    if (!user || !profile) return null
+    return (
+        <Stack spacing={2} sx={{ p: 2, maxWidth: 520 }}>
+            <Typography variant="h5">Account</Typography>
+            <Typography>Email: {profile.email}</Typography>
+            <Stack component="form" onSubmit={submit} spacing={2}>
+                <TextField
+                    label="Display name"
+                    required
+                    value={displayName}
+                    slotProps={{ htmlInput: { maxLength: 50 } }}
+                    onChange={(event) => setDisplayName(event.target.value)}
+                />
+                {error && <Alert severity="error">{error}</Alert>}
+                {saved && <Alert severity="success">Profile saved.</Alert>}
+                <Button type="submit" variant="contained" disabled={busy || displayName.trim().length === 0 || displayName.trim() === profile.displayName}>
+                    Save profile
+                </Button>
+            </Stack>
+            {user.providerData.some((provider) => provider.providerId === "google.com") &&
+                !user.providerData.some((provider) => provider.providerId === "password") && (
+                <Stack component="form" onSubmit={addPassword} spacing={2}>
+                    <Typography variant="h6">Add password sign-in</Typography>
+                    <TextField
+                        label="New password"
+                        type="password"
+                        required
+                        autoComplete="new-password"
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                    />
+                    <TextField
+                        label="Confirm password"
+                        type="password"
+                        required
+                        autoComplete="new-password"
+                        value={passwordConfirmation}
+                        onChange={(event) => setPasswordConfirmation(event.target.value)}
+                    />
+                    {passwordError && <Alert severity="error">{passwordError}</Alert>}
+                    {passwordMessage && <Alert severity="success">{passwordMessage}</Alert>}
+                    <Button type="submit" disabled={busy}>Add password</Button>
+                </Stack>
+            )}
+        </Stack>
+    )
+}
+
+export default AccountProfile

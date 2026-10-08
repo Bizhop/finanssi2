@@ -14,6 +14,10 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.util.UUID;
+import fi.bizhop.finanssi2.db.ApplicationUser;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
 
 @Entity
 @Table(name = "games", indexes = @Index(name = "games_status_created_idx", columnList = "status, created_at"))
@@ -28,8 +32,9 @@ public class GameEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     GameMode mode;
-    @Column(nullable = false)
-    String creator;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "creator_user_id", nullable = false, foreignKey = @jakarta.persistence.ForeignKey(name = "games_creator_user_id_fkey"))
+    ApplicationUser creatorUser;
     @Column(name = "created_at", nullable = false)
     long createdAt;
     @Column(name = "last_event_seq", nullable = false)

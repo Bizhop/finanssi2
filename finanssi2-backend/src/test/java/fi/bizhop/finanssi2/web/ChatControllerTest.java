@@ -92,23 +92,23 @@ public class ChatControllerTest {
 
     @Test
     void gameChatAllowsRoomReadsButOnlySeatsCanPost() {
-        var player = new User("chat-player", "player@example.com", "Player", null);
+        var player = new User(java.util.UUID.randomUUID().toString(), "player@example.com", "Player", null);
         var id = "66f9a1b2-c3d4-5e6f-8718-2931a2b3c4d5";
         var game = new Game();
         game.setId(id);
-        game.getState().getPlayers().add(new PlayerState(player.uid(), player.name(), null, 0));
+        game.getState().getPlayers().add(new PlayerState(player.userId(), player.name(), null, 0));
         when(gameRepository.findById(id)).thenReturn(java.util.Optional.of(game));
         when(gameRepository.findByIdForUpdate(id)).thenReturn(java.util.Optional.of(game));
-        var saved = new ChatMessage("0000000000000000012", player.email(), player.name(), "Hello game", 1000L, null);
-        when(chatRepository.save(any(ChatMessage.class), eq(java.util.UUID.fromString(id)))).thenReturn(saved);
+        var saved = new ChatMessage("0000000000000000012", player.userId(), player.name(), "Hello game", 1000L, null);
+        when(chatRepository.save(any(ChatMessage.class), eq(java.util.UUID.fromString(id)), eq(java.util.UUID.fromString(player.userId())))).thenReturn(saved);
         when(chatRepository.findGameMessages(eq(java.util.UUID.fromString(id)), eq(null), any()))
                 .thenReturn(List.of(saved));
 
-        var playerHeaders = headersFor(player.uid());
+        var playerHeaders = headersFor(player.userId());
         var posted = restTemplate.postForEntity(gameChatUrl(id), new HttpEntity<>("{\"message\":\"Hello game\"}", playerHeaders), String.class);
         assertEquals(HttpStatus.OK, posted.getStatusCode(), posted.getBody());
         assertTrue(posted.getBody().contains("\"message\":\"Hello game\""));
-        assertTrue(posted.getBody().contains("\"username\":\"player@example.com\""), posted.getBody());
+        assertTrue(posted.getBody().contains("\"userId\":\"" + player.userId() + "\""), posted.getBody());
 
         var viewerHeaders = headersFor("viewer");
         var history = restTemplate.exchange(gameChatUrl(id), org.springframework.http.HttpMethod.GET,

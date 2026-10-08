@@ -52,16 +52,17 @@ class ChatServiceTest {
 
     @Test
     void testPostMessageSavesAndBroadcastsSavedMessage() {
-        var author = new User("uid", "tester@example.com", "Tester Example", "https://example.com/photo.png");
-        when(chatRepository.save(any())).thenAnswer(invocation ->
+        var id = java.util.UUID.randomUUID().toString();
+        var author = new User(id, "tester@example.com", "Tester Example", "https://example.com/photo.png");
+        when(chatRepository.save(any(ChatMessage.class), org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq(java.util.UUID.fromString(id)))).thenAnswer(invocation ->
                 invocation.<ChatMessage>getArgument(0).withId("0000000000000000012"));
 
         var saved = chatService.postMessage(author, "Hello");
 
         var toSave = ArgumentCaptor.forClass(ChatMessage.class);
-        verify(chatRepository).save(toSave.capture());
+        verify(chatRepository).save(toSave.capture(), org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq(java.util.UUID.fromString(id)));
         assertNull(toSave.getValue().id());
-        assertEquals("tester@example.com", saved.username());
+        assertEquals(id, saved.userId());
         assertEquals("Tester Example", saved.name());
         assertEquals("Hello", saved.message());
         assertEquals("https://example.com/photo.png", saved.photoUrl());

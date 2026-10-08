@@ -13,8 +13,8 @@ import type { Game } from "../src/components/gameApi.ts"
 
 const debug = new URLSearchParams(location.search).has("debug")
 
-const seat = (uid: string, name: string, piece: number) => ({
-    uid,
+const seat = (playerId: string, name: string, piece: number) => ({
+    playerId,
     name,
     photoUrl: null,
     piece,
@@ -41,12 +41,12 @@ const fakeGame = (status: Game["status"], creator: string, players: ReturnType<t
         version: 1,
         state: {
             players: players.map((player, piece) => ({ ...player, piece })),
-            turnOrder: players.map((player) => player.uid),
-            currentPlayer: status === "RUNNING" ? players[0].uid : null,
+            turnOrder: players.map((player) => player.playerId),
+            currentPlayer: status === "RUNNING" ? players[0].playerId : null,
             settings: { loanLimit: "UNLIMITED", compulsorySaleMinimumBid: "HALF_NOMINAL_PRICE", shareholdersMeeting: "ALL_ASSETS_BOUGHT" },
             activeFinanceNews: null,
             finished: status === "FINISHED",
-            winner: status === "FINISHED" ? olli.uid : null,
+            winner: status === "FINISHED" ? olli.playerId : null,
             finalStandings: [],
             properties: [],
             shares: [],
@@ -57,23 +57,23 @@ const fakeGame = (status: Game["status"], creator: string, players: ReturnType<t
 
 let games: Game[] = [
     // Yours, waiting for players: Settings, Start, Leave
-    fakeGame("LOBBY", me.uid, [me, olli]),
+    fakeGame("LOBBY", me.playerId, [me, olli]),
     // Someone else's, not joined: Join
-    fakeGame("LOBBY", pekka.uid, [pekka]),
+    fakeGame("LOBBY", pekka.playerId, [pekka]),
     // Someone else's, joined: Leave
-    fakeGame("LOBBY", olli.uid, [olli, me, liisa]),
+    fakeGame("LOBBY", olli.playerId, [olli, me, liisa]),
     // Yours, running: Open game, End game
-    fakeGame("RUNNING", me.uid, [me, olli, pekka, liisa]),
+    fakeGame("RUNNING", me.playerId, [me, olli, pekka, liisa]),
     // Someone else's, running, you play in it: Open game
-    fakeGame("RUNNING", liisa.uid, [liisa, me]),
+    fakeGame("RUNNING", liisa.playerId, [liisa, me]),
     // Running without you: no controls
-    fakeGame("RUNNING", pekka.uid, [pekka, olli]),
+    fakeGame("RUNNING", pekka.playerId, [pekka, olli]),
     // Finished: Results
-    fakeGame("FINISHED", olli.uid, [olli, me]),
+    fakeGame("FINISHED", olli.playerId, [olli, me]),
     ...debug
         ? [
-            fakeGame("LOBBY", me.uid, [me, seat("seat-2", "Seat 2", 1)], "DEBUG"),
-            fakeGame("RUNNING", me.uid, [me, seat("seat-2", "Seat 2", 1), seat("seat-3", "Seat 3", 2)], "DEBUG"),
+            fakeGame("LOBBY", me.playerId, [me, seat("seat-2", "Seat 2", 1)], "DEBUG"),
+            fakeGame("RUNNING", me.playerId, [me, seat("seat-2", "Seat 2", 1), seat("seat-3", "Seat 3", 2)], "DEBUG"),
         ]
         : [],
 ]
@@ -104,13 +104,13 @@ globalThis.fetch = (input, init) => {
     if (path === "/api/me/capabilities") return json({ debugMode: debug })
     if (path === "/api/games" && method === "GET") return json(games)
     if (path === "/api/games" && method === "POST") {
-        const game = fakeGame("LOBBY", me.uid, [me])
+        const game = fakeGame("LOBBY", me.playerId, [me])
         games = [game, ...games]
         return json(game)
     }
     if (path === "/api/debug/games" && method === "POST") {
         const seats = Array.from({ length: Number(body?.playerCount ?? 2) }, (_, i) => i === 0 ? me : seat(`seat-${i + 1}`, `Seat ${i + 1}`, i))
-        const game = fakeGame("LOBBY", me.uid, seats, "DEBUG")
+        const game = fakeGame("LOBBY", me.playerId, seats, "DEBUG")
         games = [game, ...games]
         return json(game)
     }
@@ -127,13 +127,13 @@ globalThis.fetch = (input, init) => {
             update(id, (g) => ({ ...g, state: { ...g.state, players: [...g.state.players, { ...me, piece: g.state.players.length }] } }))
             return json(game)
         case "leave":
-            update(id, (g) => ({ ...g, state: { ...g.state, players: g.state.players.filter((player) => player.uid !== me.uid) } }))
+            update(id, (g) => ({ ...g, state: { ...g.state, players: g.state.players.filter((player) => player.playerId !== me.playerId) } }))
             return Promise.resolve(new Response(null, { status: 204 }))
         case "settings":
             update(id, (g) => ({ ...g, state: { ...g.state, settings: body } }))
             return json(game)
         case "start":
-            update(id, (g) => ({ ...g, status: "RUNNING", state: { ...g.state, currentPlayer: g.state.players[0].uid } }))
+            update(id, (g) => ({ ...g, status: "RUNNING", state: { ...g.state, currentPlayer: g.state.players[0].playerId } }))
             return json(game)
         case "commands":
             if (body?.type === "EndGame") {
@@ -148,7 +148,7 @@ globalThis.fetch = (input, init) => {
 const PreviewGames = () => {
     const { setUser } = useCurrentUser()
     useEffect(() => {
-        setUser({ uid: me.uid, displayName: me.name, photoURL: null, getIdToken: () => Promise.resolve("preview-token") } as unknown as FirebaseUser)
+        setUser({ uid: me.playerId, displayName: me.name, photoURL: null, getIdToken: () => Promise.resolve("preview-token") } as unknown as FirebaseUser)
     }, [setUser])
     return <Games />
 }

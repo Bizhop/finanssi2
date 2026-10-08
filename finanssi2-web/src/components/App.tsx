@@ -5,6 +5,7 @@ import FrontPage from "./FrontPage.tsx"
 import Header from "./Header.tsx"
 import Games from "./Games.tsx"
 import GameRoom from "./GameRoom.tsx"
+import AccountProfile from "./AccountProfile.tsx"
 import { GAME_BOARD_MAX_WIDTH, GAME_ROOM_MAX_WIDTH } from "./boardLayout.ts"
 import { useCurrentUser } from "./CurrentUserContext.tsx"
 
@@ -36,6 +37,14 @@ const MyRoutes = () => (
             element={
                 <AuthenticatedRoute>
                     <GameRoom />
+                </AuthenticatedRoute>
+            }
+        />
+        <Route
+            path="/account"
+            element={
+                <AuthenticatedRoute>
+                    <AccountProfile />
                 </AuthenticatedRoute>
             }
         />

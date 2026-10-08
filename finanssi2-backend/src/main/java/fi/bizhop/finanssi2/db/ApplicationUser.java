@@ -39,6 +39,7 @@ public class ApplicationUser {
     public String getProviderPhotoUrl() { return providerPhotoUrl; }
     public String getCustomAvatar() { return customAvatar; }
     public long getVersion() { return version; }
+    public void updateDisplayName(String displayName) { this.displayName = displayName; }
     public String effectiveAvatar() { return customAvatar != null ? customAvatar : providerPhotoUrl; }
     public void updateIdentity(String email, String providerPhotoUrl) { this.email = email; if (this.providerPhotoUrl == null) this.providerPhotoUrl = providerPhotoUrl; }
 }

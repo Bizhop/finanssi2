@@ -24,25 +24,25 @@ public class TestGame {
         return game;
     }
 
-    TestGame player(String uid, Consumer<PlayerState> change) {
-        change.accept(state.player(uid).orElseThrow());
+    TestGame player(String playerId, Consumer<PlayerState> change) {
+        change.accept(state.player(playerId).orElseThrow());
         return this;
     }
 
-    public TestGame at(String uid, int square) {
-        return player(uid, player -> player.setPosition(square));
+    public TestGame at(String playerId, int square) {
+        return player(playerId, player -> player.setPosition(square));
     }
 
-    public TestGame cash(String uid, int cash) {
-        return player(uid, player -> player.setCash(cash));
+    public TestGame cash(String playerId, int cash) {
+        return player(playerId, player -> player.setCash(cash));
     }
 
-    public TestGame car(String uid) {
-        return player(uid, player -> player.setCar(true));
+    public TestGame car(String playerId) {
+        return player(playerId, player -> player.setCar(true));
     }
 
-    public TestGame loans(String uid, int loans) {
-        return player(uid, player -> player.setLoans(loans));
+    public TestGame loans(String playerId, int loans) {
+        return player(playerId, player -> player.setLoans(loans));
     }
 
     /** Plays with the given rules; games default to the recommended ones, {@link GameSettings#ORIGINAL} is the printed rules */
@@ -56,24 +56,24 @@ public class TestGame {
         return this;
     }
 
-    public TestGame owns(String uid, Integer... squares) {
+    public TestGame owns(String playerId, Integer... squares) {
         for (var square : squares) {
-            state.property(square).setOwner(uid);
+            state.property(square).setOwner(playerId);
         }
         return this;
     }
 
-    public TestGame ownsShares(String uid, String... shares) {
+    public TestGame ownsShares(String playerId, String... shares) {
         for (var share : shares) {
-            state.share(share).setOwner(uid);
+            state.share(share).setOwner(playerId);
         }
         return this;
     }
 
     /** Owns all properties and shares of the group */
-    public TestGame ownsGroup(String uid, String group) {
-        owns(uid, EngineTests.GAME_DATA.group(group).properties().toArray(Integer[]::new));
-        EngineTests.GAME_DATA.sharesOf(group).forEach(share -> state.share(share.id()).setOwner(uid));
+    public TestGame ownsGroup(String playerId, String group) {
+        owns(playerId, EngineTests.GAME_DATA.group(group).properties().toArray(Integer[]::new));
+        EngineTests.GAME_DATA.sharesOf(group).forEach(share -> state.share(share.id()).setOwner(playerId));
         return this;
     }
 
@@ -97,21 +97,21 @@ public class TestGame {
     }
 
     /** In jail with the given turns still to skip */
-    public TestGame missedTurns(String uid, int turns) {
-        return player(uid, player -> { player.setMissedTurns(turns); player.setMissedTurnsInJail(true); });
+    public TestGame missedTurns(String playerId, int turns) {
+        return player(playerId, player -> { player.setMissedTurns(turns); player.setMissedTurnsInJail(true); });
     }
 
     /** Left jail and not on square 1 since */
-    public TestGame jailExemption(String uid) {
-        return player(uid, player -> player.setJailExemption(true));
+    public TestGame jailExemption(String playerId) {
+        return player(playerId, player -> player.setJailExemption(true));
     }
 
-    public TestGame out(String uid) {
-        return player(uid, player -> player.setOut(true));
+    public TestGame out(String playerId) {
+        return player(playerId, player -> player.setOut(true));
     }
 
-    public TestGame turn(String uid) {
-        state.setCurrentPlayer(uid);
+    public TestGame turn(String playerId) {
+        state.setCurrentPlayer(playerId);
         return this;
     }
 

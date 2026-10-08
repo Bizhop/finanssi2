@@ -9,7 +9,7 @@ export const validAuctionBid = (input: string, cash: number, minimum: number) =>
 }
 
 export const decisionLabels = (game: Game, board: GameBoardData | null) => {
-    const player = (uid: string) => game.state.players.find((item) => item.uid === uid)?.name ?? uid
+    const player = (playerId: string) => game.state.players.find((item) => item.playerId === playerId)?.name ?? playerId
     const property = (square: string) => board?.titleDeeds.find((item) => item.square === Number(square))?.name ?? `Property ${square}`
     const share = (id: string) => {
         const data = board?.shares.find((item) => item.id === id)

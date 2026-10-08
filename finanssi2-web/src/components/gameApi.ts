@@ -1,7 +1,7 @@
 import type { User } from "firebase/auth"
 
 export type GamePlayer = {
-    uid: string
+    playerId: string
     name: string
     photoUrl: string | null
     piece: number

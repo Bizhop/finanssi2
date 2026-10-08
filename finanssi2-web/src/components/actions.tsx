@@ -172,10 +172,10 @@ const PURCHASE_CERTIFICATES = ["PV-02", "PV-08"]
  * unless they hold a purchase certificate. Cash is deliberately not required, so the player sees everything for sale; the backend
  * checks it when they buy.
  */
-export const bankSalesOpen = (game: Game, uid: string | null, kind: "property" | "share") => {
+export const bankSalesOpen = (game: Game, playerId: string | null, kind: "property" | "share") => {
     const { state } = game
-    const player = state.players.find((item) => item.uid === uid)
-    if (!player || game.status !== "RUNNING" || state.currentPlayer !== uid || state.phase !== "BEFORE_ROLL") return false
+    const player = state.players.find((item) => item.playerId === playerId)
+    if (!player || game.status !== "RUNNING" || state.currentPlayer !== playerId || state.phase !== "BEFORE_ROLL") return false
     if (state.pendingDecisions.length > 0 || state.boughtThisTurn) return false
     if (player.position !== BRANCH_OFFICE_SQUARE && player.position < HEAD_OFFICE_FIRST_SQUARE) return false
     const stopped = state.activeFinanceNews === (kind === "property" ? "FL-21" : "FL-09")
@@ -203,10 +203,10 @@ export const takeoverSum = (game: Game, board: GameBoardData | null, group: stri
  * FL-15 stops meetings, when the player owns some of the group's properties and shares and other players own some. With the house
  * rule (the game's ALL_ASSETS_BOUGHT setting) every property and share of the group must also be bought from the bank. Cash isn't required here; the meeting dialog shows what the takeover costs.
  */
-export const meetingGroups = (game: Game, board: GameBoardData | null, uid: string | null) => {
+export const meetingGroups = (game: Game, board: GameBoardData | null, playerId: string | null) => {
     const { state } = game
-    const player = state.players.find((item) => item.uid === uid)
-    if (!player || !board || game.status !== "RUNNING" || state.currentPlayer !== uid || state.phase !== "BEFORE_ROLL") return []
+    const player = state.players.find((item) => item.playerId === playerId)
+    if (!player || !board || game.status !== "RUNNING" || state.currentPlayer !== playerId || state.phase !== "BEFORE_ROLL") return []
     if (state.pendingDecisions.length > 0 || player.position < HEAD_OFFICE_FIRST_SQUARE || state.activeFinanceNews === "FL-15") return []
     return board.groups.filter((group) => {
         const owners = [
@@ -214,8 +214,8 @@ export const meetingGroups = (game: Game, board: GameBoardData | null, uid: stri
             ...board.shares.filter((share) => share.group === group.id).map((share) => state.shares.find((item) => item.id === share.id)?.owner ?? null),
         ]
         const wholeGroupRequired = (state.settings.shareholdersMeeting ?? "ALL_ASSETS_BOUGHT") === "ALL_ASSETS_BOUGHT"
-        return (!wholeGroupRequired || owners.every((owner) => owner != null)) && owners.includes(player.uid) &&
-            owners.some((owner) => owner != null && owner !== player.uid)
+        return (!wholeGroupRequired || owners.every((owner) => owner != null)) && owners.includes(player.playerId) &&
+            owners.some((owner) => owner != null && owner !== player.playerId)
     }).map((group) => group.id)
 }
 

@@ -4,6 +4,7 @@ import { NavLink } from "react-router"
 import HomeIcon from "@mui/icons-material/Home"
 import LogoutIcon from "@mui/icons-material/Logout"
 import CasinoIcon from "@mui/icons-material/Casino"
+import AccountCircleIcon from "@mui/icons-material/AccountCircle"
 
 import { auth } from "./firebase.ts"
 import { useCurrentUser } from "./CurrentUserContext.tsx"
@@ -38,6 +39,7 @@ const Header = () => {
                     ? (
                         <>
                             <MyNavLink to="/games" label="Games" icon={<CasinoIcon />} />
+                            <MyNavLink to="/account" label="Account" icon={<AccountCircleIcon />} />
                             <Grid size={1} offset="auto">
                                 <Tooltip title="Log out">
                                     <IconButton onClick={logout} color="error">

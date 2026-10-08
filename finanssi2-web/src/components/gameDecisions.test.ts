@@ -3,7 +3,7 @@ import { decisionLabels, newsDestination, nextAuctionBid, propertySaleProceeds, 
 
 const game = {
     state: {
-        players: [{ uid: "olli", name: "Olli Other" }],
+        players: [{ playerId: "olli", name: "Olli Other" }],
         properties: [{ square: 19, built: true, mortgaged: false }],
     },
 } as unknown as Game

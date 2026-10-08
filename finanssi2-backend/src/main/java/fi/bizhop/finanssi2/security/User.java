@@ -2,7 +2,7 @@ package fi.bizhop.finanssi2.security;
 
 import com.google.firebase.auth.FirebaseToken;
 
-public record User(String uid, String email, String name, String photoUrl, boolean emailVerified, String firebaseUid) {
+public record User(String userId, String email, String name, String photoUrl, boolean emailVerified, String firebaseUid) {
     public User(String uid, String email, String name, String photoUrl, boolean emailVerified) {
         this(uid, email, name, photoUrl, emailVerified, uid);
     }

@@ -196,7 +196,7 @@ export const GameBoard = (
                 .map((square) => {
                     const property = propertyBySquare.get(square.square)
                     const tokens = game.state.players.filter((player) => !player.out && player.position === square.square)
-                    const owner = game.state.players.find((player) => player.uid === property?.owner)
+                    const owner = game.state.players.find((player) => player.playerId === property?.owner)
                     const canSelect = onSelectSquare != null && selectable.includes(square.square)
                     const forSale = onBuy != null && purchasable.includes(square.square)
                     return (
@@ -267,7 +267,7 @@ export const GameBoard = (
                                         <AddHome />
                                     </IconButton>
                                 )}
-                                {tokens.map((player) => <PlayerToken key={player.uid} player={player} size="max(14px, 1.6cqw)" />)}
+                                {tokens.map((player) => <PlayerToken key={player.playerId} player={player} size="max(14px, 1.6cqw)" />)}
                             </Box>
                         </Tooltip>
                     )

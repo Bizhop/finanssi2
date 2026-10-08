@@ -71,7 +71,7 @@ public class GameState {
         this.finalStandings = List.copyOf(standings);
     }
 
-    public Optional<PlayerState> player(String uid) {
-        return players.stream().filter(player -> player.getUid().equals(uid)).findFirst();
+    public Optional<PlayerState> player(String playerId) {
+        return players.stream().filter(player -> player.getPlayerId().equals(playerId)).findFirst();
     }
 }

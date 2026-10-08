@@ -12,7 +12,7 @@ import { gameApi, GameApiError } from "./gameApi.ts"
 
 const ChatMessageSchema = z.object({
     id: z.string(),
-    username: z.string(),
+    userId: z.string(),
     // Missing from messages saved before the backend stored it
     name: z.nullish(z.string()),
     message: z.string(),
@@ -269,7 +269,7 @@ const ChatLine = ({ message, compact }: ChatLineProps) => {
         <>
             <ListItem>
                 <ListItemAvatar>
-                    <Tooltip title={message.username} placement="left">
+                    <Tooltip title={message.userId} placement="left">
                         <Avatar src={message.photoUrl ?? undefined} sx={compact ? { width: 30, height: 30 } : undefined} />
                     </Tooltip>
                 </ListItemAvatar>
@@ -294,7 +294,7 @@ const ChatLine = ({ message, compact }: ChatLineProps) => {
 }
 
 // First word of the display name, or the email's local part when there's no name
-const senderFirstName = (message: TChatMessage) => message.name?.trim().split(/\s+/)[0] || message.username.split("@")[0]
+const senderFirstName = (message: TChatMessage) => message.name?.trim().split(/\s+/)[0] || "Player"
 
 const formatDate = (timestamp: number) => {
     const date = new Date(timestamp)

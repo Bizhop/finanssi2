@@ -19,8 +19,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ConstructionTest {
-    static PlayerState player(GameState state, String uid) {
-        return state.player(uid).orElseThrow();
+    static PlayerState player(GameState state, String playerId) {
+        return state.player(playerId).orElseThrow();
     }
 
     @Test

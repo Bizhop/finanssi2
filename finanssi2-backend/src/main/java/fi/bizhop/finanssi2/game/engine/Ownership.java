@@ -18,56 +18,56 @@ public class Ownership {
         this.state = state;
     }
 
-    public List<PropertyState> propertiesOf(String uid) {
-        return state.getProperties().stream().filter(property -> uid.equals(property.getOwner())).toList();
+    public List<PropertyState> propertiesOf(String playerId) {
+        return state.getProperties().stream().filter(property -> playerId.equals(property.getOwner())).toList();
     }
 
-    public List<Share> sharesOf(String uid) {
+    public List<Share> sharesOf(String playerId) {
         return state.getShares().stream()
-                .filter(share -> uid.equals(share.getOwner()))
+                .filter(share -> playerId.equals(share.getOwner()))
                 .map(share -> gameData.share(share.getId()))
                 .toList();
     }
 
     /** Groups in which the player owns at least one property; Pysäköintitalo is in no group */
-    public Set<String> groupsWithPropertiesOf(String uid) {
-        return propertiesOf(uid).stream()
+    public Set<String> groupsWithPropertiesOf(String playerId) {
+        return propertiesOf(playerId).stream()
                 .map(property -> gameData.titleDeed(property.getSquare()).group())
                 .filter(Objects::nonNull)
                 .collect(Collectors.toUnmodifiableSet());
     }
 
     /** All properties and all shares of the group. Fund shares belong to no group, so never make one complete. */
-    public boolean ownsCompleteGroup(String uid, String group) {
+    public boolean ownsCompleteGroup(String playerId, String group) {
         if (group == null) {
             return false;
         }
-        var properties = gameData.group(group).properties().stream().allMatch(square -> uid.equals(state.property(square).getOwner()));
-        var shares = gameData.sharesOf(group).stream().allMatch(share -> uid.equals(state.share(share.id()).getOwner()));
+        var properties = gameData.group(group).properties().stream().allMatch(square -> playerId.equals(state.property(square).getOwner()));
+        var shares = gameData.sharesOf(group).stream().allMatch(share -> playerId.equals(state.share(share.id()).getOwner()));
         return properties && shares;
     }
 
     /** The player's industrial plants (squares 26, 27, 29, 30, 32, 33) */
-    public long plantCount(String uid) {
-        return builtPropertiesOf(uid).stream().filter(property -> gameData.titleDeed(property.getSquare()).building().industrial()).count();
+    public long plantCount(String playerId) {
+        return builtPropertiesOf(playerId).stream().filter(property -> gameData.titleDeed(property.getSquare()).building().industrial()).count();
     }
 
     /** The player's buildings other than industrial plants */
-    public long otherBuildingCount(String uid) {
-        return builtPropertiesOf(uid).size() - plantCount(uid);
+    public long otherBuildingCount(String playerId) {
+        return builtPropertiesOf(playerId).size() - plantCount(playerId);
     }
 
-    List<PropertyState> builtPropertiesOf(String uid) {
-        return propertiesOf(uid).stream().filter(PropertyState::isBuilt).toList();
+    List<PropertyState> builtPropertiesOf(String playerId) {
+        return propertiesOf(playerId).stream().filter(PropertyState::isBuilt).toList();
     }
 
     /** Sum of the prices of the player's shares */
-    public int shareCapital(String uid) {
-        return sharesOf(uid).stream().mapToInt(Share::value).sum();
+    public int shareCapital(String playerId) {
+        return sharesOf(playerId).stream().mapToInt(Share::value).sum();
     }
 
     /** Share capital without the shares of the complete groups the player owns; fund shares count */
-    public int shareCapitalOutsideCompleteGroups(String uid) {
-        return sharesOf(uid).stream().filter(share -> !ownsCompleteGroup(uid, share.group())).mapToInt(Share::value).sum();
+    public int shareCapitalOutsideCompleteGroups(String playerId) {
+        return sharesOf(playerId).stream().filter(share -> !ownsCompleteGroup(playerId, share.group())).mapToInt(Share::value).sum();
     }
 }

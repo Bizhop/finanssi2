@@ -41,9 +41,9 @@ public class ChatService {
     /** Saves the message and broadcasts it to the chat topic */
     public ChatMessage postMessage(User author, String message) {
         validateMessage(message);
-        var newMessage = new ChatMessage(null, author.email(), author.name(), message, System.currentTimeMillis(), author.photoUrl());
+        var newMessage = new ChatMessage(null, author.userId(), author.name(), message, System.currentTimeMillis(), author.photoUrl());
         // Broadcast the saved message so clients get its id
-        var savedMessage = chatRepository.save(newMessage);
+        var savedMessage = chatRepository.save(newMessage, null, UUID.fromString(author.userId()));
 
         messagingService.send(CHAT_TOPIC, savedMessage);
         return savedMessage;
@@ -61,11 +61,11 @@ public class ChatService {
         var game = gameRepository.findByIdForUpdate(gameId).orElseThrow(() -> new GameNotFoundException(gameId));
         debugAccess.requireRead(game, author);
         if (game.getMode() == fi.bizhop.finanssi2.game.db.GameMode.NORMAL
-                && game.getState().player(author.uid()).isEmpty()) {
+                && game.getState().player(author.userId()).isEmpty()) {
             throw new NotAllowedException("Join the game before sending messages");
         }
-        var saved = chatRepository.save(new ChatMessage(null, author.email(), author.name(), message,
-                System.currentTimeMillis(), author.photoUrl()), UUID.fromString(gameId));
+        var saved = chatRepository.save(new ChatMessage(null, author.userId(), author.name(), message,
+                System.currentTimeMillis(), author.photoUrl()), UUID.fromString(gameId), UUID.fromString(author.userId()));
         var topic = "/topic/games/" + gameId + "/chat";
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override public void afterCommit() { messagingService.send(topic, saved); }

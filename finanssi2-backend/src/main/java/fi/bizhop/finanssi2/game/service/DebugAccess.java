@@ -35,7 +35,7 @@ public class DebugAccess {
 
     public void requireOwner(Game game, User user) {
         require(user);
-        if (game.getMode() != GameMode.DEBUG || !game.getCreator().equals(user.uid())) {
+        if (game.getMode() != GameMode.DEBUG || !game.getCreator().equals(user.userId())) {
             throw new NotAllowedException("Only the debug game owner can access this game");
         }
     }

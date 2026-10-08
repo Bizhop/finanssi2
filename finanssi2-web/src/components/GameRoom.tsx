@@ -204,12 +204,12 @@ const GameRoomContent = () => {
     const { game, allowedCommands } = view
     const identityId = profile?.id ?? ""
     const actingUid = game.mode === "DEBUG" ? view.actingPlayer : identityId
-    const actingPlayer = game.state.players.find((player) => player.uid === actingUid)
+    const actingPlayer = game.state.players.find((player) => player.playerId === actingUid)
     const pending = game.state.pendingDecisions[0]
     const decisionActor = pending?.player === actingUid
     // Whoever the game is waiting for: the player of a pending decision, otherwise the player in turn
     const expectedUid = pending?.player ?? game.state.currentPlayer
-    const playerName = (uid: string) => game.state.players.find((player) => player.uid === uid)?.name ?? "a former player"
+    const playerName = (playerId: string) => game.state.players.find((player) => player.playerId === playerId)?.name ?? "a former player"
     // Only a Stock Tip drawn during the current turn stays face up on the board
     const turnStockTip = events.slice(events.findLastIndex((entry) => entry.type === "TurnStarted") + 1).findLast((entry) => entry.type === "StockTipDrawn")
     const deedOf = (square: number) => board?.titleDeeds.find((deed) => deed.square === square)
@@ -288,7 +288,7 @@ const GameRoomContent = () => {
                     embedded
                     compact
                     expanded={expanded}
-                    canSend={game.mode === "DEBUG" ? game.creator === identityId : game.state.players.some((player) => player.uid === identityId)}
+                    canSend={game.mode === "DEBUG" ? game.creator === identityId : game.state.players.some((player) => player.playerId === identityId)}
                 />
             ),
         },
@@ -428,26 +428,26 @@ const GameRoomContent = () => {
                     >
                         {game.state.players.map((player) => (
                             <PlayerPanel
-                                key={player.uid}
+                                key={player.playerId}
                                 player={player}
                                 game={game}
                                 board={board}
-                                you={player.uid === identityId}
-                                inTurn={game.status === "RUNNING" && player.uid === game.state.currentPlayer}
-                                expected={game.status !== "RUNNING" || expectedUid !== player.uid
+                                you={player.playerId === identityId}
+                                inTurn={game.status === "RUNNING" && player.playerId === game.state.currentPlayer}
+                                expected={game.status !== "RUNNING" || expectedUid !== player.playerId
                                     ? null
                                     : pending
-                                    ? player.uid === actingUid ? "Your decision" : "Deciding"
-                                    : player.uid === actingUid
+                                    ? player.playerId === actingUid ? "Your decision" : "Deciding"
+                                    : player.playerId === actingUid
                                     ? "Your move"
                                     : "To move"}
-                                controls={game.status === "RUNNING" && player.uid === actingUid ? controls : undefined}
+                                controls={game.status === "RUNNING" && player.playerId === actingUid ? controls : undefined}
                             />
                         ))}
                         {game.state.finished && (
                             <Alert severity="success">
                                 {game.state.winner
-                                    ? `${game.state.players.find((p) => p.uid === game.state.winner)?.name} wins.`
+                                    ? `${game.state.players.find((p) => p.playerId === game.state.winner)?.name} wins.`
                                     : "The game was closed without a winner."}
                             </Alert>
                         )}
@@ -463,7 +463,7 @@ const GameRoomContent = () => {
                     <Typography variant="h6">Final standings</Typography>
                     {[...game.state.finalStandings].sort((a, b) => b.netWorth - a.netWorth).map((standing, index) => (
                         <Typography key={standing.player}>
-                            {index + 1}. {game.state.players.find((p) => p.uid === standing.player)?.name ?? standing.player}{" "}
+                            {index + 1}. {game.state.players.find((p) => p.playerId === standing.player)?.name ?? standing.player}{" "}
                             — €{standing.netWorth.toLocaleString()} net worth (€{standing.cash.toLocaleString()} cash)
                         </Typography>
                     ))}

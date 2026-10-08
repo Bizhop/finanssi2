@@ -35,6 +35,6 @@ public class FirebaseAuthenticationToken extends AbstractAuthenticationToken {
 
     @Override
     public String getName() {
-        return resolvedUser.uid();
+        return resolvedUser.userId();
     }
 }

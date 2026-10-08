@@ -9,8 +9,8 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 public class PlayerState {
-    // Firebase uid
-    String uid;
+    // Firebase playerId
+    String playerId;
     // Name and photo copied from the user when joining
     String name;
     String photoUrl;
@@ -34,8 +34,8 @@ public class PlayerState {
     // Held Stock Tip card ids, in acquisition order.
     List<String> heldStockTips = new ArrayList<>();
 
-    public PlayerState(String uid, String name, String photoUrl, int piece) {
-        this.uid = uid;
+    public PlayerState(String playerId, String name, String photoUrl, int piece) {
+        this.playerId = playerId;
         this.name = name;
         this.photoUrl = photoUrl;
         this.piece = piece;

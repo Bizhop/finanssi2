@@ -273,9 +273,9 @@ class BondsTest {
         assertEquals(5_000, draws(events).getFirst().prize());
     }
 
-    static List<GameEvent> handle(GameState state, String uid, GameCommand command, Integer... values) {
+    static List<GameEvent> handle(GameState state, String playerId, GameCommand command, Integer... values) {
         var dice = new ScriptedDice(values);
-        var events = ENGINE.handle(state, uid, command, dice);
+        var events = ENGINE.handle(state, playerId, command, dice);
         assertTrue(dice.isEmpty(), "dice left over");
         return events;
     }

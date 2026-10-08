@@ -202,7 +202,7 @@ const Games = () => {
                 : (
                     <Stack spacing={1.5}>
                         {games.filter((game) => game.mode !== "DEBUG" || debugMode).map((game) => {
-                            const member = game.state.players.some((player) => player.uid === profile?.id)
+                            const member = game.state.players.some((player) => player.playerId === profile?.id)
                             const creator = game.creator === profile?.id
                             return (
                                 <Card key={game.id} variant="outlined">
@@ -215,14 +215,14 @@ const Games = () => {
                                                     {creator
                                                         ? " · You are the creator"
                                                         : ` · Created by ${
-                                                            game.state.players.find((player) => player.uid === game.creator)?.name ?? "another player"
+                                                            game.state.players.find((player) => player.playerId === game.creator)?.name ?? "another player"
                                                         }`}
                                                 </Typography>
                                             </Box>
                                             <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
                                                 {game.state.players.map((player) => (
                                                     <Avatar
-                                                        key={player.uid}
+                                                        key={player.playerId}
                                                         src={player.photoUrl ?? undefined}
                                                         alt={player.name}
                                                         sx={{ width: 32, height: 32 }}

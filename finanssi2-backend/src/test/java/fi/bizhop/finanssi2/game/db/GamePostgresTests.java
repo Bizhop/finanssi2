@@ -2,6 +2,8 @@ package fi.bizhop.finanssi2.game.db;
 
 import fi.bizhop.finanssi2.db.ChatMessage;
 import fi.bizhop.finanssi2.db.ChatRepository;
+import fi.bizhop.finanssi2.db.ApplicationUser;
+import fi.bizhop.finanssi2.db.ApplicationUserRepository;
 import fi.bizhop.finanssi2.game.engine.BondContinuation;
 import fi.bizhop.finanssi2.game.engine.Charge;
 import fi.bizhop.finanssi2.game.engine.GameCommand;
@@ -52,6 +54,8 @@ abstract class GamePostgresTests {
     @Autowired
     ChatRepository chatRepository;
     @Autowired
+    ApplicationUserRepository applicationUserRepository;
+    @Autowired
     ChatService chatService;
     @Autowired
     ObjectMapper objectMapper;
@@ -70,19 +74,23 @@ abstract class GamePostgresTests {
         }
     }
 
-    static User user(String uid) {
-        return new User("it-" + uid, uid + "@example.com", "Player " + uid, null);
+    User user(String playerId) {
+        var firebaseUid = "it-" + playerId;
+        var email = playerId + "@example.com";
+        var profile = applicationUserRepository.findByFirebaseUid(firebaseUid)
+                .orElseGet(() -> applicationUserRepository.saveAndFlush(new ApplicationUser(firebaseUid, email, "Player " + playerId, null)));
+        return new User(profile.getId().toString(), email, profile.getDisplayName(), null, true, firebaseUid);
     }
 
-    Game create(String uid) {
-        var game = gameService.create(user(uid));
+    Game create(String playerId) {
+        var game = gameService.create(user(playerId));
         createdGames.add(game.getId());
         return game;
     }
 
     @Test
     void debugOwnerResolvesAllAuctionBidsAndGrandDrawOffers() {
-        var owner = new User("debug-owner", "owner@example.com", "Owner", null, true);
+        var owner = user("owner");
         var game = gameService.createDebug(owner, 3, GameSettings.DEFAULT);
         var id = game.getId();
         createdGames.add(id);
@@ -112,9 +120,9 @@ abstract class GamePostgresTests {
         }
         game = gameService.get(id);
         assertTrue(game.getState().getPendingDecisions().isEmpty());
-        var seller = game.getState().getPlayers().get(2).getUid();
-        var order = game.getState().getPlayers().stream().map(fi.bizhop.finanssi2.game.engine.PlayerState::getUid)
-                .filter(uid -> !uid.equals(seller)).toList();
+        var seller = game.getState().getPlayers().get(2).getPlayerId();
+        var order = game.getState().getPlayers().stream().map(fi.bizhop.finanssi2.game.engine.PlayerState::getPlayerId)
+                .filter(playerId -> !playerId.equals(seller)).toList();
         var share = game.getState().getShares().getFirst();
         share.setOwner(seller);
         game.getState().getPendingDecisions().add(new PendingDecision.AssetAuction(seller, "S:" + share.getId(), 0,
@@ -127,12 +135,12 @@ abstract class GamePostgresTests {
         }
         game = gameService.get(id);
         assertTrue(game.getState().getPendingDecisions().isEmpty());
-        assertEquals(owner.uid(), game.getState().share(share.getId()).getOwner());
+        assertEquals(owner.userId(), game.getState().share(share.getId()).getOwner());
     }
 
     @Test
     void debugCardSelectionPreservesDeckAndDrawsThroughGameplay() {
-        var owner = new User("debug-owner", "owner@example.com", "Owner", null, true);
+        var owner = user("owner");
         var game = gameService.createDebug(owner, 2, GameSettings.DEFAULT);
         var id = game.getId();
         createdGames.add(id);
@@ -148,7 +156,7 @@ abstract class GamePostgresTests {
         assertEquals(before, selected.getState().getFinanceNewsDeck().subList(1, 21));
         assertInstanceOf(GameEvent.DebugDeckChanged.class,
                 gameService.events(id, selected.getLastEventSeq() - 1, owner).getFirst().event());
-        var rolls = gameService.debugCommand(id, owner, owner.uid(), selected.getVersion(), new GameCommand.Roll(), List.of(1));
+        var rolls = gameService.debugCommand(id, owner, owner.userId(), selected.getVersion(), new GameCommand.Roll(), List.of(1));
         assertTrue(rolls.stream().anyMatch(e -> e.event() instanceof GameEvent.FinanceNewsDrawn drawn && drawn.card().equals("FL-05")));
         assertEquals(21, gameService.get(id).getState().getFinanceNewsDeck().stream().distinct().count());
         var version = selected.getVersion();
@@ -158,7 +166,7 @@ abstract class GamePostgresTests {
 
     @Test
     void debugCardSelectionRejectsHeldCardsPendingDecisionsAndFinishedGames() {
-        var owner = new User("debug-owner", "owner@example.com", "Owner", null, true);
+        var owner = user("owner");
         var game = gameService.createDebug(owner, 2, GameSettings.DEFAULT);
         var id = game.getId();
         createdGames.add(id);
@@ -173,7 +181,7 @@ abstract class GamePostgresTests {
             assertThrows(fi.bizhop.finanssi2.game.engine.RuleViolation.class,
                     () -> gameService.nextCard(id, owner, choice.getFirst(), choice.getLast(), version));
         }
-        game.getState().getPendingDecisions().add(new PendingDecision.BondOffer(owner.uid(), BondContinuation.NONE));
+        game.getState().getPendingDecisions().add(new PendingDecision.BondOffer(owner.userId(), BondContinuation.NONE));
         game = gameRepository.save(game);
         var pendingVersion = game.getVersion();
         assertThrows(fi.bizhop.finanssi2.game.engine.RuleViolation.class,
@@ -188,21 +196,21 @@ abstract class GamePostgresTests {
 
     @Test
     void debugCommandsControlDecisionsAndSurviveOwnerElimination() {
-        var owner = new User("debug-owner", "owner@example.com", "Owner", null, true);
+        var owner = user("owner");
         var game = gameService.createDebug(owner, 3, GameSettings.DEFAULT);
         var id = game.getId();
         createdGames.add(id);
         when(diceSource.forGame(any())).thenReturn(new ScriptedDice(6, 6, 2, 2, 1, 1));
         game = gameService.start(id, owner);
-        var seat = game.getState().getPlayers().get(1).getUid();
-        game.getState().getPendingDecisions().add(new PendingDecision.RaiseFunds(seat, owner.uid(),
+        var seat = game.getState().getPlayers().get(1).getPlayerId();
+        game.getState().getPendingDecisions().add(new PendingDecision.RaiseFunds(seat, owner.userId(),
                 List.of(new Charge(500, MoneyReason.RENT))));
         game = gameRepository.save(game);
         var version = game.getVersion();
         var seq = game.getLastEventSeq();
         assertTrue(gameService.allowedCommands(game, owner).contains("Pay"));
         assertThrows(fi.bizhop.finanssi2.game.engine.RuleViolation.class,
-                () -> gameService.debugCommand(id, owner, owner.uid(), version, new GameCommand.Pay(), List.of(6)));
+                () -> gameService.debugCommand(id, owner, owner.userId(), version, new GameCommand.Pay(), List.of(6)));
         assertThrows(fi.bizhop.finanssi2.game.engine.RuleViolation.class,
                 () -> gameService.debugCommand(id, owner, seat, version - 1, new GameCommand.Pay(), null));
         assertEquals(seq, gameService.get(id).getLastEventSeq());
@@ -210,7 +218,7 @@ abstract class GamePostgresTests {
         game = gameService.get(id);
         gameService.debugCommand(id, owner, game.getState().actor(), game.getVersion(), new GameCommand.Resign(), null);
         game = gameService.get(id);
-        assertTrue(game.getState().player(owner.uid()).orElseThrow().isOut());
+        assertTrue(game.getState().player(owner.userId()).orElseThrow().isOut());
         assertEquals(seat, game.getState().actor());
         assertTrue(gameService.allowedCommands(game, owner).contains("Roll"));
         gameService.debugCommand(id, owner, seat, game.getVersion(), new GameCommand.Roll(), List.of(1));
@@ -222,7 +230,7 @@ abstract class GamePostgresTests {
 
     @Test
     void debugDiceAreDiscardedBetweenCommandsAndOnRejection() {
-        var owner = new User("debug-owner", "owner@example.com", "Owner", null, true);
+        var owner = user("owner");
         var game = gameService.createDebug(owner, 2, GameSettings.DEFAULT);
         var id = game.getId();
         createdGames.add(id);
@@ -230,9 +238,9 @@ abstract class GamePostgresTests {
         game = gameService.start(id, owner);
         var version = game.getVersion();
         assertThrows(fi.bizhop.finanssi2.game.engine.RuleViolation.class,
-                () -> gameService.debugCommand(id, owner, owner.uid(), version, new GameCommand.EndTurn(), List.of(6)));
+                () -> gameService.debugCommand(id, owner, owner.userId(), version, new GameCommand.EndTurn(), List.of(6)));
         when(diceSource.forGame(any())).thenReturn(new ScriptedDice(2));
-        gameService.debugCommand(id, owner, owner.uid(), version, new GameCommand.Roll(), List.of(1, 6));
+        gameService.debugCommand(id, owner, owner.userId(), version, new GameCommand.Roll(), List.of(1, 6));
         game = gameService.get(id);
         assertEquals(21, game.getState().current().getPosition());
         gameService.debugCommand(id, owner, game.getState().actor(), game.getVersion(), new GameCommand.EndTurn(), null);
@@ -245,13 +253,13 @@ abstract class GamePostgresTests {
 
     @Test
     void debugLifecycleIsPrivateAndDeletesHistory() {
-        var owner = new User("debug-owner", "owner@example.com", "Owner", null, true);
-        var other = new User("debug-other", "other@example.com", "Other", null, true);
+        var owner = user("owner");
+        var other = user("other");
         var game = gameService.createDebug(owner, 6, GameSettings.DEFAULT);
         createdGames.add(game.getId());
         assertEquals(GameMode.DEBUG, game.getMode());
         assertEquals(6, game.getState().getPlayers().size());
-        assertEquals("debug:" + game.getId() + ":seat:2", game.getState().getPlayers().get(1).getUid());
+        assertEquals("debug:" + game.getId() + ":seat:2", game.getState().getPlayers().get(1).getPlayerId());
         assertTrue(gameService.list(owner).stream().anyMatch(g -> g.getId().equals(game.getId())));
         assertFalse(gameService.list(other).stream().anyMatch(g -> g.getId().equals(game.getId())));
         assertThrows(fi.bizhop.finanssi2.game.service.NotAllowedException.class, () -> gameService.get(game.getId(), other));
@@ -272,7 +280,7 @@ abstract class GamePostgresTests {
     void gameChatIsRoomScopedAndCascadesOnGameDeletion() {
         var player = user("chat-room");
         var game = create("chat-room");
-        var global = chatRepository.save(new ChatMessage(null, player.email(), player.name(), "global", 1000, null));
+        var global = chatRepository.save(new ChatMessage(null, player.userId(), player.name(), "global", 1000, null), null, UUID.fromString(player.userId()));
         var inGame = chatService.postGameMessage(game.getId(), player, "game message");
         var other = create("other-room");
         var otherMessage = chatService.postGameMessage(other.getId(), user("other-room"), "other game message");
@@ -300,17 +308,17 @@ abstract class GamePostgresTests {
         assertThrows(fi.bizhop.finanssi2.game.service.NotAllowedException.class,
                 () -> chatService.postGameMessage(normal.getId(), viewer, "viewer post"));
         var seated = chatService.postGameMessage(normal.getId(), player, "seated post");
-        assertEquals(player.email(), seated.username());
+        assertEquals(player.userId(), seated.userId());
         assertEquals(player.name(), seated.name());
         assertThrows(IllegalArgumentException.class, () -> chatService.postGameMessage(normal.getId(), player, "   "));
         assertThrows(IllegalArgumentException.class, () -> chatService.postGameMessage(normal.getId(), player, "x".repeat(101)));
 
-        var owner = new User("debug-owner", "owner@example.com", "Owner", null, true);
-        var other = new User("debug-other", "other@example.com", "Other", null, true);
+        var owner = user("owner");
+        var other = user("other");
         var debug = gameService.createDebug(owner, 2, GameSettings.DEFAULT);
         createdGames.add(debug.getId());
         var debugMessage = chatService.postGameMessage(debug.getId(), owner, "owner post");
-        assertEquals(owner.email(), debugMessage.username());
+        assertEquals(owner.userId(), debugMessage.userId());
         assertEquals(owner.name(), debugMessage.name());
         assertThrows(fi.bizhop.finanssi2.game.service.NotAllowedException.class,
                 () -> chatService.getGameMessages(debug.getId(), null, 20, other));
@@ -438,8 +446,9 @@ abstract class GamePostgresTests {
 
     @Test
     void testChatRecordGetsGeneratedIdAndRoundTrips() {
-        var message = new ChatMessage(null, "test@example.com", null, "Hello", 1000, null);
-        var saved = chatRepository.save(message);
+        var sender = user("test");
+        var message = new ChatMessage(null, sender.userId(), null, "Hello", 1000, null);
+        var saved = chatRepository.save(message, null, UUID.fromString(sender.userId()));
         assertNotNull(saved.id());
         try {
             assertEquals(message.withId(saved.id()), chatRepository.findById(saved.id()).orElseThrow());

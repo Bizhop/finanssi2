@@ -33,7 +33,7 @@ public class Rules {
     public int movementDice(GameState state, PlayerState player) {
         if ("FL-06".equals(state.getActiveFinanceNews())) return 2;
         if ("FL-17".equals(state.getActiveFinanceNews()) && player.isCar()
-                && !ownsProperty(state, player.getUid(), 27)) return 1;
+                && !ownsProperty(state, player.getPlayerId(), 27)) return 1;
         return player.isCar() && player.getPosition() < BANK_FIRST_SQUARE ? 2 : 1;
     }
 
@@ -186,5 +186,5 @@ public class Rules {
     }
     private boolean isIndustrial(int square) { return List.of(26, 27, 29, 30, 32, 33).contains(square); }
     private boolean isBuiltProperty(GameState state, int square) { return state.getProperties().stream().anyMatch(p -> p.getSquare() == square && p.isBuilt()); }
-    private boolean ownsProperty(GameState state, String uid, int square) { return state.getProperties().stream().anyMatch(p -> p.getSquare() == square && uid.equals(p.getOwner())); }
+    private boolean ownsProperty(GameState state, String playerId, int square) { return state.getProperties().stream().anyMatch(p -> p.getSquare() == square && playerId.equals(p.getOwner())); }
 }

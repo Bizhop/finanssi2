@@ -7,7 +7,7 @@ const board = {
     financeNews: [],
     stockTips: [{ id: "PV-03", type: "PORSSIVIHJE", chapters: [{ type: "header", text: "Rahasto-osakeanti", "font-style": null }] }],
 } as unknown as GameBoardData
-const context = { playerName: (uid: string) => ({ a: "Alice", b: "Bob" }[uid] ?? uid), board }
+const context = { playerName: (playerId: string) => ({ a: "Alice", b: "Bob" }[playerId] ?? playerId), board }
 const entry = (type: string, event: Record<string, unknown>): GameLogEntry => ({ id: "g:1", seq: 1, time: 0, type, event: { type, ...event } })
 const expect = (actual: string, expected: string) => {
     if (actual !== expected) throw new Error(`Expected "${expected}", got "${actual}"`)
