@@ -88,7 +88,7 @@ export async function gameApi<T>(user: User, path: string, init: RequestInit = {
         ...init,
         headers: {
             Authorization: `Bearer ${token}`,
-            ...(init.body ? { "Content-Type": "application/json" } : {}),
+            ...(init.body && !(typeof FormData !== "undefined" && init.body instanceof FormData) ? { "Content-Type": "application/json" } : {}),
             ...init.headers,
         },
     })

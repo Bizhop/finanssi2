@@ -270,7 +270,9 @@ const ChatLine = ({ message, compact }: ChatLineProps) => {
             <ListItem>
                 <ListItemAvatar>
                     <Tooltip title={message.userId} placement="left">
-                        <Avatar src={message.photoUrl ?? undefined} sx={compact ? { width: 30, height: 30 } : undefined} />
+                        <Avatar src={message.photoUrl ?? undefined} alt={message.name ?? "Player"} sx={compact ? { width: 30, height: 30 } : undefined}>
+                            {(message.name ?? "?").slice(0, 1).toUpperCase()}
+                        </Avatar>
                     </Tooltip>
                 </ListItemAvatar>
                 <ListItemText

@@ -5,17 +5,20 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
 
 import java.io.IOException;
 
-@RequiredArgsConstructor
 public class FirebaseTokenFilter extends AbstractPreAuthenticatedProcessingFilter {
     final FirebaseTokenVerifier tokenVerifier;
     final AuthenticatedUserService authenticatedUserService;
+
+    public FirebaseTokenFilter(FirebaseTokenVerifier tokenVerifier, AuthenticatedUserService authenticatedUserService) {
+        this.tokenVerifier = tokenVerifier;
+        this.authenticatedUserService = authenticatedUserService;
+    }
 
     @Override
     protected Object getPreAuthenticatedPrincipal(@NonNull HttpServletRequest request) {
