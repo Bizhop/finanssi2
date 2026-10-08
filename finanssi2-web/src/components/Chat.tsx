@@ -8,16 +8,14 @@ import SendIcon from "@mui/icons-material/Send"
 
 import { InputField } from "./FormInput.tsx"
 import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
-import { gameApi, GameApiError } from "./gameApi.ts"
+import { avatarSrc, gameApi, GameApiError } from "./gameApi.ts"
+import { PublicProfile, usePublicProfiles } from "./CurrentUserContext.tsx"
 
 const ChatMessageSchema = z.object({
     id: z.string(),
-    username: z.string(),
-    // Missing from messages saved before the backend stored it
-    name: z.nullish(z.string()),
+    userId: z.string(),
     message: z.string(),
     timestamp: z.number(),
-    photoUrl: z.nullish(z.string()),
 })
 
 const ChatMessageSchemaArray = z.array(ChatMessageSchema)
@@ -52,6 +50,7 @@ const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true,
     // Newest first, like the backend returns them. The list is rendered with column-reverse, which shows them oldest at the top
     // and keeps the view anchored to the bottom (newest message) without any scrolling code.
     const [messages, setMessages] = useState<TChatMessage[]>([])
+    const profiles = usePublicProfiles(messages.map((message) => message.userId))
     const [hasOlderMessages, setHasOlderMessages] = useState(true)
     const [loadingOlder, setLoadingOlder] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -201,7 +200,7 @@ const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true,
                         }),
                     }}
                 >
-                    {messages.map((msg) => <ChatLine key={msg.id} message={msg} compact={compact} />)}
+                    {messages.map((msg) => <ChatLine key={msg.id} message={msg} compact={compact} profile={profiles[msg.userId]} />)}
                     {/* Last in the DOM, so at the top of the reversed list */}
                     {hasOlderMessages && (
                         <ListItem ref={loadMoreTriggerRef} component="li" disablePadding sx={{ justifyContent: "center", py: 0.5 }}>
@@ -262,15 +261,18 @@ const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true,
 type ChatLineProps = {
     message: TChatMessage
     compact: boolean
+    profile?: PublicProfile
 }
 
-const ChatLine = ({ message, compact }: ChatLineProps) => {
+const ChatLine = ({ message, compact, profile }: ChatLineProps) => {
     return (
         <>
             <ListItem>
                 <ListItemAvatar>
-                    <Tooltip title={message.username} placement="left">
-                        <Avatar src={message.photoUrl ?? undefined} sx={compact ? { width: 30, height: 30 } : undefined} />
+                    <Tooltip title={message.userId} placement="left">
+                        <Avatar src={avatarSrc(profile?.avatar)} alt={profile?.displayName ?? "Player"} sx={compact ? { width: 30, height: 30 } : undefined}>
+                            {(profile?.displayName ?? "?").slice(0, 1).toUpperCase()}
+                        </Avatar>
                     </Tooltip>
                 </ListItemAvatar>
                 <ListItemText
@@ -278,7 +280,7 @@ const ChatLine = ({ message, compact }: ChatLineProps) => {
                         <Tooltip title={formatDate(message.timestamp)} placement="top-start">
                             <span>
                                 <Box component="span" sx={{ fontWeight: "fontWeightMedium", color: "primary.main" }}>
-                                    {senderFirstName(message)}:
+                                    {senderFirstName(profile?.displayName)}:
                                 </Box>{" "}
                                 {message.message}
                             </span>
@@ -294,7 +296,7 @@ const ChatLine = ({ message, compact }: ChatLineProps) => {
 }
 
 // First word of the display name, or the email's local part when there's no name
-const senderFirstName = (message: TChatMessage) => message.name?.trim().split(/\s+/)[0] || message.username.split("@")[0]
+const senderFirstName = (displayName?: string) => displayName?.trim().split(/\s+/)[0] || "Player"
 
 const formatDate = (timestamp: number) => {
     const date = new Date(timestamp)

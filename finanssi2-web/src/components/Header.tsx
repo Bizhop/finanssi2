@@ -1,9 +1,10 @@
-import React, { useEffect } from "react"
+import React from "react"
 import { Box, Grid, IconButton, Tooltip } from "@mui/material"
-import { Navigate, NavLink } from "react-router"
+import { NavLink } from "react-router"
 import HomeIcon from "@mui/icons-material/Home"
 import LogoutIcon from "@mui/icons-material/Logout"
 import CasinoIcon from "@mui/icons-material/Casino"
+import AccountCircleIcon from "@mui/icons-material/AccountCircle"
 
 import { auth } from "./firebase.ts"
 import { useCurrentUser } from "./CurrentUserContext.tsx"
@@ -27,25 +28,18 @@ const MyNavLink = ({ to, label, icon }: TMyNavLinkProps) => (
 )
 
 const Header = () => {
-    const { user, setUser } = useCurrentUser()
+    const { user, status } = useCurrentUser()
     const logout = () => auth.signOut()
-
-    useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged((user) => {
-            setUser(user)
-        })
-
-        return () => unsubscribe()
-    }, [])
 
     return (
         <Box>
             <Grid container spacing={1}>
                 <MyNavLink to="/" label="Front Page" icon={<HomeIcon />} />
-                {user
+                {user && status === "ready"
                     ? (
                         <>
                             <MyNavLink to="/games" label="Games" icon={<CasinoIcon />} />
+                            <MyNavLink to="/account" label="Account" icon={<AccountCircleIcon />} />
                             <Grid size={1} offset="auto">
                                 <Tooltip title="Log out">
                                     <IconButton onClick={logout} color="error">
@@ -55,7 +49,7 @@ const Header = () => {
                             </Grid>
                         </>
                     )
-                    : <Navigate to="/" />}
+                    : null}
             </Grid>
         </Box>
     )

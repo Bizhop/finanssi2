@@ -18,7 +18,7 @@ public sealed interface PendingDecision permits PendingDecision.RaiseFunds, Pend
 
     /**
      * The player owes more than their cash. They may raise funds, then pay, or go bankrupt if they cannot. {@code creditor} is a
-     * player uid, or null for the bank.
+     * player playerId, or null for the bank.
      */
     record RaiseFunds(String player, String creditor, List<Charge> charges) implements PendingDecision {
         public RaiseFunds {

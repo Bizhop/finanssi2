@@ -3,8 +3,11 @@ package fi.bizhop.finanssi2.web.config;
 import com.google.firebase.auth.FirebaseToken;
 import fi.bizhop.finanssi2.security.FirebaseAuthenticationToken;
 import fi.bizhop.finanssi2.security.FirebaseTokenVerifier;
+import fi.bizhop.finanssi2.security.AuthenticatedUserService;
+import fi.bizhop.finanssi2.security.User;
 import fi.bizhop.finanssi2.game.db.Game;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -22,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -30,13 +34,19 @@ class StompAuthenticationInterceptorTest {
     @Mock
     FirebaseTokenVerifier tokenVerifier;
     @Mock
+    AuthenticatedUserService authenticatedUserService;
+    @Mock
     fi.bizhop.finanssi2.game.db.GameRepository gameRepository;
     @Mock
     fi.bizhop.finanssi2.game.service.DebugAccess debugAccess;
     @Mock
     MessageChannel channel;
-    @InjectMocks
     StompAuthenticationInterceptor interceptor;
+
+    @BeforeEach
+    void createInterceptor() {
+        interceptor = new StompAuthenticationInterceptor(tokenVerifier, authenticatedUserService, gameRepository, debugAccess);
+    }
 
     static Message<byte[]> frame(StompHeaderAccessor accessor) {
         accessor.setLeaveMutable(true);
@@ -46,7 +56,8 @@ class StompAuthenticationInterceptorTest {
     @Test
     void testConnectWithValidTokenAuthenticatesSession() {
         var firebaseToken = mock(FirebaseToken.class);
-        when(firebaseToken.getUid()).thenReturn("uid-1");
+        when(authenticatedUserService.resolve(firebaseToken)).thenReturn(new User("00000000-0000-0000-0000-000000000001",
+                "person@example.com", "Person", null, true, "uid-1"));
         when(tokenVerifier.verifyAuthorizationHeader("Bearer valid")).thenReturn(Optional.of(firebaseToken));
         var accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
         accessor.setNativeHeader("Authorization", "Bearer valid");
@@ -55,7 +66,20 @@ class StompAuthenticationInterceptorTest {
         assertSame(message, interceptor.preSend(message, channel));
 
         var user = assertInstanceOf(FirebaseAuthenticationToken.class, accessor.getUser());
-        assertEquals("uid-1", user.getName());
+        assertEquals("00000000-0000-0000-0000-000000000001", user.getName());
+        assertEquals("uid-1", user.user().firebaseUid());
+    }
+
+    @Test
+    void connectWithUnverifiedIdentityIsRejectedBeforeSessionRegistration() {
+        var token = mock(FirebaseToken.class);
+        when(tokenVerifier.verifyAuthorizationHeader("Bearer unverified")).thenReturn(Optional.of(token));
+        when(authenticatedUserService.resolve(token)).thenThrow(new AuthenticatedUserService.UnverifiedEmailException());
+        var accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+        accessor.setNativeHeader("Authorization", "Bearer unverified");
+
+        assertThrows(MessageDeliveryException.class, () -> interceptor.preSend(frame(accessor), channel));
+        assertTrue(interceptor.sessions.isEmpty());
     }
 
     @Test
@@ -109,7 +133,6 @@ class StompAuthenticationInterceptorTest {
     @Test
     void gameChatSubscriptionAcceptsOnlyTheExactAuthorizedDestination() {
         var firebaseToken = mock(FirebaseToken.class);
-        when(firebaseToken.getUid()).thenReturn("uid-1");
         var auth = new FirebaseAuthenticationToken(firebaseToken);
         var game = new Game();
         var id = "66f9a1b2-c3d4-5e6f-8718-2931a2b3c4d5";

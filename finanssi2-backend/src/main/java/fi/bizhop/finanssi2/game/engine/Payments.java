@@ -13,7 +13,7 @@ public class Payments {
     /** Bank pays the player */
     public GameEvent fromBank(PlayerState player, int amount, MoneyReason reason) {
         player.setCash(player.getCash() + amount);
-        return new MoneyTransferred(null, player.getUid(), amount, reason);
+        return new MoneyTransferred(null, player.getPlayerId(), amount, reason);
     }
 
     /** The player pays the bank; the caller has checked the cash */
@@ -24,13 +24,13 @@ public class Payments {
     /** The player pays a player, or the bank when {@code to} is null; the caller has checked the cash */
     public GameEvent transfer(PlayerState from, PlayerState to, int amount, MoneyReason reason) {
         if (from.getCash() < amount) {
-            throw new IllegalStateException(from.getUid() + " cannot pay " + amount);
+            throw new IllegalStateException(from.getPlayerId() + " cannot pay " + amount);
         }
         from.setCash(from.getCash() - amount);
         if (to != null) {
             to.setCash(to.getCash() + amount);
         }
-        return new MoneyTransferred(from.getUid(), to == null ? null : to.getUid(), amount, reason);
+        return new MoneyTransferred(from.getPlayerId(), to == null ? null : to.getPlayerId(), amount, reason);
     }
 
     /**
@@ -39,14 +39,14 @@ public class Payments {
      * are made in order. {@code creditor} is null for the bank.
      */
     public List<GameEvent> charge(GameState state, PlayerState player, String creditor, List<Charge> charges) {
-        var decision = new RaiseFunds(player.getUid(), creditor, charges);
+        var decision = new RaiseFunds(player.getPlayerId(), creditor, charges);
         var paymentPending = state.getPendingDecisions().stream()
-                .anyMatch(pending -> pending instanceof RaiseFunds && pending.player().equals(player.getUid()));
+                .anyMatch(pending -> pending instanceof RaiseFunds && pending.player().equals(player.getPlayerId()));
         if (!paymentPending && player.getCash() >= decision.amount()) {
             return settle(state, decision);
         }
         state.getPendingDecisions().add(decision);
-        return List.of(new PaymentDue(player.getUid(), creditor, decision.amount()));
+        return List.of(new PaymentDue(player.getPlayerId(), creditor, decision.amount()));
     }
 
     /** Makes the payment of the decision; the caller has checked the cash */
@@ -58,7 +58,7 @@ public class Payments {
             events.add(transfer(player, creditor, charge.amount(), charge.reason()));
             if (charge.reason() == MoneyReason.LOAN_REPAYMENT) {
                 player.setLoans(player.getLoans() - 1);
-                events.add(new LoanRepaid(player.getUid(), player.getLoans()));
+                events.add(new LoanRepaid(player.getPlayerId(), player.getLoans()));
             }
         }
         return List.copyOf(events);

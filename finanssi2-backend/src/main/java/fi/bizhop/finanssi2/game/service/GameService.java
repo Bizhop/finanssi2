@@ -60,7 +60,7 @@ public class GameService {
     public Game create(User user) {
         var game = new Game();
         game.setId(java.util.UUID.randomUUID().toString());
-        game.setCreator(user.uid());
+        game.setCreator(user.userId());
         game.setCreatedAt(System.currentTimeMillis());
         return commit(game, List.of(addPlayer(game, user)), true).game();
     }
@@ -71,7 +71,7 @@ public class GameService {
         if (settings.loanLimit() == null) throw new RuleViolation("loanLimit is required");
         var game = new Game(GameMode.DEBUG);
         game.setId(java.util.UUID.randomUUID().toString());
-        game.setCreator(user.uid());
+        game.setCreator(user.userId());
         game.setCreatedAt(System.currentTimeMillis());
         game.getState().setSettings(settings);
         var events = new ArrayList<GameEvent>();
@@ -112,9 +112,9 @@ public class GameService {
 
     /** Games in the lobby and games the user is in, newest first */
     public List<Game> list(User user) {
-        return gameRepository.findByStatusOrPlayer(GameStatus.LOBBY, user.uid(), Sort.by(Sort.Direction.DESC, "createdAt"))
+        return gameRepository.findByStatusOrPlayer(GameStatus.LOBBY, user.userId(), Sort.by(Sort.Direction.DESC, "createdAt"))
                 .stream().filter(game -> game.getMode() == GameMode.NORMAL
-                        || (game.getCreator().equals(user.uid()) && debugAccess.allowed(user))).toList();
+                        || (game.getCreator().equals(user.userId()) && debugAccess.allowed(user))).toList();
     }
 
     public Game get(String id) {
@@ -133,7 +133,7 @@ public class GameService {
         var game = get(id);
         requireNormal(game);
         requireLobby(game);
-        if (game.getState().player(user.uid()).isPresent()) {
+        if (game.getState().player(user.userId()).isPresent()) {
             throw new RuleViolation("Already in the game");
         }
         if (game.getState().getPlayers().size() >= MAX_PLAYERS) {
@@ -147,7 +147,7 @@ public class GameService {
         var game = get(id);
         requireNormal(game);
         requireLobby(game);
-        var player = game.getState().player(user.uid()).orElseThrow(() -> new RuleViolation("Not in the game"));
+        var player = game.getState().player(user.userId()).orElseThrow(() -> new RuleViolation("Not in the game"));
         var players = game.getState().getPlayers();
         if (players.size() == 1) {
             gameRepository.delete(game);
@@ -155,10 +155,10 @@ public class GameService {
             return;
         }
         players.remove(player);
-        if (game.getCreator().equals(user.uid())) {
-            game.setCreator(players.getFirst().getUid());
+        if (game.getCreator().equals(user.userId())) {
+            game.setCreator(players.getFirst().getPlayerId());
         }
-        commit(game, List.of(new GameEvent.PlayerLeft(user.uid())), true);
+        commit(game, List.of(new GameEvent.PlayerLeft(user.userId())), true);
     }
 
     /** Sets the house rules of a game in the lobby */
@@ -183,7 +183,7 @@ public class GameService {
     public List<GameLogEntry> command(String id, User user, GameCommand command) {
         var game = get(id);
         requireNormal(game);
-        return execute(game, user, user.uid(), command, diceSource.forGame(id));
+        return execute(game, user, user.userId(), command, diceSource.forGame(id));
     }
 
     public List<GameLogEntry> debugCommand(String id, User user, String actor, Long expectedVersion,
@@ -238,7 +238,7 @@ public class GameService {
             case FINANCE_NEWS -> state.setFinanceNewsDeck(reordered);
             case STOCK_TIP -> state.setStockTipDeck(reordered);
         }
-        return commit(game, List.of(new GameEvent.DebugDeckChanged(user.uid(), deckName, card)), false).game();
+        return commit(game, List.of(new GameEvent.DebugDeckChanged(user.userId(), deckName, card)), false).game();
     }
 
     static void requireVersion(Game game, Long expectedVersion) {
@@ -265,7 +265,7 @@ public class GameService {
     /** The player the user acts as: their own seat, or in a debug game whichever seat must act next */
     public String actingPlayer(Game game, User user) {
         return switch (game.getMode()) {
-            case NORMAL -> user.uid();
+            case NORMAL -> user.userId();
             case DEBUG -> game.getState().actor();
         };
     }
@@ -275,7 +275,7 @@ public class GameService {
         return switch (game.getStatus()) {
             case RUNNING -> {
                 var allowed = new ArrayList<>(gameEngine.allowedCommands(game.getState(), actingPlayer(game, user)));
-                if (game.getCreator().equals(user.uid())) allowed.add(GameCommand.EndGame.class.getSimpleName());
+                if (game.getCreator().equals(user.userId())) allowed.add(GameCommand.EndGame.class.getSimpleName());
                 allowed.sort(String::compareTo);
                 yield List.copyOf(allowed);
             }
@@ -284,7 +284,7 @@ public class GameService {
     }
 
     static void requireCreator(Game game, User user, String reason) {
-        if (!game.getCreator().equals(user.uid())) {
+        if (!game.getCreator().equals(user.userId())) {
             throw new NotAllowedException(reason);
         }
     }
@@ -299,8 +299,8 @@ public class GameService {
         var players = game.getState().getPlayers();
         var taken = players.stream().map(PlayerState::getPiece).toList();
         var piece = IntStream.range(0, MAX_PLAYERS).filter(p -> !taken.contains(p)).findFirst().orElseThrow();
-        players.add(new PlayerState(user.uid(), user.name(), user.photoUrl(), piece));
-        return new GameEvent.PlayerJoined(user.uid(), user.name(), piece);
+        players.add(new PlayerState(user.userId(), piece));
+        return new GameEvent.PlayerJoined(user.userId(), piece);
     }
 
     record Committed(Game game, List<GameLogEntry> entries) {}

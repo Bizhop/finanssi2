@@ -80,7 +80,7 @@ export const DecisionDialog = ({ pending, allowed, send, game, board, busy, anch
     }, [anchor, pending.card])
 
     const labels = decisionLabels(game, board)
-    const actor = game.state.players.find((player) => player.uid === pending.player)
+    const actor = game.state.players.find((player) => player.playerId === pending.player)
     const cash = actor?.cash ?? 0
     const charges = Array.isArray(pending.charges) ? pending.charges as { reason: string }[] : []
     const source = pending.card ??
@@ -121,8 +121,8 @@ export const DecisionDialog = ({ pending, allowed, send, game, board, busy, anch
             {children}
         </DecisionAsset>
     )
-    const person = (uid: string) => {
-        const player = game.state.players.find((player) => player.uid === uid)
+    const person = (playerId: string) => {
+        const player = game.state.players.find((player) => player.playerId === playerId)
         return player && (
             <Tooltip title={player.name}>
                 <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", color: "text.primary" }}>

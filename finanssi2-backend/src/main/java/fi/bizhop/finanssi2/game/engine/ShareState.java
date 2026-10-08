@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ShareState {
     String id;
-    // Player uid; null while the bank owns it
+    // Player playerId; null while the bank owns it
     String owner;
 }

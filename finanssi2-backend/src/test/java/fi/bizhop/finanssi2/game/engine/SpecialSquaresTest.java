@@ -34,8 +34,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SpecialSquaresTest {
-    static PlayerState player(GameState state, String uid) {
-        return state.player(uid).orElseThrow();
+    static PlayerState player(GameState state, String playerId) {
+        return state.player(playerId).orElseThrow();
     }
 
     static int rent(int square) {

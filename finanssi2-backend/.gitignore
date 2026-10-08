@@ -36,4 +36,7 @@ out/
 ### VS Code ###
 .vscode/
 
+### custom things
 finanssi2-firebase-adminsdk.json
+*.log
+

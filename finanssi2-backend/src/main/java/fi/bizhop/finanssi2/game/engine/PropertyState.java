@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PropertyState {
     int square;
-    // Player uid; null while the bank owns it
+    // Player playerId; null while the bank owns it
     String owner;
     boolean mortgaged;
     boolean built;

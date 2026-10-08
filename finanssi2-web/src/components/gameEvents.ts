@@ -4,7 +4,7 @@ export type GameLogEntry = { id: string; seq: number; time: number; type: string
 
 /** What event descriptions need to turn ids into names */
 export type EventContext = {
-    playerName: (uid: string) => string
+    playerName: (playerId: string) => string
     board: GameBoardData | null
 }
 
@@ -84,13 +84,13 @@ export const describeEvent = (entry: GameLogEntry, { playerName, board }: EventC
         case "DebugDeckChanged":
             return `Debug: next ${e.deck === "FINANCE_NEWS" ? "Finance News" : "Stock Tip"} set to ${cardTitle(board, e.card)}`
         case "PlayerJoined":
-            return `${e.name} joined`
+            return `${playerName(String(e.player))} joined`
         case "PlayerLeft":
             return `${p()} left`
         case "StartingRoll":
             return `${p()} rolled ${diceText(e.dice)} for starting order (round ${e.round})`
         case "GameStarted":
-            return `Game started with ${money(e.startingCash)} each. Turn order: ${list(e.turnOrder, (uid) => playerName(String(uid)))}`
+            return `Game started with ${money(e.startingCash)} each. Turn order: ${list(e.turnOrder, (playerId) => playerName(String(playerId)))}`
         case "SettingsChanged":
             return "Settings changed"
         case "TurnStarted":
@@ -182,7 +182,7 @@ export const describeEvent = (entry: GameLogEntry, { playerName, board }: EventC
                 : `No bids for bond ${e.number}.${bids(e.bids)}`
         case "AssetAuctionStarted":
             return `${p("seller")} must auction ${assetName(board, e.asset)}, minimum bid ${money(e.minimumBid)}; bidders: ${
-                list(e.bidders, (uid) => playerName(String(uid)))
+                list(e.bidders, (playerId) => playerName(String(playerId)))
             }`
         case "AssetAuctionCompleted":
             return e.winner

@@ -35,15 +35,15 @@ public final class EngineTests {
     }
 
     /** A command that rolls no dice */
-    public static List<GameEvent> send(GameState state, String uid, GameCommand command) {
-        return ENGINE.handle(state, uid, command, new ScriptedDice());
+    public static List<GameEvent> send(GameState state, String playerId, GameCommand command) {
+        return ENGINE.handle(state, playerId, command, new ScriptedDice());
     }
 
     /** Asserts that the command is rejected and the state is unchanged */
-    public static void assertRejected(Class<? extends RuntimeException> expected, GameState state, String uid,
+    public static void assertRejected(Class<? extends RuntimeException> expected, GameState state, String playerId,
                                       GameCommand command) {
         var before = Snapshot.of(state);
-        assertThrows(expected, () -> send(state, uid, command));
+        assertThrows(expected, () -> send(state, playerId, command));
         assertEquals(before, Snapshot.of(state));
     }
 
@@ -65,14 +65,14 @@ public final class EngineTests {
         }
     }
 
-    record PlayerSnapshot(String uid, String name, String photoUrl, int piece, int cash, int position,
+    record PlayerSnapshot(String playerId, int piece, int cash, int position,
                           boolean car, int loans, boolean out, int missedTurns, boolean missedTurnsInJail,
                           boolean jailExemption, boolean bailRollPending,
                           boolean transportNewsDue,
                           boolean noMovementRollThisTurn,
                           List<String> heldStockTips) {
         static PlayerSnapshot of(PlayerState player) {
-            return new PlayerSnapshot(player.getUid(), player.getName(), player.getPhotoUrl(), player.getPiece(),
+            return new PlayerSnapshot(player.getPlayerId(), player.getPiece(),
                     player.getCash(), player.getPosition(), player.isCar(), player.getLoans(), player.isOut(),
                     player.getMissedTurns(), player.isMissedTurnsInJail(), player.isJailExemption(), player.isBailRollPending(),
                     player.isTransportNewsDue(), player.isNoMovementRollThisTurn(),

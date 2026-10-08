@@ -39,27 +39,27 @@ public class GameSetup {
         var events = new ArrayList<GameEvent>();
 
         // Everyone rolls both dice and the highest total starts; tied players roll again
-        var contenders = players.stream().map(PlayerState::getUid).toList();
+        var contenders = players.stream().map(PlayerState::getPlayerId).toList();
         for (int round = 1; contenders.size() > 1; round++) {
             var highest = 0;
             var tied = new ArrayList<String>();
-            for (var uid : contenders) {
+            for (var playerId : contenders) {
                 var roll = List.of(dice.roll(), dice.roll());
-                events.add(new GameEvent.StartingRoll(uid, round, roll));
+                events.add(new GameEvent.StartingRoll(playerId, round, roll));
                 var total = roll.get(0) + roll.get(1);
                 if (total > highest) {
                     highest = total;
                     tied.clear();
                 }
                 if (total == highest) {
-                    tied.add(uid);
+                    tied.add(playerId);
                 }
             }
             contenders = tied;
         }
 
         // Play proceeds clockwise, which is join order, from the starter
-        var uids = players.stream().map(PlayerState::getUid).toList();
+        var uids = players.stream().map(PlayerState::getPlayerId).toList();
         var starter = uids.indexOf(contenders.getFirst());
         var turnOrder = IntStream.range(0, uids.size()).mapToObj(i -> uids.get((starter + i) % uids.size())).toList();
         state.setTurnOrder(turnOrder);

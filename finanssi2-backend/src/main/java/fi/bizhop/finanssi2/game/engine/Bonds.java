@@ -25,8 +25,8 @@ public class Bonds {
     }
 
     /** Returns the player's bonds to the bank without compensation. */
-    public List<Integer> returnOwnedBy(GameState state, String uid) {
-        var owned = state.getBonds().stream().filter(bond -> uid.equals(bond.getOwner())).toList();
+    public List<Integer> returnOwnedBy(GameState state, String playerId) {
+        var owned = state.getBonds().stream().filter(bond -> playerId.equals(bond.getOwner())).toList();
         owned.forEach(bond -> bond.setOwner(null));
         return owned.stream().map(BondState::getNumber).toList();
     }
@@ -35,7 +35,7 @@ public class Bonds {
         if (!available(state)) {
             return drawBonds(state, rules.smallBondPrizes(state), dice);
         }
-        state.getPendingDecisions().add(new PendingDecision.BondOffer(player.getUid(), BondContinuation.SMALL_DRAW));
+        state.getPendingDecisions().add(new PendingDecision.BondOffer(player.getPlayerId(), BondContinuation.SMALL_DRAW));
         return List.of();
     }
 
@@ -43,9 +43,9 @@ public class Bonds {
         if (!available(state)) {
             return List.of();
         }
-        var order = playersFrom(state, player.getUid())
+        var order = playersFrom(state, player.getPlayerId())
                 .filter(candidate -> !candidate.isOut() && candidate.getCash() > 0)
-                .map(PlayerState::getUid)
+                .map(PlayerState::getPlayerId)
                 .toList();
         if (order.isEmpty()) {
             return List.of();
@@ -56,12 +56,12 @@ public class Bonds {
 
     List<GameEvent> buyBond(GameState state, PlayerState player, int number, Dice dice) {
         var bond = state.bond(number);
-        bond.setOwner(player.getUid());
+        bond.setOwner(player.getPlayerId());
         var paid = payments.toBank(player, rules.bondPrice(state), MoneyReason.BOND_PURCHASE);
         var offer = (PendingDecision.BondOffer) state.getPendingDecisions().removeFirst();
         var events = new ArrayList<GameEvent>();
         events.add(paid);
-        events.add(new GameEvent.BondBought(player.getUid(), number));
+        events.add(new GameEvent.BondBought(player.getPlayerId(), number));
         events.addAll(afterBondOffer(state, offer, dice));
         return List.copyOf(events);
     }
@@ -80,9 +80,9 @@ public class Bonds {
     }
 
     /** Players in turn order, starting with the given player */
-    static Stream<PlayerState> playersFrom(GameState state, String uid) {
+    static Stream<PlayerState> playersFrom(GameState state, String playerId) {
         var order = state.getTurnOrder();
-        var start = order.indexOf(uid);
+        var start = order.indexOf(playerId);
         return IntStream.range(0, order.size())
                 .mapToObj(i -> state.player(order.get((start + i) % order.size())).orElseThrow());
     }
@@ -92,9 +92,9 @@ public class Bonds {
         if (!available(state)) {
             return drawBonds(state, rules.grandBondPrizes(state), dice);
         }
-        var offers = playersFrom(state, drawer.getUid())
+        var offers = playersFrom(state, drawer.getPlayerId())
                 .filter(candidate -> !candidate.isOut() && candidate.getCash() >= rules.bondPrice(state))
-                .map(candidate -> new PendingDecision.BondOffer(candidate.getUid(), BondContinuation.CONTINUE_GRAND_DRAW))
+                .map(candidate -> new PendingDecision.BondOffer(candidate.getPlayerId(), BondContinuation.CONTINUE_GRAND_DRAW))
                 .toList();
         var pending = state.getPendingDecisions();
         pending.addAll(offers);
@@ -109,7 +109,7 @@ public class Bonds {
 
     List<GameEvent> bidBond(GameState state, PlayerState player, int amount, Dice dice) {
         var auction = (PendingDecision.BondAuction) state.getPendingDecisions().removeFirst();
-        var bids = Stream.concat(auction.bids().stream(), Stream.of(new PendingDecision.Bid(player.getUid(), amount))).toList();
+        var bids = Stream.concat(auction.bids().stream(), Stream.of(new PendingDecision.Bid(player.getPlayerId(), amount))).toList();
         var next = IntStream.range(auction.index() + 1, auction.order().size())
                 .filter(index -> bids.stream().noneMatch(bid -> bid.player().equals(auction.order().get(index))))
                 .findFirst();

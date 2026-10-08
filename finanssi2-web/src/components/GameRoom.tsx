@@ -11,9 +11,9 @@ import { GameWindow, type GameWindowTab } from "./GameWindow.tsx"
 import { ShareCard, TitleDeedCard } from "./cards.tsx"
 import { bankSalesOpen, buildAction, ConfirmDialog, type ConfirmRequest, meetingGroups, type PlayerControls, takeoverSum, twoDiceAtMost } from "./actions.tsx"
 import { PlayerPanel } from "./PlayerPanel.tsx"
-import { useCurrentUser } from "./CurrentUserContext.tsx"
+import { useCurrentUser, usePublicProfiles } from "./CurrentUserContext.tsx"
 import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
-import { gameApi, GameApiError, GameBoardData, GameView } from "./gameApi.ts"
+import { avatarSrc, gameApi, GameApiError, GameBoardData, GameView } from "./gameApi.ts"
 import { describeEvent, GameLogEntry } from "./gameEvents.ts"
 import { DecisionDialog } from "./DecisionDialog.tsx"
 import { BOARD_ASPECT_RATIO } from "./boardLayout.ts"
@@ -27,7 +27,7 @@ const apiError = (reason: unknown) => reason instanceof Error ? reason.message :
 
 const GameRoomContent = () => {
     const { id } = useParams()
-    const { user, debugMode, capabilitiesReady, clearDebugAccess } = useCurrentUser()
+    const { user, profile, debugMode, capabilitiesReady, clearDebugAccess } = useCurrentUser()
     const navigate = useNavigate()
     // The GameRoom wrapper remounts this per game and user; late responses after unmount must not toast or navigate.
     const mounted = useRef(true)
@@ -48,6 +48,10 @@ const GameRoomContent = () => {
     // The group of the shareholders' meeting being called; null when the dialog is closed
     const [meetingGroup, setMeetingGroup] = useState<string | null>(null)
     const [meetingFee, setMeetingFee] = useState(20000)
+    const profiles = usePublicProfiles([
+        ...(view?.game.state.players.map((player) => player.playerId) ?? []),
+        ...events.flatMap((entry) => Object.values(entry.event).filter((value): value is string => typeof value === "string")),
+    ])
 
     const refresh = useCallback(async () => {
         if (!user || !id) return
@@ -201,14 +205,29 @@ const GameRoomContent = () => {
     if (!view) return null
     if (view.game.mode === "DEBUG" && !debugMode) return <CircularProgress />
 
-    const { game, allowedCommands } = view
-    const actingUid = game.mode === "DEBUG" ? view.actingPlayer : user.uid
-    const actingPlayer = game.state.players.find((player) => player.uid === actingUid)
+    const { game: rawGame, allowedCommands } = view
+    const game = {
+        ...rawGame,
+        state: {
+            ...rawGame.state,
+            players: rawGame.state.players.map((player) => ({
+                ...player,
+                name: profiles[player.playerId]?.displayName ?? (player.playerId.startsWith("debug:") ? `Debug player ${player.piece + 1}` : player.playerId),
+                photoUrl: avatarSrc(profiles[player.playerId]?.avatar) ?? null,
+            })),
+        },
+    }
+    const identityId = profile?.id ?? ""
+    const actingUid = game.mode === "DEBUG" ? view.actingPlayer : identityId
+    const actingPlayer = game.state.players.find((player) => player.playerId === actingUid)
     const pending = game.state.pendingDecisions[0]
     const decisionActor = pending?.player === actingUid
     // Whoever the game is waiting for: the player of a pending decision, otherwise the player in turn
     const expectedUid = pending?.player ?? game.state.currentPlayer
-    const playerName = (uid: string) => game.state.players.find((player) => player.uid === uid)?.name ?? "a former player"
+    const playerName = (playerId: string) =>
+        profiles[playerId]?.displayName ??
+            game.state.players.find((player) => player.playerId === playerId)?.name ??
+            (playerId.startsWith("debug:") ? "Debug player" : "a former player")
     // Only a Stock Tip drawn during the current turn stays face up on the board
     const turnStockTip = events.slice(events.findLastIndex((entry) => entry.type === "TurnStarted") + 1).findLast((entry) => entry.type === "StockTipDrawn")
     const deedOf = (square: number) => board?.titleDeeds.find((deed) => deed.square === square)
@@ -287,7 +306,7 @@ const GameRoomContent = () => {
                     embedded
                     compact
                     expanded={expanded}
-                    canSend={game.mode === "DEBUG" ? game.creator === user.uid : game.state.players.some((player) => player.uid === user.uid)}
+                    canSend={game.mode === "DEBUG" ? game.creator === identityId : game.state.players.some((player) => player.playerId === identityId)}
                 />
             ),
         },
@@ -427,26 +446,26 @@ const GameRoomContent = () => {
                     >
                         {game.state.players.map((player) => (
                             <PlayerPanel
-                                key={player.uid}
+                                key={player.playerId}
                                 player={player}
                                 game={game}
                                 board={board}
-                                you={player.uid === user.uid}
-                                inTurn={game.status === "RUNNING" && player.uid === game.state.currentPlayer}
-                                expected={game.status !== "RUNNING" || expectedUid !== player.uid
+                                you={player.playerId === identityId}
+                                inTurn={game.status === "RUNNING" && player.playerId === game.state.currentPlayer}
+                                expected={game.status !== "RUNNING" || expectedUid !== player.playerId
                                     ? null
                                     : pending
-                                    ? player.uid === actingUid ? "Your decision" : "Deciding"
-                                    : player.uid === actingUid
+                                    ? player.playerId === actingUid ? "Your decision" : "Deciding"
+                                    : player.playerId === actingUid
                                     ? "Your move"
                                     : "To move"}
-                                controls={game.status === "RUNNING" && player.uid === actingUid ? controls : undefined}
+                                controls={game.status === "RUNNING" && player.playerId === actingUid ? controls : undefined}
                             />
                         ))}
                         {game.state.finished && (
                             <Alert severity="success">
                                 {game.state.winner
-                                    ? `${game.state.players.find((p) => p.uid === game.state.winner)?.name} wins.`
+                                    ? `${game.state.players.find((p) => p.playerId === game.state.winner)?.name} wins.`
                                     : "The game was closed without a winner."}
                             </Alert>
                         )}
@@ -462,7 +481,7 @@ const GameRoomContent = () => {
                     <Typography variant="h6">Final standings</Typography>
                     {[...game.state.finalStandings].sort((a, b) => b.netWorth - a.netWorth).map((standing, index) => (
                         <Typography key={standing.player}>
-                            {index + 1}. {game.state.players.find((p) => p.uid === standing.player)?.name ?? standing.player}{" "}
+                            {index + 1}. {game.state.players.find((p) => p.playerId === standing.player)?.name ?? standing.player}{" "}
                             — €{standing.netWorth.toLocaleString()} net worth (€{standing.cash.toLocaleString()} cash)
                         </Typography>
                     ))}
@@ -613,8 +632,8 @@ const EventLine = ({ entry, text, board }: { entry: GameLogEntry; text: string; 
 
 const GameRoom = () => {
     const { id } = useParams()
-    const { user } = useCurrentUser()
-    return <GameRoomContent key={id + ":" + user?.uid} />
+    const { user, profile } = useCurrentUser()
+    return <GameRoomContent key={id + ":" + user?.uid + ":" + profile?.id} />
 }
 
 export default GameRoom

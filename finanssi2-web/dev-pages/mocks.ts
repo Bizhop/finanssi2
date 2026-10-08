@@ -10,7 +10,7 @@ z.config(en())
 
 export type FakeChatMessage = {
     id: string
-    username: string
+    userId: string
     name?: string | null
     message: string
     timestamp: number
@@ -19,9 +19,9 @@ export type FakeChatMessage = {
 
 // Includes a sender without a name, like messages saved before the backend stored names
 const fakeSenders = [
-    { username: "maija.meikalainen@example.com", name: "Maija Meikäläinen" },
-    { username: "matti.meikalainen@example.com", name: "Matti Meikäläinen" },
-    { username: "tester@example.com", name: null },
+    { userId: "maija", name: "Maija Meikäläinen" },
+    { userId: "matti", name: "Matti Meikäläinen" },
+    { userId: "tester", name: null },
 ]
 
 // Fixed-width decimal ids sort in database insertion order.
@@ -46,7 +46,7 @@ export const fakeChatMessages = (count: number): FakeChatMessage[] =>
 export const fakeLogin = () => {
     const fakeUser = {
         uid: "tester",
-        email: "tester@example.com",
+        email: "tester",
         displayName: "Maija Meikäläinen",
         photoURL: null,
         getIdToken: () => Promise.resolve("fake-token"),

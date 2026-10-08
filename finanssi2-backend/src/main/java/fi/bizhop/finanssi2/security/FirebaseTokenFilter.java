@@ -5,16 +5,21 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
 
 import java.io.IOException;
 
-@RequiredArgsConstructor
 public class FirebaseTokenFilter extends AbstractPreAuthenticatedProcessingFilter {
+    static final String GOOGLE_EMAIL_VERIFICATION_PATH = "/api/me/verify-linked-google-email";
     final FirebaseTokenVerifier tokenVerifier;
+    final AuthenticatedUserService authenticatedUserService;
+
+    public FirebaseTokenFilter(FirebaseTokenVerifier tokenVerifier, AuthenticatedUserService authenticatedUserService) {
+        this.tokenVerifier = tokenVerifier;
+        this.authenticatedUserService = authenticatedUserService;
+    }
 
     @Override
     protected Object getPreAuthenticatedPrincipal(@NonNull HttpServletRequest request) {
@@ -30,14 +35,32 @@ public class FirebaseTokenFilter extends AbstractPreAuthenticatedProcessingFilte
     public void doFilter(@NonNull ServletRequest request, @NonNull ServletResponse response, @NonNull FilterChain chain)
             throws IOException, ServletException {
         var httpRequest = (HttpServletRequest)request;
-        tokenVerifier.verifyAuthorizationHeader(httpRequest.getHeader("Authorization")).ifPresentOrElse(
-                decodedToken -> {
-                    var user = User.fromToken(decodedToken);
-                    request.setAttribute("user", user);
-                    SecurityContextHolder.getContext().setAuthentication(new FirebaseAuthenticationToken(decodedToken));
-                },
-                SecurityContextHolder::clearContext);
+        var token = tokenVerifier.verifyAuthorizationHeader(httpRequest.getHeader("Authorization"));
+        if (token.isPresent()) {
+            request.setAttribute("firebaseToken", token.get());
+            try {
+                var resolved = authenticatedUserService.resolve(token.get());
+                request.setAttribute("user", resolved);
+                SecurityContextHolder.getContext().setAuthentication(new FirebaseAuthenticationToken(token.get(), resolved));
+            } catch (AuthenticatedUserService.UnverifiedEmailException e) {
+                if (httpRequest.getMethod().equals("POST") && httpRequest.getRequestURI().equals(GOOGLE_EMAIL_VERIFICATION_PATH)) {
+                    SecurityContextHolder.getContext().setAuthentication(new FirebaseAuthenticationToken(token.get()));
+                    chain.doFilter(request, response);
+                    return;
+                }
+                writeError((jakarta.servlet.http.HttpServletResponse) response, 403, "EMAIL_VERIFICATION_REQUIRED");
+                return;
+            } catch (AuthenticatedUserService.AccountLinkConflictException e) {
+                writeError((jakarta.servlet.http.HttpServletResponse) response, 409, "ACCOUNT_LINKING_CONFLICT");
+                return;
+            }
+        } else SecurityContextHolder.clearContext();
         chain.doFilter(request, response);
     }
-}
 
+    private static void writeError(jakarta.servlet.http.HttpServletResponse response, int status, String code) throws IOException {
+        response.setStatus(status);
+        response.setContentType("application/json");
+        response.getWriter().write("{\"code\":\"" + code + "\"}");
+    }
+}

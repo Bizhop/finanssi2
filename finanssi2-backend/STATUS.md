@@ -1,5 +1,9 @@
 # Backend status
 
+Updated 2026-10-08 after email/password authentication, database-backed user profiles and processed custom avatars. Firebase tokens
+must carry a verified email before profile provisioning or REST/STOMP access. See the root README for local configuration. Phase 5
+automated checks pass; live Firebase account linking and browser acceptance remain outstanding.
+
 Updated 2026-10-02 after implementing single-player debug mode. Gameplay and private debug controls are implemented;
 live frontend integration review and the follow-ups below remain. See [frontend status](../finanssi2-web/STATUS.md) for UI gaps.
 
@@ -13,7 +17,9 @@ outbound debug access rechecks, and database cascade deletion. Two-account webso
 | Area | Implemented |
 |---|---|
 | Game data | Startup loading and validation of 46 squares, 7 business groups, 20 title deeds, 21 shares, 21 Finance News cards and 41 Stock Tips |
-| Authentication and chat | Firebase authentication for REST and STOMP, persisted chat and live messages |
+| Authentication and chat | Verified Firebase authentication for REST and STOMP, linked Google/password identity, persisted chat and live messages |
+| User profiles | UUID application identities, normalized verified email, editable display name, provider/custom avatar and `/api/me` |
+| Avatar uploads | JPEG/PNG validation, 256×256 JPEG processing, bounded persistence and upload/remove APIs |
 | Lobby | Create, list, join, leave, creator settings and start; 2–6 players, starting cash, tie re-rolls and shuffled decks |
 | Turns and movement | Command validation, allowed command types, dice, bank stops, cars and turn order |
 | Money and loans | Transfers with reasons, loan limits, interest, bank rewards and queued payment obligations, including outside the payer's turn |
@@ -45,7 +51,7 @@ outbound debug access rechecks, and database cascade deletion. Two-account webso
   update can use an empty database because persisted data is currently disposable.
 - Dice are injected (`SecureRandom` normally, scripted in tests). Debug overrides belong to one command, fall back to random
   rolls when exhausted and discard unused values. The old dev dice route/profile wiring is removed. Deck order stays hidden.
-- Player ids are Firebase uids; name/photo are copied on joining. Pieces are the lowest free numbers 0–5. A creator leaving the
+- Normal player ids and creator/chat references use generated application-user UUIDs. Game seats and chat rows store references only; current names come from the batch profile endpoint and custom avatars use versioned image URLs. Pieces are the lowest free numbers 0–5. A creator leaving the
   lobby passes ownership to the earliest remaining player; the last departure deletes the lobby. Lobby changes also enter the log.
 - All table information is public, including held Stock Tips. Upcoming deck order and sealed bids stay hidden. There is one
   game topic, `/topic/games/{id}`, plus `/topic/games` for lobby changes.

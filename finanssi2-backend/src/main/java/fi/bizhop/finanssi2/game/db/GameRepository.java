@@ -42,12 +42,12 @@ public class GameRepository {
     }
 
     @Transactional(readOnly = true)
-    public List<Game> findByStatusOrPlayer(GameStatus status, String uid, Sort sort) {
+    public List<Game> findByStatusOrPlayer(GameStatus status, String playerId, Sort sort) {
         @SuppressWarnings("unchecked")
         var ids = (List<UUID>) entityManager.createNativeQuery("select id from games g where g.status = :status " +
                         "or exists (select 1 from jsonb_array_elements(g.state -> 'players') player " +
-                        "where player ->> 'uid' = :uid) order by g.created_at desc")
-                .setParameter("status", status.name()).setParameter("uid", uid).getResultList();
+                        "where player ->> 'playerId' = :playerId) order by g.created_at desc")
+                .setParameter("status", status.name()).setParameter("playerId", playerId).getResultList();
         return ids.stream().map(id -> entityManager.find(GameEntity.class, id)).map(this::model).toList();
     }
 
@@ -119,10 +119,10 @@ public class GameRepository {
         }
     }
 
-    private static void apply(Game source, GameEntity target) {
+    private void apply(Game source, GameEntity target) {
         target.status = source.getStatus();
         target.mode = source.getMode();
-        target.creator = source.getCreator();
+        target.creatorUser = entityManager.getReference(fi.bizhop.finanssi2.db.ApplicationUser.class, UUID.fromString(source.getCreator()));
         target.createdAt = source.getCreatedAt();
         target.lastEventSeq = source.getLastEventSeq();
     }
@@ -171,7 +171,7 @@ public class GameRepository {
         game.setId(entity.id.toString());
         game.setVersion(entity.version);
         game.setStatus(entity.status);
-        game.setCreator(entity.creator);
+        game.setCreator(entity.creatorUser.getId().toString());
         game.setCreatedAt(entity.createdAt);
         game.setLastEventSeq(entity.lastEventSeq);
         var state = persistenceJsonMapper.readValue(entity.state.toString(), fi.bizhop.finanssi2.game.engine.GameState.class);

@@ -36,8 +36,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PropertiesAndSharesTest {
-    static PlayerState player(GameState state, String uid) {
-        return state.player(uid).orElseThrow();
+    static PlayerState player(GameState state, String playerId) {
+        return state.player(playerId).orElseThrow();
     }
 
     /** Events after the roll's DiceRolled, PieceMoved and LandedOn */

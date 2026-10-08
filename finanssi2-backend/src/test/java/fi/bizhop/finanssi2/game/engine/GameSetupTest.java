@@ -29,7 +29,7 @@ class GameSetupTest {
     static GameState lobby(String... uids) {
         var state = new GameState();
         for (int i = 0; i < uids.length; i++) {
-            state.getPlayers().add(new PlayerState(uids[i], "Player " + uids[i], null, i));
+            state.getPlayers().add(new PlayerState(uids[i], i));
         }
         return state;
     }

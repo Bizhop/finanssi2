@@ -1,7 +1,7 @@
 import type { User } from "firebase/auth"
 
 export type GamePlayer = {
-    uid: string
+    playerId: string
     name: string
     photoUrl: string | null
     piece: number
@@ -82,13 +82,19 @@ export type GameBoardData = {
 }
 export type Card = { id: string; type: string; chapters: { type: string | null; text: string; "font-style": string | null }[] }
 
+export const avatarSrc = (avatar: string | null | undefined) => {
+    if (!avatar) return undefined
+    if (!avatar.startsWith("/")) return avatar
+    return `${(import.meta.env?.VITE_FINANSSI_API_URL ?? "").replace(/\/$/, "")}${avatar}`
+}
+
 export async function gameApi<T>(user: User, path: string, init: RequestInit = {}): Promise<T> {
     const token = await user.getIdToken()
     const response = await fetch(`${(import.meta.env?.VITE_FINANSSI_API_URL ?? "")}${path}`, {
         ...init,
         headers: {
             Authorization: `Bearer ${token}`,
-            ...(init.body ? { "Content-Type": "application/json" } : {}),
+            ...(init.body && !(typeof FormData !== "undefined" && init.body instanceof FormData) ? { "Content-Type": "application/json" } : {}),
             ...init.headers,
         },
     })

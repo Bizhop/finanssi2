@@ -16,7 +16,7 @@ export const SquareDetails = ({ square, board, game }: { square: GameSquare; boa
     const deed = board?.titleDeeds.find((item) => item.square === square.square)
     if (!deed) return null
     const property = game.state.properties.find((item) => item.square === deed.square)
-    const owner = game.state.players.find((player) => player.uid === property?.owner)
+    const owner = game.state.players.find((player) => player.playerId === property?.owner)
     const group = board?.groups.find((item) => item.id === deed.group)
     return (
         <Stack spacing={0.75} sx={{ p: 1.5, alignItems: "flex-start" }}>

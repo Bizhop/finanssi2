@@ -19,7 +19,7 @@ const simulateIncoming = (messageCount: number) => {
     for (let i = 0; i < messageCount; i++) {
         receiveFakeChatMessage({
             id: nextFakeId(),
-            username: "other@example.com",
+            userId: "other",
             name: "Olli Other",
             message: `Incoming message ${++received}`,
             timestamp: Date.now(),
