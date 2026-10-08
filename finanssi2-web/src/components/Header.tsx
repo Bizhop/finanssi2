@@ -1,6 +1,6 @@
-import React, { useEffect } from "react"
+import React from "react"
 import { Box, Grid, IconButton, Tooltip } from "@mui/material"
-import { Navigate, NavLink } from "react-router"
+import { NavLink } from "react-router"
 import HomeIcon from "@mui/icons-material/Home"
 import LogoutIcon from "@mui/icons-material/Logout"
 import CasinoIcon from "@mui/icons-material/Casino"
@@ -27,22 +27,14 @@ const MyNavLink = ({ to, label, icon }: TMyNavLinkProps) => (
 )
 
 const Header = () => {
-    const { user, setUser } = useCurrentUser()
+    const { user, status } = useCurrentUser()
     const logout = () => auth.signOut()
-
-    useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged((user) => {
-            setUser(user)
-        })
-
-        return () => unsubscribe()
-    }, [])
 
     return (
         <Box>
             <Grid container spacing={1}>
                 <MyNavLink to="/" label="Front Page" icon={<HomeIcon />} />
-                {user
+                {user && status === "ready"
                     ? (
                         <>
                             <MyNavLink to="/games" label="Games" icon={<CasinoIcon />} />
@@ -55,7 +47,7 @@ const Header = () => {
                             </Grid>
                         </>
                     )
-                    : <Navigate to="/" />}
+                    : null}
             </Grid>
         </Box>
     )

@@ -17,9 +17,14 @@ const stompUrl = `${import.meta.env.VITE_FINANSSI_API_URL.replace(/^http/, "ws")
 
 // The websocket is open only while a user is logged in, authenticated with their Firebase ID token
 const StompConnection = ({ children }: { children: React.ReactNode }) => {
-    const { user } = useCurrentUser()
+    const { user, profile, status } = useCurrentUser()
     return (
-        <StompProvider key={user?.uid ?? "signed-out"} url={stompUrl} enabled={user !== null} getAccessToken={() => user!.getIdToken()}>
+        <StompProvider
+            key={user ? `${user.uid}:${profile?.id ?? status}` : "signed-out"}
+            url={stompUrl}
+            enabled={user !== null && status === "ready"}
+            getAccessToken={() => user!.getIdToken()}
+        >
             {children}
         </StompProvider>
     )

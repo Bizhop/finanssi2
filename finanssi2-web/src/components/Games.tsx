@@ -28,7 +28,7 @@ import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
 import { Game, gameApi, GameApiError } from "./gameApi.ts"
 
 const Games = () => {
-    const { user, debugMode, refreshCapabilities, clearDebugAccess } = useCurrentUser()
+    const { user, profile, debugMode, refreshCapabilities, clearDebugAccess } = useCurrentUser()
     const userRef = useRef(user)
     userRef.current = user
     const requestRef = useRef(0)
@@ -202,8 +202,8 @@ const Games = () => {
                 : (
                     <Stack spacing={1.5}>
                         {games.filter((game) => game.mode !== "DEBUG" || debugMode).map((game) => {
-                            const member = game.state.players.some((player) => player.uid === user.uid)
-                            const creator = game.creator === user.uid
+                            const member = game.state.players.some((player) => player.uid === profile?.id)
+                            const creator = game.creator === profile?.id
                             return (
                                 <Card key={game.id} variant="outlined">
                                     <CardContent>

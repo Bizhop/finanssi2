@@ -1,11 +1,18 @@
-import { Route, Routes, useLocation } from "react-router"
-import { Box, Container, Divider, Paper, Stack } from "@mui/material"
+import { Navigate, Route, Routes, useLocation } from "react-router"
+import { Box, Container, Divider, Paper, Stack, Typography } from "@mui/material"
 
 import FrontPage from "./FrontPage.tsx"
 import Header from "./Header.tsx"
 import Games from "./Games.tsx"
 import GameRoom from "./GameRoom.tsx"
 import { GAME_BOARD_MAX_WIDTH, GAME_ROOM_MAX_WIDTH } from "./boardLayout.ts"
+import { useCurrentUser } from "./CurrentUserContext.tsx"
+
+const AuthenticatedRoute = ({ children }: { children: React.ReactNode }) => {
+    const { status } = useCurrentUser()
+    if (status === "initializing" || status === "profileLoading") return <Typography sx={{ p: 2 }}>Loading account…</Typography>
+    return status === "ready" ? children : <Navigate to="/" replace />
+}
 
 const NotFound = () => (
     <Box sx={{ flexGrow: 1 }}>
@@ -16,8 +23,22 @@ const NotFound = () => (
 const MyRoutes = () => (
     <Routes>
         <Route path="/" element={<FrontPage />} />
-        <Route path="/games" element={<Games />} />
-        <Route path="/games/:id" element={<GameRoom />} />
+        <Route
+            path="/games"
+            element={
+                <AuthenticatedRoute>
+                    <Games />
+                </AuthenticatedRoute>
+            }
+        />
+        <Route
+            path="/games/:id"
+            element={
+                <AuthenticatedRoute>
+                    <GameRoom />
+                </AuthenticatedRoute>
+            }
+        />
         <Route path="*" element={<NotFound />} />
     </Routes>
 )

@@ -27,7 +27,7 @@ const apiError = (reason: unknown) => reason instanceof Error ? reason.message :
 
 const GameRoomContent = () => {
     const { id } = useParams()
-    const { user, debugMode, capabilitiesReady, clearDebugAccess } = useCurrentUser()
+    const { user, profile, debugMode, capabilitiesReady, clearDebugAccess } = useCurrentUser()
     const navigate = useNavigate()
     // The GameRoom wrapper remounts this per game and user; late responses after unmount must not toast or navigate.
     const mounted = useRef(true)
@@ -202,7 +202,8 @@ const GameRoomContent = () => {
     if (view.game.mode === "DEBUG" && !debugMode) return <CircularProgress />
 
     const { game, allowedCommands } = view
-    const actingUid = game.mode === "DEBUG" ? view.actingPlayer : user.uid
+    const identityId = profile?.id ?? ""
+    const actingUid = game.mode === "DEBUG" ? view.actingPlayer : identityId
     const actingPlayer = game.state.players.find((player) => player.uid === actingUid)
     const pending = game.state.pendingDecisions[0]
     const decisionActor = pending?.player === actingUid
@@ -287,7 +288,7 @@ const GameRoomContent = () => {
                     embedded
                     compact
                     expanded={expanded}
-                    canSend={game.mode === "DEBUG" ? game.creator === user.uid : game.state.players.some((player) => player.uid === user.uid)}
+                    canSend={game.mode === "DEBUG" ? game.creator === identityId : game.state.players.some((player) => player.uid === identityId)}
                 />
             ),
         },
@@ -431,7 +432,7 @@ const GameRoomContent = () => {
                                 player={player}
                                 game={game}
                                 board={board}
-                                you={player.uid === user.uid}
+                                you={player.uid === identityId}
                                 inTurn={game.status === "RUNNING" && player.uid === game.state.currentPlayer}
                                 expected={game.status !== "RUNNING" || expectedUid !== player.uid
                                     ? null
@@ -613,8 +614,8 @@ const EventLine = ({ entry, text, board }: { entry: GameLogEntry; text: string; 
 
 const GameRoom = () => {
     const { id } = useParams()
-    const { user } = useCurrentUser()
-    return <GameRoomContent key={id + ":" + user?.uid} />
+    const { user, profile } = useCurrentUser()
+    return <GameRoomContent key={id + ":" + user?.uid + ":" + profile?.id} />
 }
 
 export default GameRoom
