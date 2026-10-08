@@ -12,6 +12,7 @@ import org.springframework.security.web.authentication.preauth.AbstractPreAuthen
 import java.io.IOException;
 
 public class FirebaseTokenFilter extends AbstractPreAuthenticatedProcessingFilter {
+    static final String GOOGLE_EMAIL_VERIFICATION_PATH = "/api/me/verify-linked-google-email";
     final FirebaseTokenVerifier tokenVerifier;
     final AuthenticatedUserService authenticatedUserService;
 
@@ -36,11 +37,17 @@ public class FirebaseTokenFilter extends AbstractPreAuthenticatedProcessingFilte
         var httpRequest = (HttpServletRequest)request;
         var token = tokenVerifier.verifyAuthorizationHeader(httpRequest.getHeader("Authorization"));
         if (token.isPresent()) {
+            request.setAttribute("firebaseToken", token.get());
             try {
                 var resolved = authenticatedUserService.resolve(token.get());
                 request.setAttribute("user", resolved);
                 SecurityContextHolder.getContext().setAuthentication(new FirebaseAuthenticationToken(token.get(), resolved));
             } catch (AuthenticatedUserService.UnverifiedEmailException e) {
+                if (httpRequest.getMethod().equals("POST") && httpRequest.getRequestURI().equals(GOOGLE_EMAIL_VERIFICATION_PATH)) {
+                    SecurityContextHolder.getContext().setAuthentication(new FirebaseAuthenticationToken(token.get()));
+                    chain.doFilter(request, response);
+                    return;
+                }
                 writeError((jakarta.servlet.http.HttpServletResponse) response, 403, "EMAIL_VERIFICATION_REQUIRED");
                 return;
             } catch (AuthenticatedUserService.AccountLinkConflictException e) {

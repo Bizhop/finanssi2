@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react"
-import { onIdTokenChanged, User } from "firebase/auth"
+import { onIdTokenChanged, reload, User } from "firebase/auth"
 import { auth } from "./firebase.ts"
 import { gameApi } from "./gameApi.ts"
 
@@ -75,6 +75,11 @@ export const CurrentUserProvider = ({ children }: CurrentUserProviderProps) => {
             if (!profileRef.current || !sameAccount) setStatus("profileLoading")
             try {
                 if (request !== requestRef.current || userRef.current?.uid !== nextUser.uid) return
+                if (!nextUser.emailVerified && nextUser.providerData.some((provider) => provider.providerId === "google.com")) {
+                    await gameApi(nextUser, "/api/me/verify-linked-google-email", { method: "POST" })
+                    await reload(nextUser)
+                    await nextUser.getIdToken(true)
+                }
                 if (!nextUser.emailVerified) {
                     setStatus("verificationRequired")
                     return
@@ -131,13 +136,14 @@ export const usePublicProfiles = (ids: string[]) => {
         const chunks: string[][] = []
         const profileIds = key.split(",")
         for (let index = 0; index < profileIds.length; index += 100) chunks.push(profileIds.slice(index, index + 100))
-        const load = () => Promise.all(chunks.map((chunk) => {
-            const params = new URLSearchParams()
-            chunk.forEach((id) => params.append("ids", id))
-            return gameApi<PublicProfile[]>(user, `/api/users?${params}`)
-        })).then((groups) => {
-            if (active) setProfiles(Object.fromEntries(groups.flat().map((item) => [item.id, item])))
-        }).catch(() => undefined)
+        const load = () =>
+            Promise.all(chunks.map((chunk) => {
+                const params = new URLSearchParams()
+                chunk.forEach((id) => params.append("ids", id))
+                return gameApi<PublicProfile[]>(user, `/api/users?${params}`)
+            })).then((groups) => {
+                if (active) setProfiles(Object.fromEntries(groups.flat().map((item) => [item.id, item])))
+            }).catch(() => undefined)
         void load()
         const timer = window.setInterval(() => void load(), 15_000)
         return () => {

@@ -49,6 +49,7 @@ public class AuthenticatedUserService {
     private User user(ApplicationUser profile) {
         return new User(profile.getId().toString(), profile.getEmail(), profile.getDisplayName(), profile.effectiveAvatar(), true, profile.getFirebaseUid());
     }
+
     public static class UnverifiedEmailException extends RuntimeException {}
     public static class AccountLinkConflictException extends RuntimeException {}
 }

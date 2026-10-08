@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react"
 import { Alert, Avatar, Button, Stack, TextField, Typography } from "@mui/material"
-import { EmailAuthProvider, GoogleAuthProvider, linkWithCredential, reauthenticateWithPopup, validatePassword } from "firebase/auth"
+import { EmailAuthProvider, GoogleAuthProvider, linkWithCredential, reauthenticateWithPopup, reload, validatePassword } from "firebase/auth"
+import { toast } from "react-toastify"
 import { auth } from "./firebase.ts"
 import { useCurrentUser } from "./CurrentUserContext.tsx"
 import { avatarSrc, gameApi } from "./gameApi.ts"
@@ -50,9 +51,16 @@ const AccountProfile = () => {
                 await reauthenticateWithPopup(user, new GoogleAuthProvider())
                 await linkWithCredential(user, credential)
             }
+            await reload(user)
+            await user.getIdToken(true)
+            await gameApi(user, "/api/me/verify-linked-google-email", { method: "POST" })
+            await reload(user)
+            await user.getIdToken(true)
             setPassword("")
             setPasswordConfirmation("")
-            setPasswordMessage("Password sign-in added to this Google account.")
+            const success = "Password added. Your Google-verified email is confirmed, and you can sign in with email and password."
+            setPasswordMessage(success)
+            toast(success, { type: "success", autoClose: 4000 })
         } catch (reason) {
             setPasswordError(reason instanceof Error ? reason.message : "Unable to add password sign-in")
         } finally {
@@ -128,6 +136,8 @@ const AccountProfile = () => {
                     Save profile
                 </Button>
             </Stack>
+            {passwordMessage && user.providerData.some((provider) => provider.providerId === "password") && <Alert severity="success">{passwordMessage}</Alert>}
+            {passwordError && user.providerData.some((provider) => provider.providerId === "password") && <Alert severity="error">{passwordError}</Alert>}
             {user.providerData.some((provider) => provider.providerId === "google.com") &&
                 !user.providerData.some((provider) => provider.providerId === "password") && (
                 <Stack component="form" onSubmit={addPassword} spacing={2}>
@@ -149,7 +159,6 @@ const AccountProfile = () => {
                         onChange={(event) => setPasswordConfirmation(event.target.value)}
                     />
                     {passwordError && <Alert severity="error">{passwordError}</Alert>}
-                    {passwordMessage && <Alert severity="success">{passwordMessage}</Alert>}
                     <Button type="submit" disabled={busy}>Add password</Button>
                 </Stack>
             )}
