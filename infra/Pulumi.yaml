@@ -1,0 +1,7 @@
+name: finanssi2
+runtime:
+  name: nodejs
+  options:
+    typescript: true
+description: AWS infrastructure for the Finanssi 2 production deployment
+main: index.ts
