@@ -1,5 +1,9 @@
 # Frontend status
 
+Updated 2026-10-09: the production backend is deployed and its service reports that the app started. The Pulumi
+`frontendDistributionHostname` output is currently `null`, so there is no production frontend URL to open yet. The distribution remains
+staged pending certificate/DNS setup and enabling `createFrontendDistribution`; see [infrastructure setup](../infra/README.md).
+
 Updated 2026-10-08 after centralized Firebase auth, verified email/password flows, application profile bootstrap/editing and custom avatar controls. Automated
 frontend checks passed during phase 4; backend phase 5 checks also pass. Real Firebase verification/linking, reset and browser upload acceptance still require a
 configured Firebase project, account credentials and mailbox access.

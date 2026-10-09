@@ -31,8 +31,10 @@ available in that region and supports Serverless v2 auto-pause before previewing
 the first stage requests the ACM certificate and exports its validation CNAME without waiting for Domainhotelli DNS. After that CNAME
 resolves publicly, enable the distribution in the local stack config and preview again.
 
-The `prod` stack has been deployed. The first stack stage creates billable AWS resources even while the frontend distribution is
-disabled. Review the resource and cost preview before future infrastructure changes.
+The `prod` stack is deployed. The backend image has been pushed to ECR and deployed through SSM; the backend service reported that
+the app started. `frontendDistributionHostname` currently returns `null` because the CloudFront distribution is still staged/disabled.
+The first stack stage creates billable AWS resources even while the frontend distribution is disabled. Review the resource and cost
+preview before future infrastructure changes.
 
 The EC2 image reference is intentionally absent at bootstrap. It installs host services and waits for the release helpers below to
 set an immutable ECR digest through SSM. The host exposes only 80/443; SSH and PostgreSQL are not public, and Aurora accepts traffic
@@ -45,9 +47,9 @@ stack. They read the repository, architecture, region and instance from stack ou
 uncommitted changes so each image maps to a source revision.
 
 Publishing builds for the configured EC2 architecture, pushes a unique immutable ECR tag, resolves its digest and prints the
-digest-pinned image reference. It then deploys that reference through Systems Manager; the host pulls it, updates the image reference,
-restarts the service and checks `/api/health/live`. A failed health check restores the previous image reference and restarts the
-previous release. Set `DEPLOY_BACKEND=false` to publish without deploying.
+digest-pinned image reference. It then deploys that reference through Systems Manager; the host waits for EC2 bootstrap, pulls the
+image, updates the image reference, restarts the service and checks `/api/health/live`. A failed health check restores the previous
+image reference and restarts the previous release. Set `DEPLOY_BACKEND=false` to publish without deploying.
 
 ```bash
 ./infra/scripts/publish-backend-image.sh
@@ -56,6 +58,7 @@ previous release. Set `DEPLOY_BACKEND=false` to publish without deploying.
 ## Current gaps
 
 - Account-specific budget amount/email still require operator values; service restart monitoring relies on host syslog forwarding.
-- The frontend upload/cache publication workflow and Domainhotelli DNS handoff remain manual work.
-- The backend image has not yet been released to ECR; live application, TLS, database pause/resume and API acceptance remain.
-- Frontend distribution creation, certificate validation, upload/cache publication and DNS handoff remain staged/manual.
+- The backend image is deployed and the service reports that the app started; verify the public API, TLS hostname and Aurora
+  pause/resume behavior when application access is available.
+- The CloudFront frontend distribution is disabled, so `frontendDistributionHostname` is `null`. Validate the ACM certificate through
+  Domainhotelli DNS, enable `createFrontendDistribution`, then complete frontend upload/cache publication and DNS handoff manually.

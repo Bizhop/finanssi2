@@ -1,6 +1,9 @@
 # Backend status
 
-Updated 2026-10-08 after email/password authentication, database-backed user profiles and processed custom avatars. Firebase tokens
+Updated 2026-10-09 after production backend deployment. The SSM deployment command completed successfully and the backend service
+reported that the app started. Public API behavior, TLS hostname verification and Aurora pause/resume still need live acceptance.
+The frontend distribution hostname output is currently `null`; see [infrastructure setup](../infra/README.md) for the staged frontend
+handoff. Firebase tokens
 must carry a verified email before profile provisioning or REST/STOMP access. See the root README for local configuration. Phase 5
 automated checks pass; live Firebase account linking and browser acceptance remain outstanding.
 
@@ -16,8 +19,10 @@ deployed pause/resume behavior still need live validation.
 Production Pulumi infrastructure was deployed on 2026-10-09: VPC/Aurora PostgreSQL 17.11, x86-64 `t3.small` EC2, ECR, scoped
 IAM/Secrets Manager, S3, staged CloudFront certificate/distribution, and cost/host alarms. S3 resource types and the EC2 primary
 network interface use current provider inputs. TypeScript compilation passed, and the deployment completed without warnings.
-ECR release helpers are implemented; publishing the backend image and validating live API, TLS and database pause/resume behavior
-remain. Actual budget amount/email and the frontend DNS/distribution handoff remain operator tasks. See [infra setup](../infra/README.md).
+The backend image was pushed to ECR and deployed by digest through SSM; the service status command succeeded and reported the app
+started. Bootstrap now installs Docker and pinned Caddy directly, and deployment authenticates to ECR with the EC2 role. Public API,
+TLS and database pause/resume behavior remain to be accepted. Actual budget amount/email and frontend DNS/distribution handoff remain
+operator tasks. See [infra setup](../infra/README.md).
 
 Production application configuration started on branch `production/app-config` (2026-10-09): Firebase Admin credentials now use
 `GOOGLE_APPLICATION_CREDENTIALS` with the existing local filename as default, REST and STOMP share a configurable allowed origin,

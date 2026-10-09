@@ -46,11 +46,28 @@ import sys
 
 image_ref = os.environ["IMAGE_REF"]
 remote_script = r'''#!/usr/bin/env bash
-set -eu
+set -euo pipefail
 IMAGE_REF='@@IMAGE_REF@@'
 REF_FILE=/etc/finanssi2/image-ref
 TEMP_FILE="${REF_FILE}.new"
 OLD_REF=$(cat "$REF_FILE" 2>/dev/null || true)
+
+if command -v cloud-init >/dev/null 2>&1; then
+    if ! cloud-init status --wait; then
+        echo 'EC2 bootstrap failed; inspect /var/log/cloud-init-output.log' >&2
+        if [ -r /var/log/cloud-init-output.log ]; then
+            tail -n 120 /var/log/cloud-init-output.log >&2
+        fi
+        exit 1
+    fi
+fi
+if ! command -v docker >/dev/null 2>&1; then
+    echo 'Docker is missing after EC2 bootstrap; inspect /var/log/cloud-init-output.log' >&2
+    if [ -r /var/log/cloud-init-output.log ]; then
+        tail -n 120 /var/log/cloud-init-output.log >&2
+    fi
+    exit 127
+fi
 
 rollback() {
     if [ -n "$OLD_REF" ]; then
@@ -64,6 +81,9 @@ rollback() {
     fi
 }
 
+source /etc/finanssi2/host.env
+aws ecr get-login-password --region "$AWS_REGION" \
+    | docker login --username AWS --password-stdin "$ECR_REPOSITORY_URL" >/dev/null
 docker pull "$IMAGE_REF"
 printf '%s\n' "$IMAGE_REF" > "$TEMP_FILE"
 chmod 0644 "$TEMP_FILE"
