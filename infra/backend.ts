@@ -384,11 +384,10 @@ export function createBackend(
     const instance = new aws.ec2.Instance(`${prefix}-backend`, {
         ami,
         instanceType: settings.instanceType,
-        networkInterfaces: [{ deviceIndex: 0, networkInterfaceId: networkInterface.id, deleteOnTermination: false }],
+        primaryNetworkInterface: { networkInterfaceId: networkInterface.id },
         iamInstanceProfile: instanceProfile.name,
         userData,
         userDataReplaceOnChange: true,
-        associatePublicIpAddress: false,
         monitoring: false,
         metadataOptions: { httpEndpoint: "enabled", httpTokens: "required", httpPutResponseHopLimit: 1 },
         creditSpecification: { cpuCredits: "standard" },

@@ -2,7 +2,7 @@ import * as aws from "@pulumi/aws"
 import * as pulumi from "@pulumi/pulumi"
 
 export interface Frontend {
-    bucket: aws.s3.BucketV2
+    bucket: aws.s3.Bucket
     certificate: aws.acm.Certificate
     distribution?: aws.cloudfront.Distribution
 }
@@ -13,7 +13,7 @@ export function createFrontend(
     certificateProvider: aws.Provider,
     settings: { hostname: string; createDistribution: boolean },
 ): Frontend {
-    const bucket = new aws.s3.BucketV2(`${prefix}-frontend`, {
+    const bucket = new aws.s3.Bucket(`${prefix}-frontend`, {
         bucket: `${prefix}-frontend`,
         forceDestroy: true,
         tags: { Application: "finanssi2" },
@@ -29,11 +29,11 @@ export function createFrontend(
         bucket: bucket.id,
         rule: { objectOwnership: "BucketOwnerEnforced" },
     }, { provider })
-    new aws.s3.BucketServerSideEncryptionConfigurationV2(`${prefix}-frontend-encryption`, {
+    new aws.s3.BucketServerSideEncryptionConfiguration(`${prefix}-frontend-encryption`, {
         bucket: bucket.id,
         rules: [{ applyServerSideEncryptionByDefault: { sseAlgorithm: "AES256" } }],
     }, { provider })
-    new aws.s3.BucketLifecycleConfigurationV2(`${prefix}-frontend-asset-retention`, {
+    new aws.s3.BucketLifecycleConfiguration(`${prefix}-frontend-asset-retention`, {
         bucket: bucket.id,
         rules: [{
             id: "expire-old-hashed-assets",

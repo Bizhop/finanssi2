@@ -4,7 +4,12 @@ export function createMonitoring(
     prefix: string,
     provider: aws.Provider,
     budgetProvider: aws.Provider,
-    settings: { instance: aws.ec2.Instance; monthlyBudgetUsd: number; alertEmail: string },
+    settings: {
+        instance: aws.ec2.Instance
+        hostLogGroup: aws.cloudwatch.LogGroup
+        monthlyBudgetUsd: number
+        alertEmail: string
+    },
 ): void {
     const alarmTopic = new aws.sns.Topic(`${prefix}-alarm-notifications`, {
         name: `${prefix}-alarms`,
@@ -89,7 +94,7 @@ export function createMonitoring(
 
     new aws.cloudwatch.LogMetricFilter(`${prefix}-backend-start-filter`, {
         name: `${prefix}-backend-starts`,
-        logGroupName: "/finanssi2/prod/host",
+        logGroupName: settings.hostLogGroup.name,
         pattern: '"backend container start"',
         metricTransformation: {
             name: "BackendStarts",

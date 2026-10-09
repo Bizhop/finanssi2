@@ -86,7 +86,7 @@ if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(budgetAlertEmail)) 
     throw new Error("budgetAlertEmail must be set to an address that should receive AWS cost alerts")
 }
 
-const engineVersion = config.get("postgresEngineVersion") ?? "16.6"
+const engineVersion = config.get("postgresEngineVersion") ?? "17.11"
 const minimumCapacity = config.getNumber("auroraMinCapacity") ?? 0
 const maximumCapacity = config.getNumber("auroraMaxCapacity") ?? 1
 const autoPauseSeconds = config.getNumber("auroraAutoPauseSeconds") ?? 300
@@ -127,6 +127,7 @@ const frontend = createFrontend(prefix, provider, certificateProvider, {
 })
 createMonitoring(prefix, provider, certificateProvider, {
     instance: backend.instance,
+    hostLogGroup: backend.hostLogGroup,
     monthlyBudgetUsd: monthlyBudgetLimitUsd,
     alertEmail: budgetAlertEmail,
 })
@@ -154,4 +155,4 @@ export const frontendCertificateArn = frontend.certificate.arn
 export const frontendCertificateDnsRecords = frontend.certificate.domainValidationOptions.apply((options) =>
     options.map((option) => ({ name: option.resourceRecordName, type: option.resourceRecordType, value: option.resourceRecordValue }))
 )
-export const frontendDistributionHostname = frontend.distribution?.domainName
+export const frontendDistributionHostname = frontend.distribution?.domainName ?? null

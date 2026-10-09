@@ -12,7 +12,7 @@ config:
   finanssi2:auroraMinCapacity: 0
   finanssi2:auroraMaxCapacity: 1
   finanssi2:auroraAutoPauseSeconds: 300
-  finanssi2:postgresEngineVersion: "16.6"
+  finanssi2:postgresEngineVersion: "17.11"
   finanssi2:firebaseWeb:
     apiKey: replace-me
     authDomain: replace-me.firebaseapp.com
