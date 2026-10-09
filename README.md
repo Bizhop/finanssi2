@@ -9,6 +9,7 @@ Current implementation status, decisions and todos:
 
 - [Backend notes](finanssi2-backend/STATUS.md)
 - [Frontend notes](finanssi2-web/STATUS.md)
+- [Production infrastructure setup](infra/README.md)
 
 Private single-player debug mode is implemented; remaining live acceptance checks are recorded in the status notes.
 

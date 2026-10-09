@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "outDir": "./bin",
+    "sourceMap": true,
+    "removeComments": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  },
+  "files": ["index.ts", "networking.ts", "database.ts", "secrets.ts", "backend.ts", "frontend.ts", "monitoring.ts"]
+}
