@@ -1,0 +1,22 @@
+config:
+  aws:region: eu-north-1
+  finanssi2:frontendHostname: finanssi.bizhop.fi
+  finanssi2:apiHostname: api.finanssi.bizhop.fi
+  finanssi2:allowedOrigin: https://finanssi.bizhop.fi
+  finanssi2:instanceType: t3.small
+  finanssi2:architecture: x86_64
+  finanssi2:createFrontendDistribution: false
+  finanssi2:debugAllowedEmails: ""
+  finanssi2:monthlyBudgetLimitUsd: 0
+  finanssi2:budgetAlertEmail: "replace-with-alert-address@example.com"
+  finanssi2:auroraMinCapacity: 0
+  finanssi2:auroraMaxCapacity: 1
+  finanssi2:auroraAutoPauseSeconds: 300
+  finanssi2:postgresEngineVersion: "17.11"
+  finanssi2:firebaseWeb:
+    apiKey: replace-me
+    authDomain: replace-me.firebaseapp.com
+    projectId: replace-me
+    storageBucket: replace-me
+    messagingSenderId: replace-me
+    appId: replace-me
