@@ -6,6 +6,7 @@ import com.google.firebase.FirebaseOptions;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -13,12 +14,17 @@ import java.io.IOException;
 @Configuration
 @Profile("!test & !auth-test")
 public class FirebaseConfig {
+    @Value("${finanssi2.firebase.credentials}")
+    private String credentialsPath;
+
     @Bean
     public FirebaseApp firebaseApp() throws IOException {
-        var serviceAccount = new FileInputStream("finanssi2-firebase-adminsdk.json");
-        var options = FirebaseOptions.builder()
-                .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                .build();
+        FirebaseOptions options;
+        try (var serviceAccount = new FileInputStream(credentialsPath)) {
+            options = FirebaseOptions.builder()
+                    .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                    .build();
+        }
         return FirebaseApp.initializeApp(options);
     }
 }

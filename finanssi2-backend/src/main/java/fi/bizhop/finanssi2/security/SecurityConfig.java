@@ -27,6 +27,9 @@ public class SecurityConfig {
     @Value("${finanssi2.endpoints.whitelist}")
     String whitelist;
 
+    @Value("${finanssi2.web.allowed-origin}")
+    String allowedOrigin;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         var whitelistArray = whitelist.split(" ");
@@ -48,7 +51,7 @@ public class SecurityConfig {
 
     public CorsConfigurationSource corsConfigurationSource() {
         var configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000"));
+        configuration.setAllowedOrigins(List.of(allowedOrigin));
         configuration.setAllowedMethods(List.of("HEAD", "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

@@ -4,6 +4,10 @@ Updated 2026-10-08 after centralized Firebase auth, verified email/password flow
 frontend checks passed during phase 4; backend phase 5 checks also pass. Real Firebase verification/linking, reset and browser upload acceptance still require a
 configured Firebase project, account credentials and mailbox access.
 
+Production build configuration started on branch `production/app-config` (2026-10-09): `deno task build` loads the untracked project-root
+`.env.production`, validates the Firebase web settings and HTTPS API URL, and writes to `dist/`. Deno is unavailable in the current
+environment, so the build has not been verified here.
+
 Updated 2026-10-06 after polishing pending decisions and adding linked decision previews. The functional gaps and deferred live reviews below remain. See
 [backend status](../finanssi2-backend/STATUS.md) for gameplay and rule decisions.
 
@@ -51,7 +55,7 @@ messages, reconnect controls, and spectator mode. Frontend checks pass; responsi
   zero; plus/minus buttons and arrow keys jump between passing and the minimum bid, then step by €500.
 - Finance News direction choices show actual landing squares, including mandatory stops. Kokous uses a highlighted board picker and confirms the chosen
   destination. Fire previews include three buildings to choose two from, plus a forced-pair confirmation case. Bond transfers show the donor's token and colour.
-- Production builds remain disabled in `deno.json` until a production Firebase environment/configuration exists.
+- `deno task build` is enabled and requires the production Firebase web settings and HTTPS API URL in `.env.production`; this has not yet been run in an environment with Deno and the production values.
 
 ## Private debug games
 

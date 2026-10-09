@@ -5,3 +5,4 @@ node_modules/
 src/.vite
 dev-pages/.vite
 src/dist/
+dist/

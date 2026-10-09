@@ -3,9 +3,7 @@
         "dev": "deno run -A --env-file=.env.development npm:vite",
         // Component test pages (dev-pages/) with a fake login and backend, at http://localhost:3001
         "dev:pages": "deno run -A --env-file=.env.development npm:vite --config vite.dev-pages.config.ts",
-        // Disabled: no Firebase environment for production yet (only .env.development exists), so a build would fail at startup
-        // with auth/invalid-api-key. Re-enable once production env config is in place.
-        // "build": "deno run -A npm:vite build",
+        "build": "deno run -A --env-file=.env.production npm:vite build --mode production",
         "fmt": "deno fmt",
         "fmt:check": "deno fmt --check",
         "typecheck": "deno check src/ dev-pages/ vite.config.ts vite.dev-pages.config.ts",
