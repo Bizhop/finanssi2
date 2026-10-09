@@ -45,7 +45,13 @@ docker build --platform linux/arm64 -t finanssi2-backend:local .
 ```
 
 The image uses the Gradle wrapper version recorded by the project, excludes local credentials and build state, and runs as UID 10001.
-Runtime database and Firebase credentials must be injected when the container starts; they are not part of the image.
+Runtime database and Firebase credentials must be injected when the container starts; they are not part of the image. It includes
+AWS's public RDS global CA bundle with a build-time checksum check; refresh this bundle from `truststore.pki.rds.amazonaws.com`
+when AWS rotates its RDS CAs.
+For production, activate Spring's `prod` profile. It requires Spring config-tree files under `/run/finanssi2/config/` for
+`spring.datasource.url`, `spring.datasource.username` and `spring.datasource.password`; the URL must use the Aurora cluster hostname.
+The profile enables hostname-verified TLS, a four-connection pool that closes idle sessions for Aurora auto-pause, and proxy-forwarded
+headers. `/api/health/live` is a public liveness response that does not query the database.
 
 ## Running locally
 

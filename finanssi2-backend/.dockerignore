@@ -9,4 +9,5 @@ bin
 .env.*
 finanssi2-firebase-adminsdk.json
 *.pem
+!certs/rds-global-bundle.pem
 *.key

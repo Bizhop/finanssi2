@@ -8,6 +8,11 @@ Backend image packaging is on branch `production/backend-image` (2026-10-09): a 
 wrapper, pins JDK/JRE base images by digest, excludes local Firebase credentials from the build context and runs the JRE image as a
 nonroot user. The ARM64 image built successfully here; deployed runtime and memory acceptance remain outstanding.
 
+Production runtime settings are on branch `production/backend-runtime` (2026-10-09): the `prod` profile imports injected DB config,
+uses TLS hostname verification and a small idle-closing Hikari pool for Aurora auto-pause, trusts proxy-forwarded headers, and exposes
+a database-independent public liveness route. The image includes the AWS RDS global CA bundle pinned by checksum; TLS handshake and
+deployed pause/resume behavior still need live validation.
+
 Production application configuration started on branch `production/app-config` (2026-10-09): Firebase Admin credentials now use
 `GOOGLE_APPLICATION_CREDENTIALS` with the existing local filename as default, REST and STOMP share a configurable allowed origin,
 and the committed debug email is removed in favor of an empty environment-backed default. Build and live configuration acceptance
