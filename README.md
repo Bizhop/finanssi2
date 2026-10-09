@@ -38,11 +38,11 @@ that directory contains public frontend configuration and must not contain Fireb
 
 ### Backend container image
 
-Build the Java 25 backend image from the backend directory, targeting the deployment architecture (ARM64 for the planned `t4g` host):
+Build a local Java 25 backend image from the backend directory for the current production host (`x86_64`):
 
 ```bash
 cd finanssi2-backend
-docker build --platform linux/arm64 -t finanssi2-backend:local .
+docker build --platform linux/amd64 -t finanssi2-backend:local .
 ```
 
 The image uses the Gradle wrapper version recorded by the project, excludes local credentials and build state, and runs as UID 10001.
@@ -53,6 +53,14 @@ For production, activate Spring's `prod` profile. It requires Spring config-tree
 `spring.datasource.url`, `spring.datasource.username` and `spring.datasource.password`; the URL must use the Aurora cluster hostname.
 The profile enables hostname-verified TLS, a four-connection pool that closes idle sessions for Aurora auto-pause, and proxy-forwarded
 headers. `/api/health/live` is a public liveness response that does not query the database.
+
+For production, run the release helper from the repository root. It builds for the architecture configured in Pulumi, publishes an
+immutable ECR image, then rolls it out over Systems Manager and checks the backend liveness endpoint. Set `DEPLOY_BACKEND=false`
+to publish without deploying:
+
+```bash
+./infra/scripts/publish-backend-image.sh
+```
 
 ## Running locally
 

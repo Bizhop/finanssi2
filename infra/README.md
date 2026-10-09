@@ -1,10 +1,10 @@
 # Production infrastructure
 
-This TypeScript Pulumi project defines the first production stack modules: a two-AZ VPC, private Aurora PostgreSQL, ECR, a
+This TypeScript Pulumi project defines the production stack: a two-AZ VPC, private Aurora PostgreSQL, ECR, a
 single x86-64 EC2 backend, Secrets Manager inputs, a private S3 frontend bucket, and a staged CloudFront certificate/distribution.
 The current default host is `t3.small` (`x86_64`). The stack also defines bounded CloudWatch log retention, host CPU/memory/disk/credit
-alarms, backend restart alarms and a monthly cost budget with email notifications. No AWS resources are created by the local
-TypeScript build.
+alarms, backend restart alarms and a monthly cost budget with email notifications. No AWS resources are created by the local TypeScript
+build.
 
 ## Local setup
 
@@ -31,18 +31,31 @@ available in that region and supports Serverless v2 auto-pause before previewing
 the first stage requests the ACM certificate and exports its validation CNAME without waiting for Domainhotelli DNS. After that CNAME
 resolves publicly, enable the distribution in the local stack config and preview again.
 
-`pulumi preview` and `pulumi up` have not been run from this environment. The code is not an authorization to create AWS resources;
-review the resource and cost preview before deployment. The first stack stage creates billable AWS resources even while the frontend
-distribution is disabled. Do not run `pulumi up` until the deployment plan's DNS, account, cost-alert and secret configuration is ready.
+The `prod` stack has been deployed. The first stack stage creates billable AWS resources even while the frontend distribution is
+disabled. Review the resource and cost preview before future infrastructure changes.
 
-The EC2 image reference is intentionally absent at bootstrap. It installs host services and waits for a later release script to set
-an immutable ECR digest through SSM. The host exposes only 80/443; SSH and PostgreSQL are not public, and Aurora accepts traffic only
-from the backend security group. S3 is private and accepts reads only through CloudFront when the distribution stage is enabled.
+The EC2 image reference is intentionally absent at bootstrap. It installs host services and waits for the release helpers below to
+set an immutable ECR digest through SSM. The host exposes only 80/443; SSH and PostgreSQL are not public, and Aurora accepts traffic
+only from the backend security group. S3 is private and accepts reads only through CloudFront when the distribution stage is enabled.
+
+## Backend releases
+
+The release scripts require Docker Buildx, AWS CLI credentials with ECR and Systems Manager access, and Pulumi access to the deployed
+stack. They read the repository, architecture, region and instance from stack outputs/config. The backend directory must have no
+uncommitted changes so each image maps to a source revision.
+
+Publishing builds for the configured EC2 architecture, pushes a unique immutable ECR tag, resolves its digest and prints the
+digest-pinned image reference. It then deploys that reference through Systems Manager; the host pulls it, updates the image reference,
+restarts the service and checks `/api/health/live`. A failed health check restores the previous image reference and restarts the
+previous release. Set `DEPLOY_BACKEND=false` to publish without deploying.
+
+```bash
+./infra/scripts/publish-backend-image.sh
+```
 
 ## Current gaps
 
-- ECR release/publish and SSM forward-deployment helpers are not implemented yet.
 - Account-specific budget amount/email still require operator values; service restart monitoring relies on host syslog forwarding.
 - The frontend upload/cache publication workflow and Domainhotelli DNS handoff remain manual work.
-- AWS-side IAM, engine-version availability, security-group behavior, certificate validation, and real Aurora pause/resume have not
-  been validated with an AWS account.
+- The backend image has not yet been released to ECR; live application, TLS, database pause/resume and API acceptance remain.
+- Frontend distribution creation, certificate validation, upload/cache publication and DNS handoff remain staged/manual.

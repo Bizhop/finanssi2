@@ -13,10 +13,11 @@ uses TLS hostname verification and a small idle-closing Hikari pool for Aurora a
 a database-independent public liveness route. The image includes the AWS RDS global CA bundle pinned by checksum; TLS handshake and
 deployed pause/resume behavior still need live validation.
 
-Initial Pulumi infrastructure is on branch `production/infrastructure` (2026-10-09): VPC/Aurora, x86-64 `t3.small` EC2, ECR,
-scoped IAM/Secrets Manager, S3, staged CloudFront certificates/distribution, and cost/host alarms are implemented. TypeScript
-compilation passes. No AWS preview or deployment has run; release helpers, actual account budget values and live AWS validation
-remain. See [infra setup](../infra/README.md).
+Production Pulumi infrastructure was deployed on 2026-10-09: VPC/Aurora PostgreSQL 17.11, x86-64 `t3.small` EC2, ECR, scoped
+IAM/Secrets Manager, S3, staged CloudFront certificate/distribution, and cost/host alarms. S3 resource types and the EC2 primary
+network interface use current provider inputs. TypeScript compilation passed, and the deployment completed without warnings.
+ECR release helpers are implemented; publishing the backend image and validating live API, TLS and database pause/resume behavior
+remain. Actual budget amount/email and the frontend DNS/distribution handoff remain operator tasks. See [infra setup](../infra/README.md).
 
 Production application configuration started on branch `production/app-config` (2026-10-09): Firebase Admin credentials now use
 `GOOGLE_APPLICATION_CREDENTIALS` with the existing local filename as default, REST and STOMP share a configurable allowed origin,
