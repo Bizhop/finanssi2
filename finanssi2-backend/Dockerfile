@@ -4,6 +4,8 @@ WORKDIR /workspace
 
 COPY gradlew settings.gradle build.gradle ./
 COPY gradle ./gradle
+COPY certs/rds-global-bundle.pem ./certs/rds-global-bundle.pem
+RUN echo 'fe45bbebf92ad3e27a583bbb2ddd1553c521ed4d49af5514dc0a40372ea5395c  certs/rds-global-bundle.pem' | sha256sum --check --status
 COPY src ./src
 RUN --mount=type=cache,target=/root/.gradle \
     chmod +x gradlew && ./gradlew --no-daemon bootJar -x test \
@@ -12,6 +14,7 @@ RUN --mount=type=cache,target=/root/.gradle \
 FROM eclipse-temurin:25-jre-noble@sha256:d9a39a23634650173f1e2bbc176227af9728587ecf0f4b62d53e9355cd7a19ab
 WORKDIR /app
 
+COPY --from=build /workspace/certs/rds-global-bundle.pem /etc/ssl/certs/aws-rds-global-bundle.pem
 COPY --from=build --chown=10001:10001 /workspace/app.jar /app/app.jar
 USER 10001:10001
 
