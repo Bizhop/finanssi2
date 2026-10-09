@@ -2,3 +2,4 @@ node_modules/
 bin/
 .pulumi/
 Pulumi.*.yaml
+preview.json
