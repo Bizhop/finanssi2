@@ -4,6 +4,11 @@ Updated 2026-10-08 after email/password authentication, database-backed user pro
 must carry a verified email before profile provisioning or REST/STOMP access. See the root README for local configuration. Phase 5
 automated checks pass; live Firebase account linking and browser acceptance remain outstanding.
 
+Production application configuration started on branch `production/app-config` (2026-10-09): Firebase Admin credentials now use
+`GOOGLE_APPLICATION_CREDENTIALS` with the existing local filename as default, REST and STOMP share a configurable allowed origin,
+and the committed debug email is removed in favor of an empty environment-backed default. Build and live configuration acceptance
+remain outstanding.
+
 Updated 2026-10-02 after implementing single-player debug mode. Gameplay and private debug controls are implemented;
 live frontend integration review and the follow-ups below remain. See [frontend status](../finanssi2-web/STATUS.md) for UI gaps.
 

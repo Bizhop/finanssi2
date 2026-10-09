@@ -18,6 +18,23 @@ Private single-player debug mode is implemented; remaining live acceptance check
 - Docker (for PostgreSQL)
 - [Deno](https://deno.com/)
 
+### Production frontend build configuration
+
+From `finanssi2-web/`, create an untracked `.env.production` containing the Firebase web app's public settings and the HTTPS API URL:
+
+```dotenv
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+VITE_FINANSSI_API_URL=https://api.finanssi.bizhop.fi
+```
+
+Run `deno task build` from that directory. The build validates required settings and writes the production app to `finanssi2-web/dist/`;
+that directory contains public frontend configuration and must not contain Firebase Admin credentials.
+
 ## Running locally
 
 ### 1. Database
@@ -77,7 +94,7 @@ Other frontend tasks (run from `finanssi2-web`, defined in `deno.json` like npm 
 
 | Task | Does |
 |---|---|
-| ~~`deno task build`~~ | Production build – **disabled for now**: there is no Firebase production environment yet (see comment in `deno.json`) |
+| `deno task build` | Production build; requires `.env.production` as described above |
 | `deno task typecheck` | Type-check the sources |
 | `deno task test` | Run API transport tests |
 | `deno task lint` | Lint the sources (unused imports/variables etc.) |
