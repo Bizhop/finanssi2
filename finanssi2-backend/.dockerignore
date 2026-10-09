@@ -1,0 +1,12 @@
+.git
+.gradle
+**/build
+bin
+.idea
+.vscode
+*.log
+.env
+.env.*
+finanssi2-firebase-adminsdk.json
+*.pem
+*.key

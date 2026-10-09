@@ -35,6 +35,18 @@ VITE_FINANSSI_API_URL=https://api.finanssi.bizhop.fi
 Run `deno task build` from that directory. The build validates required settings and writes the production app to `finanssi2-web/dist/`;
 that directory contains public frontend configuration and must not contain Firebase Admin credentials.
 
+### Backend container image
+
+Build the Java 25 backend image from the backend directory, targeting the deployment architecture (ARM64 for the planned `t4g` host):
+
+```bash
+cd finanssi2-backend
+docker build --platform linux/arm64 -t finanssi2-backend:local .
+```
+
+The image uses the Gradle wrapper version recorded by the project, excludes local credentials and build state, and runs as UID 10001.
+Runtime database and Firebase credentials must be injected when the container starts; they are not part of the image.
+
 ## Running locally
 
 ### 1. Database
