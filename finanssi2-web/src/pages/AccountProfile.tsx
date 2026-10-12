@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next"
 import { auth } from "../auth/firebase.ts"
 import { useCurrentUser } from "../auth/CurrentUserContext.tsx"
 import { avatarSrc, gameApi } from "../api/gameApi.ts"
+import { LanguageSwitch } from "../ui/LanguageSwitch.tsx"
 
 export const AccountProfile = () => {
     const { t } = useTranslation()
@@ -102,6 +103,8 @@ export const AccountProfile = () => {
         <Stack spacing={2} sx={{ p: 2, maxWidth: 520 }}>
             <Typography variant="h5">{t("account.title")}</Typography>
             <Typography>{t("account.email", { email: profile.email })}</Typography>
+            <Typography variant="h6">{t("nav.language")}</Typography>
+            <LanguageSwitch />
             <Typography variant="h6">{t("account.avatar")}</Typography>
             <Avatar src={avatarSrc(profile.avatar)} alt={profile.displayName} sx={{ width: 96, height: 96, fontSize: 36 }}>
                 {profile.displayName.slice(0, 1).toUpperCase()}

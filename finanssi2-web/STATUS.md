@@ -66,8 +66,8 @@ messages, reconnect controls, and spectator mode. Frontend checks pass; responsi
 
 ## Language
 
-The UI is available in Finnish (default) and English through i18next. The switch is in the header and on the front page; the choice is stored in
-`localStorage` and sets `<html lang>`. Money, numbers and dates follow the language (`src/ui/format.ts`). Card, board and share text stays Finnish. Backend
+The UI is available in Finnish (default) and English through i18next. The switch is in the account page; the choice lasts until the page is reloaded and
+sets `<html lang>`; changing it remounts the page content so cached text is recomputed. Money, numbers and dates follow the language (`src/ui/format.ts`). Card, board and share text stays Finnish. Backend
 error text is English until the backend adds stable error codes (`GameApiError` already keeps `code`). `deno task smoke` visits every preview in both
 languages.
 

@@ -69,7 +69,6 @@ try {
     const browser = await chromium.launch({ executablePath: await browserPath() })
     for (const { code, signedOut, boundary } of languages) {
         const context = await browser.newContext({ viewport: { width: 1400, height: 900 } })
-        await context.addInitScript((language) => localStorage.setItem("finanssi2.language", language), code)
         // Vite may re-optimize dependencies while the first pages load, which breaks a page once; a second attempt is a fair check
         const check = async (page: string) => {
             const problems: string[] = []
@@ -80,7 +79,7 @@ try {
                 // The mocks log every request they answer, with the level info
                 if (message.type() === "error" && !text.includes("favicon")) problems.push(`console error: ${text}`)
             })
-            await tab.goto(`${origin}/${page}`, { waitUntil: "load" })
+            await tab.goto(`${origin}/${page}${page.includes("?") ? "&" : "?"}lang=${code}`, { waitUntil: "load" })
             await tab.waitForLoadState("networkidle")
             await tab.waitForTimeout(400)
             const text = await tab.locator("body").innerText()
@@ -103,7 +102,7 @@ try {
         }
         for (const page of errorPages) {
             const tab = await context.newPage()
-            await tab.goto(`${origin}/${page}`, { waitUntil: "load" })
+            await tab.goto(`${origin}/${page}${page.includes("?") ? "&" : "?"}lang=${code}`, { waitUntil: "load" })
             const shown = await tab.getByText(boundary).count()
             await tab.close()
             console.log(`${shown ? "ok  " : "FAIL"} ${code} ${page}`)

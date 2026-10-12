@@ -1,4 +1,5 @@
-import { type ReactNode, StrictMode } from "react"
+import { Fragment, type ReactNode, StrictMode } from "react"
+import { useTranslation } from "react-i18next"
 import ReactDOM from "react-dom/client"
 import { BrowserRouter } from "react-router"
 
@@ -26,6 +27,13 @@ const StompConnection = ({ children }: { children: ReactNode }) => {
     )
 }
 
+// Remounts the page on a language change. Text computed outside components (event descriptions, labels) and cached by the React Compiler
+// would otherwise stay in the old language until its inputs change; rooms and lists reload their data on mount.
+const LanguageRemount = ({ children }: { children: ReactNode }) => {
+    const { i18n } = useTranslation()
+    return <Fragment key={i18n.language}>{children}</Fragment>
+}
+
 const container = document.getElementById("app")
 if (!container) throw new Error("The page has no #app element")
 const root = ReactDOM.createRoot(container)
@@ -35,9 +43,11 @@ root.render(
             <CurrentUserProvider>
                 <StompConnection>
                     <PublicProfilesProvider>
-                        <ErrorBoundary>
-                            <App />
-                        </ErrorBoundary>
+                        <LanguageRemount>
+                            <ErrorBoundary>
+                                <App />
+                            </ErrorBoundary>
+                        </LanguageRemount>
                     </PublicProfilesProvider>
                     <ToastContainer autoClose={1500} position="top-center" />
                 </StompConnection>

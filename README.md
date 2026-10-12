@@ -138,7 +138,7 @@ Other frontend tasks (run from `finanssi2-web`, defined in `deno.json` like npm 
 | `deno task fmt:check` | Check formatting without changing files (for CI) |
 
 
-The UI is available in Finnish (default) and English; the choice is remembered per browser. Messages live in `finanssi2-web/src/i18n/`
+The UI is available in Finnish (default) and English; the switch is on the account page and the choice lasts until the page is reloaded. Messages live in `finanssi2-web/src/i18n/`
 (`fi*.ts` is the source of truth, `en*.ts` must have the same keys and placeholders, which `deno task test` checks). Card, board and share text
 from the game assets stays Finnish in both languages, and backend error text (`detail`) stays English until the backend sends stable error codes.
 
