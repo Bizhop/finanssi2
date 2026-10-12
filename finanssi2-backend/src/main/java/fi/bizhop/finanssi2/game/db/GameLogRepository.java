@@ -1,7 +1,6 @@
 package fi.bizhop.finanssi2.game.db;
 
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.bizhop.finanssi2.game.engine.GameEvent;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +16,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class GameLogRepository {
     @Qualifier("persistenceEventMapper") final ObjectMapper persistenceEventMapper;
-    @PersistenceContext EntityManager entityManager;
+    final EntityManager entityManager;
 
     @Transactional(readOnly = true)
     public List<GameLogEntry> findByGameIdAndSeqGreaterThanOrderBySeq(String gameId, int seq) {

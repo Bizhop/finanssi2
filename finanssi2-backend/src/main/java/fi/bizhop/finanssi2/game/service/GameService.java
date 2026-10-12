@@ -18,7 +18,8 @@ import fi.bizhop.finanssi2.game.engine.GameSetup;
 import fi.bizhop.finanssi2.game.engine.PlayerState;
 import fi.bizhop.finanssi2.game.engine.RuleViolation;
 import fi.bizhop.finanssi2.security.User;
-import fi.bizhop.finanssi2.service.MessagingService;
+import fi.bizhop.finanssi2.service.Broadcast;
+import org.springframework.context.ApplicationEventPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -44,7 +45,7 @@ public class GameService {
 
     final GameRepository gameRepository;
     final GameLogRepository gameLogRepository;
-    final MessagingService messagingService;
+    final ApplicationEventPublisher publisher;
     final GameData gameData;
     final GameSetup gameSetup;
     final GameEngine gameEngine;
@@ -89,7 +90,7 @@ public class GameService {
         debugAccess.requireOwner(game, user);
         // Versioned removal makes a concurrent save fail rather than recreate the game.
         gameRepository.delete(game);
-        messagingService.send(gameTopic(id), new GameDeleted(id, true));
+        publisher.publishEvent(new Broadcast(gameTopic(id), new GameDeleted(id, true)));
     }
 
     public record GameDeleted(String gameId, boolean deleted) {}
@@ -151,7 +152,7 @@ public class GameService {
         var players = game.getState().getPlayers();
         if (players.size() == 1) {
             gameRepository.delete(game);
-            messagingService.send(LOBBY_TOPIC, new LobbyChange(id, null));
+            publisher.publishEvent(new Broadcast(LOBBY_TOPIC, new LobbyChange(id, null)));
             return;
         }
         players.remove(player);
@@ -315,9 +316,9 @@ public class GameService {
         game.setLastEventSeq(game.getLastEventSeq() + events.size());
         var saved = gameRepository.saveWithEvents(game, entries);
 
-        messagingService.send(gameTopic(saved.getId()), new GameUpdate(saved.getId(), saved.getVersion(), entries));
+        publisher.publishEvent(new Broadcast(gameTopic(saved.getId()), new GameUpdate(saved.getId(), saved.getVersion(), entries)));
         if (lobbyChange && saved.getMode() == GameMode.NORMAL) {
-            messagingService.send(LOBBY_TOPIC, new LobbyChange(saved.getId(), saved));
+            publisher.publishEvent(new Broadcast(LOBBY_TOPIC, new LobbyChange(saved.getId(), saved)));
         }
         return new Committed(saved, entries);
     }

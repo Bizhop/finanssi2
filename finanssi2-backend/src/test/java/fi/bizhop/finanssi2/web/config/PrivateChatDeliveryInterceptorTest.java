@@ -6,6 +6,7 @@ import fi.bizhop.finanssi2.game.db.GameMode;
 import fi.bizhop.finanssi2.game.db.GameRepository;
 import fi.bizhop.finanssi2.game.service.DebugAccess;
 import fi.bizhop.finanssi2.game.service.NotAllowedException;
+import fi.bizhop.finanssi2.security.AuthenticatedUserService;
 import fi.bizhop.finanssi2.security.FirebaseAuthenticationToken;
 import fi.bizhop.finanssi2.security.FirebaseTokenVerifier;
 import fi.bizhop.finanssi2.security.User;
@@ -29,7 +30,7 @@ class PrivateChatDeliveryInterceptorTest {
         var gameRepository = mock(GameRepository.class);
         var debugAccess = mock(DebugAccess.class);
         var tokenVerifier = mock(FirebaseTokenVerifier.class);
-        var authentication = new StompAuthenticationInterceptor(tokenVerifier, gameRepository, debugAccess);
+        var authentication = new StompAuthenticationInterceptor(tokenVerifier, mock(AuthenticatedUserService.class), gameRepository, debugAccess);
         var firebaseToken = mock(FirebaseToken.class);
         when(firebaseToken.getUid()).thenReturn("owner");
         var auth = new FirebaseAuthenticationToken(firebaseToken);

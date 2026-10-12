@@ -1,7 +1,7 @@
 package fi.bizhop.finanssi2.web.config;
 
+import fi.bizhop.finanssi2.config.Finanssi2Properties;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -16,8 +16,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     final StompAuthenticationInterceptor stompAuthenticationInterceptor;
     final PrivateChatDeliveryInterceptor privateChatDeliveryInterceptor;
 
-    @Value("${finanssi2.web.allowed-origin}")
-    String allowedOrigin;
+    final Finanssi2Properties properties;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -27,7 +26,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // Plain websocket only: all supported browsers have it, so no SockJS fallback
-        registry.addEndpoint("/ws").setAllowedOrigins(allowedOrigin);
+        registry.addEndpoint("/ws").setAllowedOrigins(properties.web().allowedOrigin());
     }
 
     @Override

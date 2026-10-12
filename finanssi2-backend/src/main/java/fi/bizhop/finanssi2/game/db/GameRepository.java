@@ -1,7 +1,6 @@
 package fi.bizhop.finanssi2.game.db;
 
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
@@ -31,7 +30,7 @@ public class GameRepository {
     // Private on purpose: this mapper writes the persisted state, including deck order and sealed bids that API views must never carry.
     private final JsonMapper persistenceJsonMapper = JsonMapper.builder().build();
     @Qualifier("persistenceEventMapper") final ObjectMapper persistenceEventMapper;
-    @PersistenceContext EntityManager entityManager;
+    final EntityManager entityManager;
 
     /** What authorization needs to know about a game, without loading its state */
     public record Access(GameMode mode, String creator) {}

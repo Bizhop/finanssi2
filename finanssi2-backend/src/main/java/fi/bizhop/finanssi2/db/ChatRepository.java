@@ -1,7 +1,7 @@
 package fi.bizhop.finanssi2.db;
 
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,8 +13,9 @@ import java.util.UUID;
 import fi.bizhop.finanssi2.game.db.GameEntity;
 
 @Repository
+@RequiredArgsConstructor
 public class ChatRepository {
-    @PersistenceContext EntityManager entityManager;
+    final EntityManager entityManager;
 
     @Transactional(readOnly = true)
     public List<ChatMessage> findAllByOrderByIdDesc(Limit limit) {

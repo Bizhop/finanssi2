@@ -4,9 +4,8 @@ import fi.bizhop.finanssi2.db.ChatRepository;
 import fi.bizhop.finanssi2.db.ChatMessage;
 import fi.bizhop.finanssi2.security.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import fi.bizhop.finanssi2.game.db.GameRepository;
 import fi.bizhop.finanssi2.game.service.DebugAccess;
 import fi.bizhop.finanssi2.game.service.GameNotFoundException;
@@ -25,7 +24,7 @@ public class ChatService {
 
     final ChatRepository chatRepository;
 
-    final MessagingService messagingService;
+    final ApplicationEventPublisher publisher;
     final GameRepository gameRepository;
     final DebugAccess debugAccess;
 
@@ -46,7 +45,7 @@ public class ChatService {
         // Broadcast the saved message so clients get its id
         var savedMessage = chatRepository.save(newMessage, null, UUID.fromString(author.userId()));
 
-        messagingService.send(CHAT_TOPIC, savedMessage);
+        publisher.publishEvent(new Broadcast(CHAT_TOPIC, savedMessage));
         return savedMessage;
     }
 
@@ -68,9 +67,7 @@ public class ChatService {
         var saved = chatRepository.save(new ChatMessage(null, author.userId(), message,
                 System.currentTimeMillis()), UUID.fromString(gameId), UUID.fromString(author.userId()));
         var topic = "/topic/games/" + gameId + "/chat";
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override public void afterCommit() { messagingService.send(topic, saved); }
-        });
+        publisher.publishEvent(new Broadcast(topic, saved));
         return saved;
     }
 

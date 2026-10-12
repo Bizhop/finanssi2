@@ -1,13 +1,12 @@
 package fi.bizhop.finanssi2.game.service;
 
+import fi.bizhop.finanssi2.config.Finanssi2Properties;
 import fi.bizhop.finanssi2.game.db.Game;
 import fi.bizhop.finanssi2.game.db.GameMode;
 import fi.bizhop.finanssi2.security.Emails;
 import fi.bizhop.finanssi2.security.User;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -16,8 +15,8 @@ import java.util.stream.Collectors;
 public class DebugAccess {
     private final Set<String> allowedEmails;
 
-    public DebugAccess(@Value("${finanssi2.debug.allowed-emails:}") String emails) {
-        allowedEmails = Arrays.stream(emails.split(",")).map(Emails::normalize)
+    public DebugAccess(Finanssi2Properties properties) {
+        allowedEmails = properties.debug().allowedEmails().stream().map(Emails::normalize)
                 .filter(Objects::nonNull).collect(Collectors.toUnmodifiableSet());
     }
 

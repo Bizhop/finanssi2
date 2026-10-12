@@ -1,6 +1,7 @@
 package fi.bizhop.finanssi2.game.data;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
@@ -11,13 +12,11 @@ import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 
 /** Loads the game assets from {@code gamedata/} on the classpath; startup fails if they are inconsistent */
+@Slf4j
 @Configuration
 public class GameDataConfig {
-    static final Logger logger = Logger.getLogger(GameDataConfig.class.getName());
-
     // Strict, so a typo in a transcribed field name fails startup instead of silently becoming null. Flags left out of a file
     // (e.g. industrial on non-property squares) are false.
     static final JsonMapper MAPPER = JsonMapper.builder()
@@ -38,9 +37,9 @@ public class GameDataConfig {
     public GameData gameData() throws IOException {
         var assets = readAssets();
         var gameData = new GameData(assets);
-        logger.info(String.format("Loaded game data: %d squares, %d groups, %d title deeds, %d shares, %d Finance News, %d Stock Tips",
+        log.info("Loaded game data: {} squares, {} groups, {} title deeds, {} shares, {} Finance News, {} Stock Tips",
                 assets.squares().size(), assets.groups().size(), assets.titleDeeds().size(), assets.shares().size(),
-                assets.financeNews().size(), assets.stockTips().size()));
+                assets.financeNews().size(), assets.stockTips().size());
         return gameData;
     }
 

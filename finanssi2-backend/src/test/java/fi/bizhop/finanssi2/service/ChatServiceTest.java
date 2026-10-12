@@ -6,6 +6,7 @@ import fi.bizhop.finanssi2.security.User;
 import fi.bizhop.finanssi2.game.db.GameRepository;
 import fi.bizhop.finanssi2.game.service.DebugAccess;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
@@ -26,7 +27,7 @@ class ChatServiceTest {
     @Mock
     ChatRepository chatRepository;
     @Mock
-    MessagingService messagingService;
+    ApplicationEventPublisher publisher;
     @Mock
     GameRepository gameRepository;
     @Mock
@@ -66,6 +67,6 @@ class ChatServiceTest {
         assertEquals("Hello", saved.message());
         assertEquals("0000000000000000012", saved.id());
         // Clients need the id, so the broadcast message must be the saved one
-        verify(messagingService).send("/topic/chat", saved);
+        verify(publisher).publishEvent(new Broadcast("/topic/chat", saved));
     }
 }
