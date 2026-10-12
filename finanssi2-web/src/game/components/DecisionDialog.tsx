@@ -11,13 +11,13 @@ import Check from "@mui/icons-material/Check"
 import Add from "@mui/icons-material/Add"
 import Remove from "@mui/icons-material/Remove"
 import SwapHoriz from "@mui/icons-material/SwapHoriz"
-import type { Game, GameBoardData } from "./gameApi.ts"
-import { decisionLabels, newsDestination, nextAuctionBid, propertySaleProceeds, shareSaleProceeds, validAuctionBid } from "./gameDecisions.ts"
+import type { Game, GameBoardData } from "../../api/gameApi.ts"
+import { decisionLabels, newsDestination, nextAuctionBid, propertySaleProceeds, shareSaleProceeds, validAuctionBid } from "../labels/gameDecisions.ts"
 import { GameBoard } from "./GameBoard.tsx"
 import { DecisionAsset } from "./DecisionAsset.tsx"
 import { DecisionSquare } from "./DecisionSquare.tsx"
 import { PlayerToken } from "./PlayerToken.tsx"
-import { formatEuro } from "./format.ts"
+import { formatEuro } from "../../ui/format.ts"
 
 type Pending = Game["state"]["pendingDecisions"][number]
 

@@ -1,14 +1,14 @@
 import { Navigate, Route, Routes, useLocation } from "react-router"
 import { Box, Container, Divider, Paper, Stack, Typography } from "@mui/material"
 
-import FrontPage from "./FrontPage.tsx"
-import Header from "./Header.tsx"
-import Games from "./Games.tsx"
-import GameRoom from "./GameRoom.tsx"
-import AccountProfile from "./AccountProfile.tsx"
-import { GAME_BOARD_MAX_WIDTH, GAME_ROOM_MAX_WIDTH } from "./boardLayout.ts"
-import { useCurrentUser } from "./CurrentUserContext.tsx"
-import { ErrorBoundary } from "./ErrorBoundary.tsx"
+import { FrontPage } from "./pages/FrontPage.tsx"
+import { Header } from "./ui/Header.tsx"
+import { Games } from "./pages/Games.tsx"
+import { GameRoom } from "./pages/GameRoom.tsx"
+import { AccountProfile } from "./pages/AccountProfile.tsx"
+import { GAME_BOARD_MAX_WIDTH, GAME_ROOM_MAX_WIDTH } from "./game/rules/boardLayout.ts"
+import { useCurrentUser } from "./auth/CurrentUserContext.tsx"
+import { ErrorBoundary } from "./ui/ErrorBoundary.tsx"
 
 const AuthenticatedRoute = ({ children }: { children: React.ReactNode }) => {
     const { status } = useCurrentUser()
@@ -53,7 +53,7 @@ const MyRoutes = () => (
     </Routes>
 )
 
-const App = () => {
+export const App = () => {
     const { pathname } = useLocation()
     const isGameRoom = pathname.startsWith("/games/")
     return (
@@ -83,5 +83,3 @@ const App = () => {
         </Container>
     )
 }
-
-export default App

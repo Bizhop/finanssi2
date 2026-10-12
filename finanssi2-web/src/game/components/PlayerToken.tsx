@@ -1,6 +1,6 @@
 import { Avatar } from "@mui/material"
 
-import type { GamePlayer } from "./gameApi.ts"
+import type { GamePlayer } from "../../api/gameApi.ts"
 
 const playerHue = (piece: number) => piece * 61 % 360
 export const playerColor = (piece: number) => `hsl(${playerHue(piece)} 58% 44%)`

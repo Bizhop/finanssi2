@@ -11,13 +11,13 @@ import ReceiptLongOutlined from "@mui/icons-material/ReceiptLongOutlined"
 import ShowChartOutlined from "@mui/icons-material/ShowChartOutlined"
 import StyleOutlined from "@mui/icons-material/StyleOutlined"
 
-import { CardPeek } from "./GameBoard.tsx"
+import { CardPeek } from "./Cards.tsx"
 import { playerColor, playerShade } from "./PlayerToken.tsx"
-import { BondCard, CarCard, cardPeekSlotProps, CardRow, LoanCard, ShareCard, TitleDeedCard } from "./cards.tsx"
-import { type AssetAction, carAction, loanActions, type PlayerControls, propertyActions, shareActions, stockTipAction } from "./actions.tsx"
-import { rentDoubled } from "./SquareDetails.tsx"
-import type { Game, GameBoardData, GamePlayer } from "./gameApi.ts"
-import { formatEuro } from "./format.ts"
+import { BondCard, CarCard, cardPeekSlotProps, CardRow, LoanCard, ShareCard, TitleDeedCard } from "./Cards.tsx"
+import { type AssetAction, carAction, loanActions, type PlayerControls, propertyActions, shareActions, stockTipAction } from "../rules/assetActions.ts"
+import { rentDoubled } from "../rules/gameRules.ts"
+import type { Game, GameBoardData, GamePlayer } from "../../api/gameApi.ts"
+import { formatEuro } from "../../ui/format.ts"
 
 const pulse = keyframes`
     0%, 100% { box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.55); }

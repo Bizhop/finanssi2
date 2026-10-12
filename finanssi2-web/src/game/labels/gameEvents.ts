@@ -1,5 +1,5 @@
-import type { GameBoardData } from "./gameApi.ts"
-import { formatEuro } from "./format.ts"
+import type { GameBoardData } from "../../api/gameApi.ts"
+import { formatEuro } from "../../ui/format.ts"
 
 export type GameLogEntry = { id: string; seq: number; time: number; type: string; event: Record<string, unknown> }
 

@@ -2,7 +2,7 @@
 import { z } from "zod/mini"
 import { en } from "zod/locales"
 
-import type { StompConnection } from "../src/components/StompContext.tsx"
+import type { StompConnection } from "../src/realtime/StompContext.tsx"
 import { matti, profileOf, publicProfiles, stranger, tester } from "./people.ts"
 
 // Same as src/index.tsx

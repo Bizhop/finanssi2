@@ -1,15 +1,9 @@
 import { Box, Stack } from "@mui/material"
 
-import { TitleDeedCard } from "./cards.tsx"
+import { TitleDeedCard } from "./Cards.tsx"
+import { rentDoubled } from "../rules/gameRules.ts"
 import { PlayerToken } from "./PlayerToken.tsx"
-import type { Game, GameBoardData, GameSquare } from "./gameApi.ts"
-
-/** Whether the owner of a property also owns the rest of its group, which doubles its rent */
-export const rentDoubled = (game: Game, board: GameBoardData | null, square: number) => {
-    const owner = game.state.properties.find((item) => item.square === square)?.owner
-    const group = board?.groups.find((item) => item.properties.includes(square))
-    return owner != null && group != null && group.properties.every((number) => game.state.properties.find((item) => item.square === number)?.owner === owner)
-}
+import type { Game, GameBoardData, GameSquare } from "../../api/gameApi.ts"
 
 /** The title deed card of a property square with its owner's token; nothing for other squares */
 export const SquareDetails = ({ square, board, game }: { square: GameSquare; board: GameBoardData | null; game: Game }) => {

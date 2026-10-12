@@ -1,7 +1,7 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 
 import { useCurrentUser } from "./CurrentUserContext.tsx"
-import { gameApi } from "./gameApi.ts"
+import { gameApi } from "../api/gameApi.ts"
 
 export type PublicProfile = { id: string; displayName: string; avatar: string | null }
 

@@ -22,13 +22,13 @@ import {
 } from "@mui/material"
 import AddIcon from "@mui/icons-material/Add"
 
-import { useCurrentUser } from "./CurrentUserContext.tsx"
-import { usePublicProfiles } from "./PublicProfiles.tsx"
-import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
-import { errorToast } from "./toasts.ts"
-import { avatarSrc, type Game, gameApi, GameApiError } from "./gameApi.ts"
+import { useCurrentUser } from "../auth/CurrentUserContext.tsx"
+import { usePublicProfiles } from "../auth/PublicProfiles.tsx"
+import { useStompConnected, useStompSubscription } from "../realtime/StompContext.tsx"
+import { errorToast } from "../ui/toasts.ts"
+import { avatarSrc, type Game, gameApi, GameApiError } from "../api/gameApi.ts"
 
-const Games = () => {
+export const Games = () => {
     const { user, profile, debugMode, refreshProfile, clearDebugAccess } = useCurrentUser()
     const userRef = useRef(user)
     // For async callbacks that must ignore results once the user has changed
@@ -399,5 +399,3 @@ const RuleSettings = ({ loanLimit, setLoanLimit, minimumBid, setMinimumBid, meet
         </Typography>
     </>
 )
-
-export default Games

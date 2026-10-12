@@ -14,9 +14,9 @@ import {
     validatePassword,
 } from "firebase/auth"
 import type { AuthCredential } from "firebase/auth"
-import Chat from "./Chat.tsx"
-import { auth } from "./firebase.ts"
-import { useCurrentUser } from "./CurrentUserContext.tsx"
+import { Chat } from "../chat/Chat.tsx"
+import { auth } from "../auth/firebase.ts"
+import { useCurrentUser } from "../auth/CurrentUserContext.tsx"
 
 const errorText = (reason: unknown) => {
     if (typeof reason === "object" && reason && "code" in reason) {
@@ -35,7 +35,7 @@ type Notice = { text: string; severity: "success" | "info" | "error" }
 const success = (text: string): Notice => ({ text, severity: "success" })
 const info = (text: string): Notice => ({ text, severity: "info" })
 
-const FrontPage = () => {
+export const FrontPage = () => {
     const { user, profile, status, error, refreshProfile } = useCurrentUser()
     const [mode, setMode] = useState<"signin" | "register" | "reset">("signin")
     const [email, setEmail] = useState("")
@@ -192,5 +192,3 @@ const FrontPage = () => {
         </Stack>
     )
 }
-
-export default FrontPage

@@ -2,11 +2,11 @@ import { type SubmitEvent, useState } from "react"
 import { Alert, Avatar, Button, Stack, TextField, Typography } from "@mui/material"
 import { EmailAuthProvider, GoogleAuthProvider, linkWithCredential, reauthenticateWithPopup, reload, validatePassword } from "firebase/auth"
 import { toast } from "react-toastify"
-import { auth } from "./firebase.ts"
-import { useCurrentUser } from "./CurrentUserContext.tsx"
-import { avatarSrc, gameApi } from "./gameApi.ts"
+import { auth } from "../auth/firebase.ts"
+import { useCurrentUser } from "../auth/CurrentUserContext.tsx"
+import { avatarSrc, gameApi } from "../api/gameApi.ts"
 
-const AccountProfile = () => {
+export const AccountProfile = () => {
     const { user, profile, refreshProfile } = useCurrentUser()
     const [displayName, setDisplayName] = useState(profile?.displayName ?? "")
     const [busy, setBusy] = useState(false)
@@ -165,5 +165,3 @@ const AccountProfile = () => {
         </Stack>
     )
 }
-
-export default AccountProfile

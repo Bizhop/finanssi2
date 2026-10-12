@@ -10,12 +10,12 @@ import CasinoIcon from "@mui/icons-material/Casino"
 import { NavLink } from "react-router"
 
 import { decisionFixtures } from "./decision-fixtures.ts"
-import type { Game } from "../src/components/gameApi.ts"
-import GameRoom from "../src/components/GameRoom.tsx"
+import type { Game } from "../src/api/gameApi.ts"
+import { GameRoom } from "../src/pages/GameRoom.tsx"
 import { FakeCurrentUser } from "./FakeCurrentUser.tsx"
 import { idOfKey, liisa as liisaPerson, olli as olliPerson, pekka as pekkaPerson, profileOf, publicProfiles, tester, viewer as viewerPerson } from "./people.ts"
-import { type StompConnection, StompContext } from "../src/components/StompContext.tsx"
-import { GAME_BOARD_MAX_WIDTH, GAME_ROOM_MAX_WIDTH } from "../src/components/boardLayout.ts"
+import { type StompConnection, StompContext } from "../src/realtime/StompContext.tsx"
+import { GAME_BOARD_MAX_WIDTH, GAME_ROOM_MAX_WIDTH } from "../src/game/rules/boardLayout.ts"
 
 // Real game data, the same files the backend serves from /api/game-data
 import boardFile from "../../finanssi2-backend/src/main/resources/gamedata/pelilauta.json" with { type: "json" }

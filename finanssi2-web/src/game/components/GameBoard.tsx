@@ -5,17 +5,15 @@ import { keyframes } from "@emotion/react"
 import FactoryRounded from "@mui/icons-material/FactoryRounded"
 import HomeRounded from "@mui/icons-material/HomeRounded"
 
-import boardImage from "../assets/board.webp"
-import financeNewsBack from "../assets/cards/finance-news-back.webp"
-import stockTipBack from "../assets/cards/stock-tip-back.webp"
-import { besideSquares, BOARD_ASPECT_RATIO, CARD_PLACES, type SquareRect, squareRect, squareSide } from "./boardLayout.ts"
-import type { Card, Game, GameBoardData } from "./gameApi.ts"
+import boardImage from "../../assets/board.webp"
+import financeNewsBack from "../../assets/cards/finance-news-back.webp"
+import stockTipBack from "../../assets/cards/stock-tip-back.webp"
+import { besideSquares, BOARD_ASPECT_RATIO, CARD_PLACES, type SquareRect, squareRect, squareSide } from "../rules/boardLayout.ts"
+import type { Card, Game, GameBoardData } from "../../api/gameApi.ts"
 import { playerColor, PlayerToken } from "./PlayerToken.tsx"
 import { SquareDetails } from "./SquareDetails.tsx"
-import { cardPeekSlotProps } from "./cards.tsx"
-import { formatEuro } from "./format.ts"
-
-const CARD_INK = "#1d4f9c"
+import { CardFace, cardPeekSlotProps } from "./Cards.tsx"
+import { formatEuro } from "../../ui/format.ts"
 
 const placement = (rect: SquareRect) =>
     ({
@@ -25,53 +23,6 @@ const placement = (rect: SquareRect) =>
         width: `${rect.width}%`,
         height: `${rect.height}%`,
     }) as const
-
-/** A card face styled after the printed cards; sizes are in em so the parent's font size scales the whole card */
-export const CardFace = ({ card, fallback, label }: { card: Card | undefined; fallback: string; label?: string }) => (
-    <Box
-        sx={{
-            width: "100%",
-            minHeight: "100%",
-            boxSizing: "border-box",
-            p: "0.7em 0.6em",
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "0.45em",
-            borderRadius: "0.4em",
-            backgroundColor: "#f3f5f7",
-            // Printed edge of the card
-            boxShadow: "inset 0 0 0 0.06em #c3c9d1",
-            color: CARD_INK,
-            textAlign: "center",
-            fontFamily: "Helvetica, Arial, sans-serif",
-        }}
-    >
-        {label && (
-            <Box sx={{ alignSelf: "stretch", pb: "0.15em", borderBottom: `0.08em solid ${CARD_INK}`, fontSize: "0.7em", fontWeight: 700 }}>
-                {label}
-            </Box>
-        )}
-        {card?.chapters.map((chapter, index) => (
-            <Box
-                key={index}
-                sx={chapter.type === "header"
-                    ? { mt: index > 0 ? "0.4em" : 0, fontSize: "1.1em", fontWeight: 800, lineHeight: 1.1, textTransform: "uppercase" }
-                    : { fontSize: "0.8em", lineHeight: 1.25, fontStyle: chapter["font-style"] === "italic" ? "italic" : undefined }}
-            >
-                {chapter.text}
-            </Box>
-        )) ?? <Box sx={{ fontWeight: 700 }}>{fallback}</Box>}
-    </Box>
-)
-
-/** A Finance News or Stock Tip card at a readable size, for peeks */
-export const CardPeek = ({ card, fallback, label }: { card: Card | undefined; fallback: string; label?: string }) => (
-    <Box sx={{ width: 240, minHeight: 327, display: "flex", fontSize: 15, borderRadius: "0.4em", boxShadow: "0 0.2em 0.7em rgba(0,0,0,0.45)" }}>
-        <CardFace card={card} fallback={fallback} label={label} />
-    </Box>
-)
 
 /** Text size of the face-up cards, small enough for the longest card (FL-19) to fit */
 const DRAWN_CARD_FONT = "0.74cqw"

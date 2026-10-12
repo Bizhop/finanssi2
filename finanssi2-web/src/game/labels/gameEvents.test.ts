@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert"
-import type { GameBoardData } from "./gameApi.ts"
+import type { GameBoardData } from "../../api/gameApi.ts"
 import { describeEvent, type GameLogEntry } from "./gameEvents.ts"
 
 const board = {

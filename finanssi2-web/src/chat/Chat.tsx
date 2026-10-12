@@ -6,11 +6,11 @@ import { type SubmitHandler, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import SendIcon from "@mui/icons-material/Send"
 
-import { InputField } from "./FormInput.tsx"
-import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
-import { avatarSrc, gameApi, GameApiError } from "./gameApi.ts"
-import { type PublicProfile, usePublicProfiles } from "./PublicProfiles.tsx"
-import { formatDateTime } from "./format.ts"
+import { InputField } from "../ui/InputField.tsx"
+import { useStompConnected, useStompSubscription } from "../realtime/StompContext.tsx"
+import { avatarSrc, gameApi, GameApiError } from "../api/gameApi.ts"
+import { type PublicProfile, usePublicProfiles } from "../auth/PublicProfiles.tsx"
+import { formatDateTime } from "../ui/format.ts"
 
 const ChatMessageSchema = z.object({
     id: z.string(),
@@ -21,15 +21,15 @@ const ChatMessageSchema = z.object({
 
 const ChatMessageSchemaArray = z.array(ChatMessageSchema)
 
-type TChatMessage = z.infer<typeof ChatMessageSchema>
+type ChatMessage = z.infer<typeof ChatMessageSchema>
 
 const NewChatMessageSchema = z.object({
     message: z.string().check(z.minLength(1), z.maxLength(100)),
 })
 
-type TNewChatMessage = z.infer<typeof NewChatMessageSchema>
+type NewChatMessage = z.infer<typeof NewChatMessageSchema>
 
-type TChatProps = {
+type ChatProps = {
     user: User
     gameId?: string
     embedded?: boolean
@@ -41,16 +41,16 @@ type TChatProps = {
 const PAGE_SIZE = 20
 
 // Union by id, newest first. Chat ids are fixed-width decimal strings, so lexical order matches database identity order.
-const mergeMessages = (messages: TChatMessage[], moreMessages: TChatMessage[]) =>
+const mergeMessages = (messages: ChatMessage[], moreMessages: ChatMessage[]) =>
     [...new Map([...messages, ...moreMessages].map((message) => [message.id, message])).values()]
         .sort((a, b) => a.id < b.id ? 1 : a.id > b.id ? -1 : 0)
 
-const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true, expanded = true }: TChatProps) => {
+export const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true, expanded = true }: ChatProps) => {
     const path = gameId ? `/api/games/${gameId}/chat` : "/api/chat"
     const topic = gameId ? `/topic/games/${gameId}/chat` : "/topic/chat"
     // Newest first, like the backend returns them. The list is rendered with column-reverse, which shows them oldest at the top
     // and keeps the view anchored to the bottom (newest message) without any scrolling code.
-    const [messages, setMessages] = useState<TChatMessage[]>([])
+    const [messages, setMessages] = useState<ChatMessage[]>([])
     const profiles = usePublicProfiles(messages.map((message) => message.userId))
     const [hasOlderMessages, setHasOlderMessages] = useState(true)
     const [loadingOlder, setLoadingOlder] = useState(false)
@@ -61,7 +61,7 @@ const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true,
     useEffect(() => {
         messagesRef.current = messages
     }, [messages])
-    const { control, handleSubmit, formState: { errors, isDirty, isSubmitting, isValid }, reset } = useForm<TNewChatMessage>({
+    const { control, handleSubmit, formState: { errors, isDirty, isSubmitting, isValid }, reset } = useForm<NewChatMessage>({
         resolver: zodResolver(NewChatMessageSchema),
         mode: "all",
         defaultValues: { message: "" },
@@ -71,7 +71,7 @@ const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true,
     const fetchPage = (before?: string) => {
         const params = new URLSearchParams({ size: String(PAGE_SIZE) })
         if (before) params.set("before", before)
-        return gameApi<TChatMessage[]>(user, `${path}?${params}`).then((response) => ChatMessageSchemaArray.parse(response))
+        return gameApi<ChatMessage[]>(user, `${path}?${params}`).then((response) => ChatMessageSchemaArray.parse(response))
     }
 
     // Loads the page before the oldest loaded message; with nothing loaded yet, the newest page
@@ -99,10 +99,10 @@ const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true,
             })
     }
 
-    const sendChatMessage: SubmitHandler<TNewChatMessage> = async (data) => {
+    const sendChatMessage: SubmitHandler<NewChatMessage> = async (data) => {
         setError(null)
         try {
-            const saved = await gameApi<TChatMessage | undefined>(user, path, { method: "POST", body: JSON.stringify(data) })
+            const saved = await gameApi<ChatMessage | undefined>(user, path, { method: "POST", body: JSON.stringify(data) })
             if (saved) setMessages((current) => mergeMessages(current, [ChatMessageSchema.parse(saved)]))
             reset()
         } catch (reason) {
@@ -258,7 +258,7 @@ const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true,
 }
 
 type ChatLineProps = {
-    message: TChatMessage
+    message: ChatMessage
     compact: boolean
     profile?: PublicProfile
 }
@@ -296,5 +296,3 @@ const ChatLine = ({ message, compact, profile }: ChatLineProps) => {
 
 // First word of the display name, or the email's local part when there's no name
 const senderFirstName = (displayName?: string) => displayName?.trim().split(/\s+/)[0] || "Player"
-
-export default Chat

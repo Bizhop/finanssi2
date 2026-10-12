@@ -1,7 +1,7 @@
 import { Box, Stack, Typography } from "@mui/material"
-import boardImage from "../assets/board.webp"
-import { BOARD_ASPECT_RATIO, squareRect } from "./boardLayout.ts"
-import type { GameBoardData } from "./gameApi.ts"
+import boardImage from "../../assets/board.webp"
+import { BOARD_ASPECT_RATIO, squareRect } from "../rules/boardLayout.ts"
+import type { GameBoardData } from "../../api/gameApi.ts"
 
 /** A crop of the actual board square with its number and readable name. */
 export const DecisionSquare = ({ square, board }: { square: number; board: GameBoardData | null }) => {

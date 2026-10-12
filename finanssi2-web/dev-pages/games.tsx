@@ -5,9 +5,9 @@ import ReactDOM from "react-dom/client"
 import { Link, MemoryRouter, Route, Routes, useParams } from "react-router"
 import { ToastContainer } from "react-toastify"
 
-import Games from "../src/components/Games.tsx"
-import { type StompConnection, StompContext } from "../src/components/StompContext.tsx"
-import type { Game } from "../src/components/gameApi.ts"
+import { Games } from "../src/pages/Games.tsx"
+import { type StompConnection, StompContext } from "../src/realtime/StompContext.tsx"
+import type { Game } from "../src/api/gameApi.ts"
 import { FakeCurrentUser } from "./FakeCurrentUser.tsx"
 import { liisa as liisaPerson, olli as olliPerson, pekka as pekkaPerson, type Person, profileOf, publicProfiles, tester } from "./people.ts"
 

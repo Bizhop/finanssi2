@@ -6,16 +6,16 @@ import LogoutIcon from "@mui/icons-material/Logout"
 import CasinoIcon from "@mui/icons-material/Casino"
 import AccountCircleIcon from "@mui/icons-material/AccountCircle"
 
-import { auth } from "./firebase.ts"
-import { useCurrentUser } from "./CurrentUserContext.tsx"
+import { auth } from "../auth/firebase.ts"
+import { useCurrentUser } from "../auth/CurrentUserContext.tsx"
 
-type TMyNavLinkProps = {
+type MyNavLinkProps = {
     to: string
     label: string
     icon: JSX.Element
 }
 
-const MyNavLink = ({ to, label, icon }: TMyNavLinkProps) => (
+const MyNavLink = ({ to, label, icon }: MyNavLinkProps) => (
     <Grid size={1} sx={{ textAlign: "center" }}>
         <NavLink to={to}>
             <Tooltip title={label}>
@@ -27,7 +27,7 @@ const MyNavLink = ({ to, label, icon }: TMyNavLinkProps) => (
     </Grid>
 )
 
-const Header = () => {
+export const Header = () => {
     const { user, status } = useCurrentUser()
     const logout = () => auth.signOut()
 
@@ -54,5 +54,3 @@ const Header = () => {
         </Box>
     )
 }
-
-export default Header

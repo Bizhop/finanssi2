@@ -3,8 +3,8 @@
 import type { ReactNode } from "react"
 import type { User } from "firebase/auth"
 
-import { CurrentUserContext, type UserState } from "../src/components/CurrentUserContext.tsx"
-import { PublicProfilesProvider } from "../src/components/PublicProfiles.tsx"
+import { CurrentUserContext, type UserState } from "../src/auth/CurrentUserContext.tsx"
+import { PublicProfilesProvider } from "../src/auth/PublicProfiles.tsx"
 import { type Person, profileOf } from "./people.ts"
 
 export const FakeCurrentUser = ({ person, debugMode = false, children }: { person: Person; debugMode?: boolean; children: ReactNode }) => {

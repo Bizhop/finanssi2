@@ -1,4 +1,4 @@
-import type { Game } from "../src/components/gameApi.ts"
+import type { Game } from "../src/api/gameApi.ts"
 import { liisa, olli, pekka, tester } from "./people.ts"
 
 type Decision = Game["state"]["pendingDecisions"][number]

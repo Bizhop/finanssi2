@@ -2,9 +2,9 @@ import { type ReactNode, useState } from "react"
 import { Box, ButtonBase, Dialog, DialogContent, DialogTitle, IconButton, Stack, Tooltip, Typography } from "@mui/material"
 import ZoomIn from "@mui/icons-material/ZoomIn"
 import Close from "@mui/icons-material/Close"
-import { BondCard, CarCard, cardPeekSlotProps, LoanCard, ShareCard, TitleDeedCard } from "./cards.tsx"
-import { decisionLabels } from "./gameDecisions.ts"
-import type { Game, GameBoardData } from "./gameApi.ts"
+import { BondCard, CarCard, cardPeekSlotProps, LoanCard, ShareCard, TitleDeedCard } from "./Cards.tsx"
+import { decisionLabels } from "../labels/gameDecisions.ts"
+import type { Game, GameBoardData } from "../../api/gameApi.ts"
 
 /** Scaled versions of the existing paper cards, with hover/focus peeks and a tap-to-read control. */
 export const DecisionAsset = ({ asset, game, board, label, onSelect, disabled, children, selected }: {

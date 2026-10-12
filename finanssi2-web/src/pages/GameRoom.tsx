@@ -4,21 +4,23 @@ import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogCont
 
 import FlagOutlined from "@mui/icons-material/FlagOutlined"
 
-import { GameBoard } from "./GameBoard.tsx"
-import Chat from "./Chat.tsx"
-import { GameWindow, type GameWindowTab } from "./GameWindow.tsx"
-import { ShareCard, TitleDeedCard } from "./cards.tsx"
-import { bankSalesOpen, buildAction, ConfirmDialog, type ConfirmRequest, meetingGroups, type PlayerControls, takeoverSum, twoDiceAtMost } from "./actions.tsx"
-import { PlayerPanel } from "./PlayerPanel.tsx"
-import { useCurrentUser } from "./CurrentUserContext.tsx"
-import { usePublicProfiles } from "./PublicProfiles.tsx"
-import { errorToast } from "./toasts.ts"
-import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
-import { avatarSrc, gameApi, GameApiError, type GameBoardData, type GameView } from "./gameApi.ts"
-import { describeEvent, type GameLogEntry } from "./gameEvents.ts"
-import { DecisionDialog } from "./DecisionDialog.tsx"
-import { BOARD_ASPECT_RATIO } from "./boardLayout.ts"
-import { formatEuro } from "./format.ts"
+import { GameBoard } from "../game/components/GameBoard.tsx"
+import { Chat } from "../chat/Chat.tsx"
+import { GameWindow, type GameWindowTab } from "../ui/GameWindow.tsx"
+import { ShareCard, TitleDeedCard } from "../game/components/Cards.tsx"
+import { buildAction, type PlayerControls } from "../game/rules/assetActions.ts"
+import { ConfirmDialog, type ConfirmRequest } from "../ui/ConfirmDialog.tsx"
+import { bankSalesOpen, meetingGroups, takeoverSum, twoDiceAtMost } from "../game/rules/gameRules.ts"
+import { PlayerPanel } from "../game/components/PlayerPanel.tsx"
+import { useCurrentUser } from "../auth/CurrentUserContext.tsx"
+import { usePublicProfiles } from "../auth/PublicProfiles.tsx"
+import { errorToast } from "../ui/toasts.ts"
+import { useStompConnected, useStompSubscription } from "../realtime/StompContext.tsx"
+import { avatarSrc, gameApi, GameApiError, type GameBoardData, type GameView } from "../api/gameApi.ts"
+import { describeEvent, type GameLogEntry } from "../game/labels/gameEvents.ts"
+import { DecisionDialog } from "../game/components/DecisionDialog.tsx"
+import { BOARD_ASPECT_RATIO } from "../game/rules/boardLayout.ts"
+import { formatEuro } from "../ui/format.ts"
 
 type GameUpdate = { version: number; events: GameLogEntry[] }
 
@@ -633,10 +635,8 @@ const EventLine = ({ entry, text, board }: { entry: GameLogEntry; text: string; 
     )
 }
 
-const GameRoom = () => {
+export const GameRoom = () => {
     const { id } = useParams()
     const { user, profile } = useCurrentUser()
     return <GameRoomContent key={id + ":" + user?.uid + ":" + profile?.id} />
 }
-
-export default GameRoom

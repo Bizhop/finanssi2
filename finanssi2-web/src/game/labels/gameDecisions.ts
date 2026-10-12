@@ -1,5 +1,5 @@
-import type { Game, GameBoardData } from "./gameApi.ts"
-import { formatEuro } from "./format.ts"
+import type { Game, GameBoardData } from "../../api/gameApi.ts"
+import { formatEuro } from "../../ui/format.ts"
 
 export const validAuctionBid = (input: string, cash: number, minimum: number) => {
     const amount = Number(input)

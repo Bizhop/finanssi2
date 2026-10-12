@@ -1,7 +1,7 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { onIdTokenChanged, reload, type User } from "firebase/auth"
 import { auth } from "./firebase.ts"
-import { gameApi } from "./gameApi.ts"
+import { gameApi } from "../api/gameApi.ts"
 
 export type UserProfile = {
     id: string

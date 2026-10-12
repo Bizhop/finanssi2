@@ -4,7 +4,7 @@ import { StrictMode, useState } from "react"
 import ReactDOM from "react-dom/client"
 import { Button, Stack } from "@mui/material"
 
-import { ErrorBoundary } from "../src/components/ErrorBoundary.tsx"
+import { ErrorBoundary } from "../src/ui/ErrorBoundary.tsx"
 
 let broken = true
 

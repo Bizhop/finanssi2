@@ -4,8 +4,8 @@ import { Box, Stack } from "@mui/material"
 import HomeRounded from "@mui/icons-material/HomeRounded"
 import FactoryRounded from "@mui/icons-material/FactoryRounded"
 
-import type { GameBoardData } from "./gameApi.ts"
-import { formatNumber } from "./format.ts"
+import type { Card, GameBoardData } from "../../api/gameApi.ts"
+import { formatNumber } from "../../ui/format.ts"
 
 type TitleDeed = GameBoardData["titleDeeds"][number]
 type Share = GameBoardData["shares"][number]
@@ -341,4 +341,53 @@ export const cardPeekSlotProps = { tooltip: { sx: { p: 0, m: 0, maxWidth: "none"
 /** Cards laid out side by side in a peek */
 export const CardRow = ({ children }: { children: ReactNode }) => (
     <Stack direction="row" spacing={1.25} useFlexGap sx={{ flexWrap: "wrap", maxWidth: "min(760px, 90vw)", p: 1 }}>{children}</Stack>
+)
+
+const CARD_INK = "#1d4f9c"
+
+/** A card face styled after the printed cards; sizes are in em so the parent's font size scales the whole card */
+export const CardFace = ({ card, fallback, label }: { card: Card | undefined; fallback: string; label?: string }) => (
+    <Box
+        sx={{
+            width: "100%",
+            minHeight: "100%",
+            boxSizing: "border-box",
+            p: "0.7em 0.6em",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "0.45em",
+            borderRadius: "0.4em",
+            backgroundColor: "#f3f5f7",
+            // Printed edge of the card
+            boxShadow: "inset 0 0 0 0.06em #c3c9d1",
+            color: CARD_INK,
+            textAlign: "center",
+            fontFamily: "Helvetica, Arial, sans-serif",
+        }}
+    >
+        {label && (
+            <Box sx={{ alignSelf: "stretch", pb: "0.15em", borderBottom: `0.08em solid ${CARD_INK}`, fontSize: "0.7em", fontWeight: 700 }}>
+                {label}
+            </Box>
+        )}
+        {card?.chapters.map((chapter, index) => (
+            <Box
+                key={index}
+                sx={chapter.type === "header"
+                    ? { mt: index > 0 ? "0.4em" : 0, fontSize: "1.1em", fontWeight: 800, lineHeight: 1.1, textTransform: "uppercase" }
+                    : { fontSize: "0.8em", lineHeight: 1.25, fontStyle: chapter["font-style"] === "italic" ? "italic" : undefined }}
+            >
+                {chapter.text}
+            </Box>
+        )) ?? <Box sx={{ fontWeight: 700 }}>{fallback}</Box>}
+    </Box>
+)
+
+/** A Finance News or Stock Tip card at a readable size, for peeks */
+export const CardPeek = ({ card, fallback, label }: { card: Card | undefined; fallback: string; label?: string }) => (
+    <Box sx={{ width: 240, minHeight: 327, display: "flex", fontSize: 15, borderRadius: "0.4em", boxShadow: "0 0.2em 0.7em rgba(0,0,0,0.45)" }}>
+        <CardFace card={card} fallback={fallback} label={label} />
+    </Box>
 )
