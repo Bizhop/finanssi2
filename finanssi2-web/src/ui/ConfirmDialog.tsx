@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material"
 
 export type Command = Record<string, unknown>
@@ -17,28 +18,31 @@ export const ConfirmDialog = ({ request, busy, onClose, onConfirm }: {
     busy: boolean
     onClose: () => void
     onConfirm: (command: Command) => void
-}) => (
-    <Dialog open={request != null} onClose={onClose}>
-        <DialogTitle>{request?.title}</DialogTitle>
-        {request?.body && (
-            <DialogContent>
-                <DialogContentText component="div">{request.body}</DialogContentText>
-            </DialogContent>
-        )}
-        <DialogActions>
-            <Button onClick={onClose}>Cancel</Button>
-            <Button
-                variant="contained"
-                color={request?.danger ? "error" : "primary"}
-                disabled={busy || request?.disabled}
-                onClick={() => {
-                    if (!request) return
-                    onClose()
-                    onConfirm(request.command)
-                }}
-            >
-                {request?.confirmLabel}
-            </Button>
-        </DialogActions>
-    </Dialog>
-)
+}) => {
+    const { t } = useTranslation()
+    return (
+        <Dialog open={request != null} onClose={onClose}>
+            <DialogTitle>{request?.title}</DialogTitle>
+            {request?.body && (
+                <DialogContent>
+                    <DialogContentText component="div">{request.body}</DialogContentText>
+                </DialogContent>
+            )}
+            <DialogActions>
+                <Button onClick={onClose}>{t("common.cancel")}</Button>
+                <Button
+                    variant="contained"
+                    color={request?.danger ? "error" : "primary"}
+                    disabled={busy || request?.disabled}
+                    onClick={() => {
+                        if (!request) return
+                        onClose()
+                        onConfirm(request.command)
+                    }}
+                >
+                    {request?.confirmLabel}
+                </Button>
+            </DialogActions>
+        </Dialog>
+    )
+}

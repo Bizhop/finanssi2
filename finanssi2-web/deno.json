@@ -10,7 +10,7 @@
         "lint": "deno lint",
         // Opens every test page in headless Chromium; needs a Chromium (see dev-pages/smoke.ts)
         "smoke": "deno run -A dev-pages/smoke.ts",
-        "test": "deno test src/"
+        "test": "deno test --allow-env=NODE_ENV src/"
     },
     "imports": {
         "@deno/vite-plugin": "npm:@deno/vite-plugin@^2.0.4",
@@ -26,10 +26,12 @@
         "@types/react-dom": "npm:@types/react-dom@^19.3.0",
         "@vitejs/plugin-react": "npm:@vitejs/plugin-react@^6.1.2",
         "firebase": "npm:firebase@^13.0.0",
+        "i18next": "npm:i18next@^26.4.3",
         "playwright-core": "npm:playwright-core@^1.64.0",
         "react": "npm:react@^19.3.0",
         "react-dom": "npm:react-dom@^19.3.0",
         "react-hook-form": "npm:react-hook-form@^7.89.0",
+        "react-i18next": "npm:react-i18next@^17.0.16",
         "react-router": "npm:react-router@^8.4.0",
         "react-toastify": "npm:react-toastify@^11.1.0",
         "vite": "npm:vite@^8.3.4",

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import type { User } from "firebase/auth"
 
+import { t } from "../i18n/index.ts"
 import { gameApi, GameApiError, segment } from "../api/gameApi.ts"
 import { useStompConnected, useStompSubscription } from "../realtime/StompContext.tsx"
 import { applyNewestPage, type ChatMessage, ChatMessageSchema, ChatMessageSchemaArray, mergeMessages, type NewChatMessage, PAGE_SIZE } from "./chatHistory.ts"
@@ -52,7 +53,7 @@ export const useChatHistory = (user: User, gameId?: string) => {
                 loadingOlderMessages.current = false
                 setLoadingOlder(false)
                 if (accessChanged(reason)) setMessages([])
-                setError(reason instanceof Error ? reason.message : "Could not load chat history.")
+                setError(reason instanceof Error ? reason.message : t("chat.loadFailed"))
                 console.error(reason)
             })
     }
@@ -66,11 +67,7 @@ export const useChatHistory = (user: User, gameId?: string) => {
             return true
         } catch (reason) {
             setError(
-                accessChanged(reason)
-                    ? "Chat access changed. Return to the games list and reopen this game."
-                    : reason instanceof Error
-                    ? reason.message
-                    : "Message could not be sent. Your draft is still here.",
+                accessChanged(reason) ? t("chat.accessChanged") : reason instanceof Error ? reason.message : t("chat.sendFailed"),
             )
             return false
         }
@@ -100,7 +97,7 @@ export const useChatHistory = (user: User, gameId?: string) => {
             })
             .catch((reason) => {
                 if (accessChanged(reason)) setMessages([])
-                setError(reason instanceof Error ? reason.message : "Could not load chat history.")
+                setError(reason instanceof Error ? reason.message : t("chat.loadFailed"))
                 console.error(reason)
             })
 

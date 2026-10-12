@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes, useLocation } from "react-router"
 import { Box, Container, Divider, Paper, Stack, Typography } from "@mui/material"
+import { useTranslation } from "react-i18next"
 
 import { FrontPage } from "./pages/FrontPage.tsx"
 import { Header } from "./ui/Header.tsx"
@@ -11,16 +12,20 @@ import { useCurrentUser } from "./auth/CurrentUserContext.tsx"
 import { ErrorBoundary } from "./ui/ErrorBoundary.tsx"
 
 const AuthenticatedRoute = ({ children }: { children: React.ReactNode }) => {
+    const { t } = useTranslation()
     const { status } = useCurrentUser()
-    if (status === "initializing" || status === "profileLoading") return <Typography sx={{ p: 2 }}>Loading account…</Typography>
+    if (status === "initializing" || status === "profileLoading") return <Typography sx={{ p: 2 }}>{t("common.loadingAccount")}</Typography>
     return status === "ready" ? children : <Navigate to="/" replace />
 }
 
-const NotFound = () => (
-    <Box sx={{ flexGrow: 1 }}>
-        <h1>Page not found!</h1>
-    </Box>
-)
+const NotFound = () => {
+    const { t } = useTranslation()
+    return (
+        <Box sx={{ flexGrow: 1 }}>
+            <h1>{t("app.notFound")}</h1>
+        </Box>
+    )
+}
 
 const MyRoutes = () => (
     <Routes>

@@ -16,6 +16,7 @@ import {
     Typography,
 } from "@mui/material"
 import AddIcon from "@mui/icons-material/Add"
+import { useTranslation } from "react-i18next"
 
 import { useCurrentUser } from "../auth/CurrentUserContext.tsx"
 import { usePublicProfiles } from "../auth/PublicProfiles.tsx"
@@ -28,6 +29,7 @@ import { useGames } from "./games/useGames.ts"
 const DEFAULT_RULES = { loanLimit: "UNLIMITED", compulsorySaleMinimumBid: "HALF_NOMINAL_PRICE", shareholdersMeeting: "ALL_ASSETS_BOUGHT" }
 
 export const Games = () => {
+    const { t } = useTranslation()
     const { user, profile, debugMode } = useCurrentUser()
     const [debugCreateOpen, setDebugCreateOpen] = useState(false)
     const games = useGames(() => setDebugCreateOpen(false))
@@ -77,20 +79,22 @@ export const Games = () => {
         void games.closeGame(game, action)
     }
 
-    if (!user) return <Alert severity="info" sx={{ mt: 2 }}>Sign in to create or join a game.</Alert>
+    if (!user) return <Alert severity="info" sx={{ mt: 2 }}>{t("games.signInRequired")}</Alert>
 
     return (
         <Stack spacing={2} sx={{ flex: 1, minHeight: 0, py: 2 }}>
             <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
-                <Typography variant="h5">Games</Typography>
+                <Typography variant="h5">{t("games.title")}</Typography>
                 <Stack direction="row" spacing={1}>
-                    {debugMode && <Button disabled={busy} onClick={openDebugCreate}>Create debug game</Button>}
+                    {debugMode && <Button disabled={busy} onClick={openDebugCreate}>{t("games.createDebug")}</Button>}
                     <Button variant="contained" startIcon={<AddIcon />} disabled={busy} onClick={() => void games.createGame()}>
-                        Create game
+                        {t("games.create")}
                     </Button>
                 </Stack>
             </Stack>
-            {games.error && <Alert severity="error" action={<Button color="inherit" onClick={() => void games.refresh()}>Retry</Button>}>{games.error}</Alert>}
+            {games.error && (
+                <Alert severity="error" action={<Button color="inherit" onClick={() => void games.refresh()}>{t("common.retry")}</Button>}>{games.error}</Alert>
+            )}
             {games.loading
                 ? (
                     <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
@@ -98,7 +102,7 @@ export const Games = () => {
                     </Box>
                 )
                 : games.games.length === 0
-                ? <Alert severity="info">No games yet. Create one to start playing.</Alert>
+                ? <Alert severity="info">{t("games.none")}</Alert>
                 : (
                     <Stack spacing={1.5}>
                         {games.games.filter((game) => game.mode !== "DEBUG" || debugMode).map((game) => (
@@ -119,14 +123,14 @@ export const Games = () => {
                     </Stack>
                 )}
             <Dialog open={debugMode && debugCreateOpen} onClose={() => setDebugCreateOpen(false)} fullWidth maxWidth="sm">
-                <DialogTitle>Create debug game</DialogTitle>
+                <DialogTitle>{t("games.createDebug")}</DialogTitle>
                 <DialogContent>
                     <Stack spacing={2} sx={{ pt: 1 }}>
                         <FormControl fullWidth>
-                            <InputLabel id="debug-seat-label">Seats</InputLabel>
+                            <InputLabel id="debug-seat-label">{t("games.seats")}</InputLabel>
                             <Select
                                 labelId="debug-seat-label"
-                                label="Seats"
+                                label={t("games.seats")}
                                 value={playerCount}
                                 onChange={(event) => setPlayerCount(Number(event.target.value))}
                             >
@@ -144,13 +148,13 @@ export const Games = () => {
                     </Stack>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setDebugCreateOpen(false)}>Cancel</Button>
-                    <Button disabled={busy} onClick={createDebug}>Create</Button>
+                    <Button onClick={() => setDebugCreateOpen(false)}>{t("common.cancel")}</Button>
+                    <Button disabled={busy} onClick={createDebug}>{t("common.create")}</Button>
                 </DialogActions>
             </Dialog>
             <CloseGameDialog action={closing?.action ?? null} busy={busy} onCancel={() => setClosing(null)} onConfirm={closeGame} />
             <Dialog open={settingsGame !== null} onClose={() => setSettingsGame(null)} fullWidth maxWidth="sm">
-                <DialogTitle>Game settings</DialogTitle>
+                <DialogTitle>{t("games.settingsTitle")}</DialogTitle>
                 <DialogContent>
                     <Stack spacing={2} sx={{ pt: 1 }}>
                         <RuleSettings
@@ -164,8 +168,8 @@ export const Games = () => {
                     </Stack>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setSettingsGame(null)}>Cancel</Button>
-                    <Button variant="contained" disabled={busy} onClick={saveSettings}>Save</Button>
+                    <Button onClick={() => setSettingsGame(null)}>{t("common.cancel")}</Button>
+                    <Button variant="contained" disabled={busy} onClick={saveSettings}>{t("common.save")}</Button>
                 </DialogActions>
             </Dialog>
         </Stack>

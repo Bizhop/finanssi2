@@ -2,11 +2,13 @@ import { type SubmitEvent, useState } from "react"
 import { Alert, Avatar, Button, Stack, TextField, Typography } from "@mui/material"
 import { EmailAuthProvider, GoogleAuthProvider, linkWithCredential, reauthenticateWithPopup, reload, validatePassword } from "firebase/auth"
 import { toast } from "react-toastify"
+import { useTranslation } from "react-i18next"
 import { auth } from "../auth/firebase.ts"
 import { useCurrentUser } from "../auth/CurrentUserContext.tsx"
 import { avatarSrc, gameApi } from "../api/gameApi.ts"
 
 export const AccountProfile = () => {
+    const { t } = useTranslation()
     const { user, profile, refreshProfile } = useCurrentUser()
     const [displayName, setDisplayName] = useState(profile?.displayName ?? "")
     const [busy, setBusy] = useState(false)
@@ -28,7 +30,7 @@ export const AccountProfile = () => {
             await refreshProfile()
             setSaved(true)
         } catch (reason) {
-            setError(reason instanceof Error ? reason.message : "Unable to save your profile")
+            setError(reason instanceof Error ? reason.message : t("account.saveFailed"))
         } finally {
             setBusy(false)
         }
@@ -40,9 +42,9 @@ export const AccountProfile = () => {
         setPasswordError(null)
         setPasswordMessage(null)
         try {
-            if (password !== passwordConfirmation) throw new Error("Passwords do not match.")
+            if (password !== passwordConfirmation) throw new Error(t("auth.passwordsDiffer"))
             const policy = await validatePassword(auth, password)
-            if (!policy.isValid) throw new Error("Password does not meet the configured Firebase password policy.")
+            if (!policy.isValid) throw new Error(t("auth.passwordPolicy"))
             const credential = EmailAuthProvider.credential(profile.email, password)
             try {
                 await linkWithCredential(user, credential)
@@ -58,11 +60,11 @@ export const AccountProfile = () => {
             await user.getIdToken(true)
             setPassword("")
             setPasswordConfirmation("")
-            const success = "Password added. Your Google-verified email is confirmed, and you can sign in with email and password."
+            const success = t("account.passwordAdded")
             setPasswordMessage(success)
             toast(success, { type: "success", autoClose: 4000 })
         } catch (reason) {
-            setPasswordError(reason instanceof Error ? reason.message : "Unable to add password sign-in")
+            setPasswordError(reason instanceof Error ? reason.message : t("account.passwordFailed"))
         } finally {
             setBusy(false)
         }
@@ -77,7 +79,7 @@ export const AccountProfile = () => {
             await gameApi(user, `/api/me/avatar?version=${profile.version}`, { method: "PUT", body: data })
             await refreshProfile()
         } catch (reason) {
-            setAvatarError(reason instanceof Error ? reason.message : "Unable to upload avatar")
+            setAvatarError(reason instanceof Error ? reason.message : t("account.uploadFailed"))
         } finally {
             setBusy(false)
         }
@@ -90,7 +92,7 @@ export const AccountProfile = () => {
             await gameApi(user, `/api/me/avatar?version=${profile.version}`, { method: "DELETE" })
             await refreshProfile()
         } catch (reason) {
-            setAvatarError(reason instanceof Error ? reason.message : "Unable to remove avatar")
+            setAvatarError(reason instanceof Error ? reason.message : t("account.removeFailed"))
         } finally {
             setBusy(false)
         }
@@ -98,15 +100,15 @@ export const AccountProfile = () => {
     if (!user || !profile) return null
     return (
         <Stack spacing={2} sx={{ p: 2, maxWidth: 520 }}>
-            <Typography variant="h5">Account</Typography>
-            <Typography>Email: {profile.email}</Typography>
-            <Typography variant="h6">Avatar</Typography>
+            <Typography variant="h5">{t("account.title")}</Typography>
+            <Typography>{t("account.email", { email: profile.email })}</Typography>
+            <Typography variant="h6">{t("account.avatar")}</Typography>
             <Avatar src={avatarSrc(profile.avatar)} alt={profile.displayName} sx={{ width: 96, height: 96, fontSize: 36 }}>
                 {profile.displayName.slice(0, 1).toUpperCase()}
             </Avatar>
             <Stack direction="row" spacing={1}>
                 <Button component="label" variant="outlined" disabled={busy}>
-                    Upload image
+                    {t("account.upload")}
                     <input
                         hidden
                         type="file"
@@ -118,22 +120,22 @@ export const AccountProfile = () => {
                         }}
                     />
                 </Button>
-                {profile.avatarSource === "custom" && <Button onClick={() => void removeAvatar()} disabled={busy}>Remove custom avatar</Button>}
+                {profile.avatarSource === "custom" && <Button onClick={() => void removeAvatar()} disabled={busy}>{t("account.removeCustom")}</Button>}
             </Stack>
             {avatarError && <Alert severity="error">{avatarError}</Alert>}
-            <Typography variant="caption">JPEG or PNG, up to 2 MiB. The image is cropped to a square.</Typography>
+            <Typography variant="caption">{t("account.avatarHelp")}</Typography>
             <Stack component="form" onSubmit={submit} spacing={2}>
                 <TextField
-                    label="Display name"
+                    label={t("account.displayName")}
                     required
                     value={displayName}
                     slotProps={{ htmlInput: { maxLength: 50 } }}
                     onChange={(event) => setDisplayName(event.target.value)}
                 />
                 {error && <Alert severity="error">{error}</Alert>}
-                {saved && <Alert severity="success">Profile saved.</Alert>}
+                {saved && <Alert severity="success">{t("account.saved")}</Alert>}
                 <Button type="submit" variant="contained" disabled={busy || displayName.trim().length === 0 || displayName.trim() === profile.displayName}>
-                    Save profile
+                    {t("account.saveProfile")}
                 </Button>
             </Stack>
             {passwordMessage && user.providerData.some((provider) => provider.providerId === "password") && <Alert severity="success">{passwordMessage}</Alert>}
@@ -141,9 +143,9 @@ export const AccountProfile = () => {
             {user.providerData.some((provider) => provider.providerId === "google.com") &&
                 !user.providerData.some((provider) => provider.providerId === "password") && (
                 <Stack component="form" onSubmit={addPassword} spacing={2}>
-                    <Typography variant="h6">Add password sign-in</Typography>
+                    <Typography variant="h6">{t("account.addPasswordTitle")}</Typography>
                     <TextField
-                        label="New password"
+                        label={t("account.newPassword")}
                         type="password"
                         required
                         autoComplete="new-password"
@@ -151,7 +153,7 @@ export const AccountProfile = () => {
                         onChange={(event) => setPassword(event.target.value)}
                     />
                     <TextField
-                        label="Confirm password"
+                        label={t("account.confirmPassword")}
                         type="password"
                         required
                         autoComplete="new-password"
@@ -159,7 +161,7 @@ export const AccountProfile = () => {
                         onChange={(event) => setPasswordConfirmation(event.target.value)}
                     />
                     {passwordError && <Alert severity="error">{passwordError}</Alert>}
-                    <Button type="submit" disabled={busy}>Add password</Button>
+                    <Button type="submit" disabled={busy}>{t("account.addPassword")}</Button>
                 </Stack>
             )}
         </Stack>

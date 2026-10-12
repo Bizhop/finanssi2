@@ -8,11 +8,7 @@ import { ErrorBoundary } from "./ui/ErrorBoundary.tsx"
 import { PublicProfilesProvider } from "./auth/PublicProfiles.tsx"
 import { StompProvider } from "./realtime/StompContext.tsx"
 import { ToastContainer } from "react-toastify"
-import { z } from "zod/mini"
-import { en } from "zod/locales"
-
-// zod/mini ships without error messages; load the English locale once for the whole app
-z.config(en())
+import "./i18n/init.ts"
 
 // http(s)://host → ws(s)://host/ws
 const stompUrl = `${import.meta.env.VITE_FINANSSI_API_URL.replace(/^http/, "ws")}/ws`

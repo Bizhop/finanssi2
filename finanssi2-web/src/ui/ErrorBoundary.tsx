@@ -1,6 +1,8 @@
 import { Component, type ErrorInfo, type ReactNode } from "react"
 import { Alert, Button, Stack } from "@mui/material"
 
+import { t } from "../i18n/index.ts"
+
 type Props = { children: ReactNode; onReset?: () => void }
 type State = { failed: boolean }
 
@@ -25,10 +27,10 @@ export class ErrorBoundary extends Component<Props, State> {
         if (!this.state.failed) return this.props.children
         return (
             <Stack spacing={2} sx={{ p: 2, maxWidth: 520 }} role="alert">
-                <Alert severity="error">Something went wrong while showing this page.</Alert>
+                <Alert severity="error">{t("error.generic")}</Alert>
                 <Stack direction="row" spacing={1}>
-                    <Button variant="contained" onClick={this.reset}>Try again</Button>
-                    <Button onClick={() => location.assign("/")}>Back to the start</Button>
+                    <Button variant="contained" onClick={this.reset}>{t("error.tryAgain")}</Button>
+                    <Button onClick={() => location.assign("/")}>{t("error.backToStart")}</Button>
                 </Stack>
             </Stack>
         )

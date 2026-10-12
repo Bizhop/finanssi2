@@ -4,6 +4,7 @@ import type { User } from "firebase/auth"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import SendIcon from "@mui/icons-material/Send"
+import { useTranslation } from "react-i18next"
 
 import { InputField } from "../ui/InputField.tsx"
 import { avatarSrc, type PublicProfile } from "../api/gameApi.ts"
@@ -22,6 +23,7 @@ type ChatProps = {
 }
 
 export const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true, expanded = true }: ChatProps) => {
+    const { t } = useTranslation()
     const { messages, hasOlderMessages, loadingOlder, error, connected, loadOlderMessages, sendMessage } = useChatHistory(user, gameId)
     const profiles = usePublicProfiles(messages.map((message) => message.userId))
     const { control, handleSubmit, formState: { errors, isDirty, isSubmitting, isValid }, reset } = useForm<NewChatMessage>({
@@ -54,7 +56,7 @@ export const Chat = ({ user, gameId, embedded = false, compact = false, canSend 
 
     return (
         <Stack direction="column" sx={{ flex: 1, minHeight: 0 }}>
-            {!embedded && <h1>Chat</h1>}
+            {!embedded && <h1>{t("chat.title")}</h1>}
             <Box component={embedded ? "div" : Paper} sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
                 <List
                     ref={messageListRef}
@@ -80,12 +82,12 @@ export const Chat = ({ user, gameId, embedded = false, compact = false, canSend 
                             {compact
                                 ? (
                                     <Typography variant="caption" color="text.secondary">
-                                        {loadingOlder ? "Loading older messages…" : "Scroll up to load older messages"}
+                                        {loadingOlder ? t("chat.loadingOlder") : t("chat.scrollUp")}
                                     </Typography>
                                 )
                                 : (
                                     <Button size="small" disabled={loadingOlder} onClick={loadOlderMessages}>
-                                        {loadingOlder ? "Loading older messages…" : "Load older messages"}
+                                        {loadingOlder ? t("chat.loadingOlder") : t("chat.loadOlder")}
                                     </Button>
                                 )}
                         </ListItem>
@@ -94,7 +96,7 @@ export const Chat = ({ user, gameId, embedded = false, compact = false, canSend 
             </Box>
             {!connected && (
                 <Typography variant="caption" color="warning" sx={{ mt: 1 }}>
-                    Connecting to chat… New messages appear once connected.
+                    {t("chat.connecting")}
                 </Typography>
             )}
             {error && <Alert severity="error" sx={{ mt: 1 }}>{error}</Alert>}
@@ -107,7 +109,7 @@ export const Chat = ({ user, gameId, embedded = false, compact = false, canSend 
                                 <InputField
                                     control={control}
                                     name="message"
-                                    label="Message"
+                                    label={t("chat.message")}
                                     type="text"
                                     size={compact ? "small" : "medium"}
                                     // An empty field only disables sending, it's not worth an error message
@@ -117,6 +119,7 @@ export const Chat = ({ user, gameId, embedded = false, compact = false, canSend 
                             <IconButton
                                 color="primary"
                                 type="submit"
+                                aria-label={t("chat.send")}
                                 size={compact ? "small" : "medium"}
                                 sx={{ mt: compact ? 0.5 : 1 }}
                                 disabled={isSubmitting || !isDirty || !isValid}
@@ -126,7 +129,7 @@ export const Chat = ({ user, gameId, embedded = false, compact = false, canSend 
                         </Stack>
                     </form>
                 )
-                : <Typography variant="caption" sx={{ mt: 1 }}>Join this game to send messages.</Typography>}
+                : <Typography variant="caption" sx={{ mt: 1 }}>{t("chat.joinToSend")}</Typography>}
         </Stack>
     )
 }
@@ -138,12 +141,17 @@ type ChatLineProps = {
 }
 
 const ChatLine = ({ message, compact, profile }: ChatLineProps) => {
+    const { t } = useTranslation()
     return (
         <>
             <ListItem>
                 <ListItemAvatar>
                     <Tooltip title={message.userId} placement="left">
-                        <Avatar src={avatarSrc(profile?.avatar)} alt={profile?.displayName ?? "Player"} sx={compact ? { width: 30, height: 30 } : undefined}>
+                        <Avatar
+                            src={avatarSrc(profile?.avatar)}
+                            alt={profile?.displayName ?? t("common.player")}
+                            sx={compact ? { width: 30, height: 30 } : undefined}
+                        >
                             {(profile?.displayName ?? "?").slice(0, 1).toUpperCase()}
                         </Avatar>
                     </Tooltip>
@@ -153,7 +161,7 @@ const ChatLine = ({ message, compact, profile }: ChatLineProps) => {
                         <Tooltip title={formatDateTime(message.timestamp)} placement="top-start">
                             <span>
                                 <Box component="span" sx={{ fontWeight: "fontWeightMedium", color: "primary.main" }}>
-                                    {senderFirstName(profile?.displayName)}:
+                                    {senderFirstName(profile?.displayName) ?? t("common.player")}:
                                 </Box>{" "}
                                 {message.message}
                             </span>
@@ -169,4 +177,4 @@ const ChatLine = ({ message, compact, profile }: ChatLineProps) => {
 }
 
 // First word of the display name, or the email's local part when there's no name
-const senderFirstName = (displayName?: string) => displayName?.trim().split(/\s+/)[0] || "Player"
+const senderFirstName = (displayName?: string) => displayName?.trim().split(/\s+/)[0] || undefined

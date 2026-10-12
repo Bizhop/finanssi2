@@ -6,6 +6,7 @@ import { GameSchema } from "../../api/schemas.ts"
 import { z } from "zod/mini"
 import { useCurrentUser } from "../../auth/CurrentUserContext.tsx"
 import { useStompConnected, useStompSubscription } from "../../realtime/StompContext.tsx"
+import { t } from "../../i18n/index.ts"
 import { errorToast } from "../../ui/toasts.ts"
 
 /** The house rules a game is created or changed with, as the backend takes them */
@@ -41,7 +42,7 @@ export const useGames = (onForbidden: () => void) => {
                 setError(null)
             })
             .catch((reason: unknown) => {
-                if (userRef.current === user && request === requestRef.current) setError(reason instanceof Error ? reason.message : "Unable to load games")
+                if (userRef.current === user && request === requestRef.current) setError(reason instanceof Error ? reason.message : t("games.loadFailed"))
             })
             .finally(() => {
                 if (userRef.current === user && request === requestRef.current) setLoading(false)
@@ -75,7 +76,7 @@ export const useGames = (onForbidden: () => void) => {
                 clearDebugAccess()
                 onForbidden()
             }
-            errorToast(reason instanceof Error ? reason.message : "The request failed")
+            errorToast(reason instanceof Error ? reason.message : t("games.requestFailed"))
             return false
         } finally {
             busyRef.current = false

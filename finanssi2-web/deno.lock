@@ -15,9 +15,11 @@
     "npm:@types/react@^19.3.0": "19.3.0",
     "npm:@vitejs/plugin-react@^6.1.2": "6.1.2_vite@8.3.4_@types+node@26.6.5",
     "npm:firebase@13": "13.0.0",
+    "npm:i18next@^26.4.3": "26.4.3",
     "npm:playwright-core@^1.64.0": "1.64.0",
     "npm:react-dom@^19.3.0": "19.3.0_react@19.3.0",
     "npm:react-hook-form@^7.89.0": "7.89.0_@types+react@19.3.0_react@19.3.0",
+    "npm:react-i18next@^17.0.16": "17.0.16_i18next@26.4.3_react@19.3.0",
     "npm:react-router@^8.4.0": "8.4.0_react@19.3.0_react-dom@19.3.0",
     "npm:react-toastify@^11.1.0": "11.1.0_react@19.3.0_react-dom@19.3.0",
     "npm:react@^19.3.0": "19.3.0",
@@ -1126,8 +1128,14 @@
         "react-is@16.13.1"
       ]
     },
+    "html-parse-stringify@4.0.1": {
+      "integrity": "sha512-0zHsZJrK7S3K2aucXWL6ycoYJ/iNtIcFHC/nYQgFklPtrv5LpJctIiSCroWZWeuoXvuyFdzp6KzjJQ+OT5MfFw=="
+    },
     "http-parser-js@0.5.10": {
       "integrity": "sha512-Pysuw9XpUq5dVc/2SMHpuTY01RFl8fttgcyunjL7eEMhGM3cI4eOmiCycJDVCo/7O7ClfQD3SaI6ftDzqOXYMA=="
+    },
+    "i18next@26.4.3": {
+      "integrity": "sha512-QIIueUYS2giFVIY3hu/X5Dz7/qTzwcXE06H29m1DKVhUGVPCyT0wnsh14wEn/cTy9nZ/B6VhbDItdXotOKSO8A=="
     },
     "idb@7.1.1": {
       "integrity": "sha512-gchesWBzyvGHRO9W8tzUWFDycow5gwjvFKfyV9FF32Y7F50yZMp7mP+T2mJIWFx49zicqyC4uefHM17o6xKIVQ=="
@@ -1345,6 +1353,16 @@
         "@types/react"
       ]
     },
+    "react-i18next@17.0.16_i18next@26.4.3_react@19.3.0": {
+      "integrity": "sha512-7uImVD9hG5yUOaP5KHVied1x0A004Di/KU031ULR35Ma+9e9H5GdnNZHgQEIByyAz+IAXBkRDTedNVzjPUH8ZA==",
+      "dependencies": [
+        "@babel/runtime",
+        "html-parse-stringify",
+        "i18next",
+        "react",
+        "use-sync-external-store"
+      ]
+    },
     "react-is@16.13.1": {
       "integrity": "sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ=="
     },
@@ -1470,6 +1488,12 @@
     "undici-types@8.9.0": {
       "integrity": "sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg=="
     },
+    "use-sync-external-store@1.7.0_react@19.3.0": {
+      "integrity": "sha512-6L+EeigHMQhdaIPNIFUKwfWJSwWFQ8gJbJ2DLOs5sDIegTwR9fRxvnM3uciHKjIZhFz+KAv2emhWMRvDmMcY8A==",
+      "dependencies": [
+        "react"
+      ]
+    },
     "vite@8.3.4_@types+node@26.6.5": {
       "integrity": "sha512-IftLE8phJhdNRIGNEV4JCCvfNScoZQVfcXaN8TQropWGJtOHcu+iAB9pHcuGvmEb/kddw0LBe/jS8ztdC6xdiQ==",
       "dependencies": [
@@ -1550,9 +1574,11 @@
       "npm:@types/react@^19.3.0",
       "npm:@vitejs/plugin-react@^6.1.2",
       "npm:firebase@13",
+      "npm:i18next@^26.4.3",
       "npm:playwright-core@^1.64.0",
       "npm:react-dom@^19.3.0",
       "npm:react-hook-form@^7.89.0",
+      "npm:react-i18next@^17.0.16",
       "npm:react-router@^8.4.0",
       "npm:react-toastify@^11.1.0",
       "npm:react@^19.3.0",

@@ -1,12 +1,6 @@
 // Shared setup for the test pages: a fake logged-in user and a fake backend, so pages work without a Firebase login or a running backend
-import { z } from "zod/mini"
-import { en } from "zod/locales"
-
 import type { StompConnection } from "../src/realtime/StompContext.tsx"
 import { matti, profileOf, publicProfiles, stranger, tester } from "./people.ts"
-
-// Same as src/index.tsx
-z.config(en())
 
 /** A chat row as the backend sends it: the sender is a user id, resolved to a name and avatar through /api/users */
 export type FakeChatMessage = {

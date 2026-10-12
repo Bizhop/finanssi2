@@ -1,6 +1,8 @@
 import type { User } from "firebase/auth"
 import type { z } from "zod/mini"
 
+import { t } from "../i18n/index.ts"
+
 export type { Card, CommandOptions, Game, GameBoardData, GamePlayer, GameSquare, GameView, PendingDecision, PublicProfile, UserProfile } from "./schemas.ts"
 
 export class GameApiError extends Error {
@@ -27,7 +29,7 @@ export async function gameApi<T>(user: User, path: string, init: RequestInit = {
     })
     if (!response.ok) {
         const body = await response.json().catch(() => null)
-        throw new GameApiError(body?.detail ?? `Request failed (${response.status})`, response.status, body?.code)
+        throw new GameApiError(body?.detail ?? t("api.requestFailed", { status: response.status }), response.status, body?.code)
     }
     if (response.status === 204) return undefined as T
     const body = await response.text()
@@ -40,7 +42,7 @@ export async function gameApiParsed<S extends z.ZodMiniType>(user: User, path: s
     const result = schema.safeParse(body)
     if (!result.success) {
         console.error(`Unexpected response from ${path}`, result.error)
-        throw new GameApiError("The server sent a response this version of the app does not understand. Reload the page.", 502)
+        throw new GameApiError(t("api.unexpectedResponse"), 502)
     }
     return result.data
 }

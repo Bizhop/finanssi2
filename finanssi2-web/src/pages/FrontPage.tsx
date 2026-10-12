@@ -14,21 +14,23 @@ import {
     validatePassword,
 } from "firebase/auth"
 import type { AuthCredential } from "firebase/auth"
+import { useTranslation } from "react-i18next"
 import { Chat } from "../chat/Chat.tsx"
 import { auth } from "../auth/firebase.ts"
 import { useCurrentUser } from "../auth/CurrentUserContext.tsx"
+import { t } from "../i18n/index.ts"
 
 const errorText = (reason: unknown) => {
     if (typeof reason === "object" && reason && "code" in reason) {
         const code = String(reason.code)
         if (code === "auth/account-exists-with-different-credential") {
-            return "An account already exists with this email. Sign in with its existing method to link Google."
+            return t("auth.error.accountExistsLink")
         }
-        if (code === "auth/email-already-in-use") return "An account already exists with this email. Sign in with your existing method."
-        if (code === "auth/weak-password") return "The password does not meet your Firebase password policy."
-        if (code === "auth/invalid-credential" || code === "auth/invalid-login-credentials") return "Email or password is incorrect."
+        if (code === "auth/email-already-in-use") return t("auth.error.emailInUse")
+        if (code === "auth/weak-password") return t("auth.error.weakPassword")
+        if (code === "auth/invalid-credential" || code === "auth/invalid-login-credentials") return t("auth.error.invalidCredential")
     }
-    return reason instanceof Error ? reason.message : "The request failed. Please try again."
+    return reason instanceof Error ? reason.message : t("common.requestFailed")
 }
 
 type Notice = { text: string; severity: "success" | "info" | "error" }
@@ -36,6 +38,7 @@ const success = (text: string): Notice => ({ text, severity: "success" })
 const info = (text: string): Notice => ({ text, severity: "info" })
 
 export const FrontPage = () => {
+    const { t } = useTranslation()
     const { user, profile, status, error, refreshProfile } = useCurrentUser()
     const [mode, setMode] = useState<"signin" | "register" | "reset">("signin")
     const [email, setEmail] = useState("")
@@ -62,25 +65,25 @@ export const FrontPage = () => {
         void run(async () => {
             if (mode === "reset") {
                 await sendPasswordResetEmail(auth, email.trim())
-                setNotice(success("Password reset email sent."))
+                setNotice(success(t("auth.resetSent")))
                 return
             }
             if (mode === "register") {
-                if (password !== confirmation) throw new Error("Passwords do not match.")
+                if (password !== confirmation) throw new Error(t("auth.passwordsDiffer"))
                 const policy = await validatePassword(auth, password)
-                if (!policy.isValid) throw new Error("Password does not meet the configured Firebase password policy.")
-                if (displayName.trim().length < 1 || displayName.trim().length > 50) throw new Error("Display name must be 1–50 characters.")
+                if (!policy.isValid) throw new Error(t("auth.passwordPolicy"))
+                if (displayName.trim().length < 1 || displayName.trim().length > 50) throw new Error(t("auth.displayNameLength"))
                 const result = await createUserWithEmailAndPassword(auth, email.trim(), password)
                 await updateProfile(result.user, { displayName: displayName.trim() })
                 await sendEmailVerification(result.user)
-                setNotice(success("Check your email for a verification link. Return here after verifying."))
+                setNotice(success(t("auth.checkEmail")))
                 return
             }
             const result = await signInWithEmailAndPassword(auth, email.trim(), password)
             if (pendingCredential) {
                 await linkWithCredential(result.user, pendingCredential)
                 setPendingCredential(null)
-                setNotice(success("Google sign-in linked to your account."))
+                setNotice(success(t("auth.googleLinked")))
             }
         })
     }
@@ -98,7 +101,7 @@ export const FrontPage = () => {
                 if (code === "auth/account-exists-with-different-credential") {
                     const credential = GoogleAuthProvider.credentialFromError(reason as Parameters<typeof GoogleAuthProvider.credentialFromError>[0])
                     if (credential) setPendingCredential(credential)
-                    setNotice(info("This email uses another sign-in method. Sign in with that method below; Google will be linked after authentication."))
+                    setNotice(info(t("auth.otherMethod")))
                     return
                 }
                 throw reason
@@ -112,27 +115,27 @@ export const FrontPage = () => {
             await user.getIdToken(true)
             if (user.emailVerified) {
                 await refreshProfile()
-                setNotice(success("Email verified."))
-            } else setNotice(info("Firebase has not confirmed the verification yet. Try again in a moment."))
+                setNotice(success(t("auth.emailVerified")))
+            } else setNotice(info(t("auth.notVerifiedYet")))
         })
     const resend = () =>
         void run(async () => {
             if (!user) return
             await sendEmailVerification(user)
-            setNotice(success("Verification email sent."))
+            setNotice(success(t("auth.verificationSent")))
         })
 
-    if (status === "initializing" || status === "profileLoading") return <Typography sx={{ p: 2 }}>Loading account…</Typography>
+    if (status === "initializing" || status === "profileLoading") return <Typography sx={{ p: 2 }}>{t("common.loadingAccount")}</Typography>
     if (user && status === "verificationRequired") {
         return (
             <Stack spacing={2} sx={{ p: 2, maxWidth: 520 }}>
-                <Typography variant="h5">Verify your email</Typography>
-                <Typography>Open the verification link sent to {user.email}, then return here.</Typography>
+                <Typography variant="h5">{t("auth.verifyTitle")}</Typography>
+                <Typography>{t("auth.verifyBody", { email: user.email })}</Typography>
                 {notice && <Alert severity={notice.severity}>{notice.text}</Alert>}
                 <Stack direction="row" spacing={1}>
-                    <Button disabled={busy} onClick={resend}>Resend email</Button>
-                    <Button disabled={busy} onClick={verifyAgain}>I’ve verified</Button>
-                    <Button disabled={busy} onClick={() => void signOut(auth)}>Sign out</Button>
+                    <Button disabled={busy} onClick={resend}>{t("auth.resend")}</Button>
+                    <Button disabled={busy} onClick={verifyAgain}>{t("auth.verified")}</Button>
+                    <Button disabled={busy} onClick={() => void signOut(auth)}>{t("auth.signOut")}</Button>
                 </Stack>
             </Stack>
         )
@@ -141,8 +144,8 @@ export const FrontPage = () => {
         return (
             <Stack spacing={2} sx={{ p: 2, maxWidth: 520 }}>
                 <Alert severity="error">{error}</Alert>
-                <Button onClick={() => void refreshProfile()}>Retry</Button>
-                <Button onClick={() => void signOut(auth)}>Sign out</Button>
+                <Button onClick={() => void refreshProfile()}>{t("common.retry")}</Button>
+                <Button onClick={() => void signOut(auth)}>{t("auth.signOut")}</Button>
             </Stack>
         )
     }
@@ -150,12 +153,12 @@ export const FrontPage = () => {
 
     return (
         <Stack component="form" onSubmit={submit} spacing={2} sx={{ p: 2, maxWidth: 420 }}>
-            <Typography variant="h5">{mode === "register" ? "Create account" : mode === "reset" ? "Reset password" : "Sign in"}</Typography>
+            <Typography variant="h5">{t(`auth.title.${mode}`)}</Typography>
             {notice && <Alert severity={notice.severity}>{notice.text}</Alert>}
-            <TextField label="Email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
+            <TextField label={t("auth.email")} type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
             {mode === "register" && (
                 <TextField
-                    label="Display name"
+                    label={t("auth.displayName")}
                     required
                     slotProps={{ htmlInput: { maxLength: 50 } }}
                     value={displayName}
@@ -164,7 +167,7 @@ export const FrontPage = () => {
             )}
             {mode !== "reset" && (
                 <TextField
-                    label="Password"
+                    label={t("auth.password")}
                     type="password"
                     autoComplete={mode === "register" ? "new-password" : "current-password"}
                     required
@@ -174,7 +177,7 @@ export const FrontPage = () => {
             )}
             {mode === "register" && (
                 <TextField
-                    label="Confirm password"
+                    label={t("auth.confirmPassword")}
                     type="password"
                     autoComplete="new-password"
                     required
@@ -183,12 +186,12 @@ export const FrontPage = () => {
                 />
             )}
             <Button type="submit" variant="contained" disabled={busy}>
-                {mode === "register" ? "Register" : mode === "reset" ? "Send reset email" : "Sign in"}
+                {t(`auth.submit.${mode}`)}
             </Button>
-            {mode === "signin" && <Button type="button" onClick={google} disabled={busy}>Continue with Google</Button>}
-            {mode === "signin" && <Button type="button" onClick={() => setMode("reset")}>Forgot password?</Button>}
-            {mode !== "signin" && <Button type="button" onClick={() => setMode("signin")}>Back to sign in</Button>}
-            {mode !== "register" && <Button type="button" onClick={() => setMode("register")}>Create an account</Button>}
+            {mode === "signin" && <Button type="button" onClick={google} disabled={busy}>{t("auth.google")}</Button>}
+            {mode === "signin" && <Button type="button" onClick={() => setMode("reset")}>{t("auth.forgot")}</Button>}
+            {mode !== "signin" && <Button type="button" onClick={() => setMode("signin")}>{t("auth.backToSignIn")}</Button>}
+            {mode !== "register" && <Button type="button" onClick={() => setMode("register")}>{t("auth.createAccount")}</Button>}
         </Stack>
     )
 }
