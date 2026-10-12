@@ -55,14 +55,17 @@ export function createDatabase(
         deletionProtection: false,
         applyImmediately: true,
         tags: { Name: `${prefix}-database`, Application: "finanssi2" },
-    }, { provider })
+    }, {
+        provider,
+        // Aurora applies minor upgrades itself; do not try to downgrade to the version pinned at creation.
+        ignoreChanges: ["engineVersion"],
+    })
 
     const instance = new aws.rds.ClusterInstance(`${prefix}-database-writer`, {
         identifier: `${prefix}-database-writer`,
         clusterIdentifier: cluster.id,
         instanceClass: "db.serverless",
         engine: "aurora-postgresql",
-        engineVersion: settings.engineVersion,
         dbSubnetGroupName: databaseSubnetGroup.name,
         publiclyAccessible: false,
         tags: { Name: `${prefix}-database-writer` },
