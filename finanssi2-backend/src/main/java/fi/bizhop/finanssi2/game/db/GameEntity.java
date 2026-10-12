@@ -1,7 +1,7 @@
 package fi.bizhop.finanssi2.game.db;
 
 import fi.bizhop.finanssi2.game.engine.GameState;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

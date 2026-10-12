@@ -1,21 +1,17 @@
 package fi.bizhop.finanssi2.game.db;
 
 import jakarta.persistence.EntityManager;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.bizhop.finanssi2.game.engine.GameEvent;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
 public class GameLogRepository {
-    @Qualifier("persistenceEventMapper") final ObjectMapper persistenceEventMapper;
     final EntityManager entityManager;
 
     @Transactional(readOnly = true)
@@ -27,11 +23,7 @@ public class GameLogRepository {
     }
 
     private GameLogEntry model(GameEventEntity row) {
-        try {
-            return new GameLogEntry(row.id, row.gameId.toString(), row.seq, row.time, row.type,
-                    persistenceEventMapper.treeToValue(row.event, GameEvent.class));
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Could not decode game event JSONB", e);
-        }
+        return new GameLogEntry(row.id, row.gameId.toString(), row.seq, row.time, row.type,
+                PersistenceJson.EVENTS.treeToValue(row.event, GameEvent.class));
     }
 }

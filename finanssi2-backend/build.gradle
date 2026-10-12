@@ -30,9 +30,15 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.springframework.boot:spring-boot-starter-websocket'
-	// JSONB persistence uses Jackson 2 (the web layer uses Jackson 3); declared here rather than relying on firebase-admin to bring it in
-	implementation 'com.fasterxml.jackson.core:jackson-databind'
-	implementation 'com.google.firebase:firebase-admin:9.11.0'
+	// Only Firebase Auth is used; firebase-admin drags in Firestore, Cloud Storage and the gRPC stack for the other products
+	implementation('com.google.firebase:firebase-admin:9.11.0') {
+		exclude group: 'com.google.cloud', module: 'google-cloud-firestore'
+		exclude group: 'com.google.cloud', module: 'google-cloud-storage'
+	}
+	// firebase-admin uses this JSON factory but only declares it through the modules excluded above; matches google-http-client
+	runtimeOnly 'com.google.http-client:google-http-client-jackson2:2.2.0'
+	// Page, in the signatures of FirebaseAuth's list methods; the same version the excluded modules pulled in
+	runtimeOnly 'com.google.api:gax:2.85.0'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	errorprone 'com.google.errorprone:error_prone_core:2.50.0'

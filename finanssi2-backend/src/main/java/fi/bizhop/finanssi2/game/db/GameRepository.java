@@ -3,19 +3,15 @@ package fi.bizhop.finanssi2.game.db;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Qualifier;
 import fi.bizhop.finanssi2.game.engine.GameEvent;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import fi.bizhop.finanssi2.db.ApplicationUser;
 import fi.bizhop.finanssi2.game.engine.GameState;
 import fi.bizhop.finanssi2.game.engine.PendingDecision;
@@ -27,9 +23,6 @@ import org.springframework.dao.OptimisticLockingFailureException;
 @Repository
 @RequiredArgsConstructor
 public class GameRepository {
-    // Private on purpose: this mapper writes the persisted state, including deck order and sealed bids that API views must never carry.
-    private final JsonMapper persistenceJsonMapper = JsonMapper.builder().build();
-    @Qualifier("persistenceEventMapper") final ObjectMapper persistenceEventMapper;
     final EntityManager entityManager;
 
     /** What authorization needs to know about a game, without loading its state */
@@ -153,30 +146,25 @@ public class GameRepository {
     }
 
     private void applyState(Game source, GameEntity target) {
-        try {
-            var state = (ObjectNode) persistenceEventMapper
-                    .readTree(persistenceJsonMapper.writeValueAsString(source.getState()));
-            addStrings(state.putArray("financeNewsDeck"), source.getState().getFinanceNewsDeck());
-            addStrings(state.putArray("stockTipDeck"), source.getState().getStockTipDeck());
-            var decisions = state.withArray("pendingDecisions");
-            for (int i = 0; i < source.getState().getPendingDecisions().size(); i++) {
-                var decision = source.getState().getPendingDecisions().get(i);
-                List<PendingDecision.Bid> bids = switch (decision) {
-                    case PendingDecision.BondAuction auction -> auction.bids();
-                    case PendingDecision.AssetAuction auction -> auction.bids();
-                    default -> List.of();
-                };
-                if (decision instanceof PendingDecision.BondAuction
-                        || decision instanceof PendingDecision.AssetAuction) {
-                    var pending = (ObjectNode) decisions.get(i);
-                    var encodedBids = pending.putArray("bids");
-                    for (var bid : bids) encodedBids.addObject().put("player", bid.player()).put("amount", bid.amount());
-                }
+        ObjectNode state = PersistenceJson.STATE.valueToTree(source.getState());
+        addStrings(state.putArray("financeNewsDeck"), source.getState().getFinanceNewsDeck());
+        addStrings(state.putArray("stockTipDeck"), source.getState().getStockTipDeck());
+        var decisions = (ArrayNode) state.get("pendingDecisions");
+        for (int i = 0; i < source.getState().getPendingDecisions().size(); i++) {
+            var decision = source.getState().getPendingDecisions().get(i);
+            List<PendingDecision.Bid> bids = switch (decision) {
+                case PendingDecision.BondAuction auction -> auction.bids();
+                case PendingDecision.AssetAuction auction -> auction.bids();
+                default -> List.of();
+            };
+            if (decision instanceof PendingDecision.BondAuction
+                    || decision instanceof PendingDecision.AssetAuction) {
+                var pending = (ObjectNode) decisions.get(i);
+                var encodedBids = pending.putArray("bids");
+                for (var bid : bids) encodedBids.addObject().put("player", bid.player()).put("amount", bid.amount());
             }
-            target.state = state;
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Could not encode persistence JSON", e);
         }
+        target.state = state;
     }
 
     private static void addStrings(ArrayNode target, List<String> values) {
@@ -184,11 +172,7 @@ public class GameRepository {
     }
 
     private JsonNode encodeEvent(GameEvent event) {
-        try {
-            return persistenceEventMapper.readTree(persistenceEventMapper.writerFor(GameEvent.class).writeValueAsString(event));
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Could not encode game event as JSONB", e);
-        }
+        return PersistenceJson.EVENTS.readTree(PersistenceJson.EVENTS.writerFor(GameEvent.class).writeValueAsString(event));
     }
 
     private Game model(GameEntity entity) {
@@ -199,7 +183,7 @@ public class GameRepository {
         game.setCreator(entity.creatorUser.getId().toString());
         game.setCreatedAt(entity.createdAt);
         game.setLastEventSeq(entity.lastEventSeq);
-        var state = persistenceJsonMapper.readValue(entity.state.toString(), GameState.class);
+        var state = PersistenceJson.STATE.treeToValue(entity.state, GameState.class);
         state.setFinanceNewsDeck(strings(entity.state.get("financeNewsDeck")));
         state.setStockTipDeck(strings(entity.state.get("stockTipDeck")));
         var decisions = entity.state.get("pendingDecisions");
@@ -221,7 +205,7 @@ public class GameRepository {
 
     private static List<String> strings(JsonNode node) {
         var values = new ArrayList<String>();
-        node.forEach(value -> values.add(value.asText()));
+        node.forEach(value -> values.add(value.asString()));
         return values;
     }
 
@@ -229,7 +213,7 @@ public class GameRepository {
         var values = new ArrayList<PendingDecision.Bid>();
         if (node != null && node.isArray()) {
             node.forEach(value -> values.add(new PendingDecision.Bid(
-                    value.get("player").asText(), value.get("amount").asInt())));
+                    value.get("player").asString(), value.get("amount").asInt())));
         }
         return List.copyOf(values);
     }
