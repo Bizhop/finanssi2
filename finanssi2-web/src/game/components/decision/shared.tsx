@@ -1,13 +1,15 @@
 import type { ReactNode } from "react"
 import { Button, Stack, Tooltip, Typography } from "@mui/material"
 
-import type { Game, GameBoardData } from "../../../api/gameApi.ts"
+import type { CommandOptions, Game, GameBoardData, PendingDecision } from "../../../api/gameApi.ts"
 import { formatEuro } from "../../../ui/format.ts"
 import type { decisionLabels } from "../../labels/gameDecisions.ts"
 import { DecisionAsset } from "../DecisionAsset.tsx"
 import { PlayerToken } from "../PlayerToken.tsx"
 
-export type Pending = Game["state"]["pendingDecisions"][number]
+export type Pending = PendingDecision
+/** One kind of pending decision */
+export type PendingOf<T extends Pending["type"]> = Extract<Pending, { type: T }>
 
 /** What every part of a decision dialog needs: the game, what the player may send, and whether a request is running */
 export type DecisionEnv = {
@@ -15,6 +17,8 @@ export type DecisionEnv = {
     board: GameBoardData | null
     /** The command types the backend currently allows */
     allowed: string[]
+    /** The concrete choices behind them, with current prices */
+    options: CommandOptions
     send: (command: Record<string, unknown>) => Promise<void>
     busy: boolean
     labels: ReturnType<typeof decisionLabels>

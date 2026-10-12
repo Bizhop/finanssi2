@@ -7,6 +7,7 @@ import { Button, Stack } from "@mui/material"
 
 import { App } from "../src/App.tsx"
 import { StompContext } from "../src/realtime/StompContext.tsx"
+import { appRoot } from "./root.ts"
 import { FakeCurrentUser } from "./FakeCurrentUser.tsx"
 import { fakeBackend, fakeChatMessages, fakeStompConnection, nextFakeId, receiveFakeChatMessage } from "./mocks.ts"
 import { olli, tester } from "./people.ts"
@@ -46,7 +47,7 @@ const TestPage = () => {
     )
 }
 
-ReactDOM.createRoot(document.getElementById("app")!).render(
+ReactDOM.createRoot(appRoot()).render(
     <StrictMode>
         <MemoryRouter>
             <TestPage />

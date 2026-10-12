@@ -10,9 +10,10 @@ import CasinoIcon from "@mui/icons-material/Casino"
 import { NavLink } from "react-router"
 
 import { decisionFixtures } from "./decision-fixtures.ts"
-import type { Game } from "../src/api/gameApi.ts"
+import type { CommandOptions, Game } from "../src/api/gameApi.ts"
 import { GameRoom } from "../src/pages/GameRoom.tsx"
 import { FakeCurrentUser } from "./FakeCurrentUser.tsx"
+import { appRoot } from "./root.ts"
 import { idOfKey, liisa as liisaPerson, olli as olliPerson, pekka as pekkaPerson, profileOf, publicProfiles, tester, viewer as viewerPerson } from "./people.ts"
 import { type StompConnection, StompContext } from "../src/realtime/StompContext.tsx"
 import { GAME_BOARD_MAX_WIDTH, GAME_ROOM_MAX_WIDTH } from "../src/game/rules/boardLayout.ts"
@@ -167,10 +168,14 @@ if (params.get("decision") === "bond-transfer") {
     })
 }
 if (params.get("decision") === "PV-17") {
-    fixture!.pending.options = titleDeedFile.titleDeeds.map((deed) => String(deed.square))
+    if (fixture?.pending.type === "StockTipChoice") fixture.pending.options = titleDeedFile.titleDeeds.map((deed) => String(deed.square))
 }
-if (["PV-10", "fire-forced", "PV-31"].includes(params.get("decision") ?? "")) game.state.properties.find((property) => property.square === 19)!.built = true
-if (params.get("decision") === "PV-10") game.state.properties.find((property) => property.square === 10)!.built = true
+const built = (square: number) => {
+    const property = game.state.properties.find((item) => item.square === square)
+    if (property) property.built = true
+}
+if (["PV-10", "fire-forced", "PV-31"].includes(params.get("decision") ?? "")) built(19)
+if (params.get("decision") === "PV-10") built(10)
 if (fixture?.pending.type === "BondOffer") user.position = 45
 if (fixture?.pending.type === "BondAuction") user.position = 38
 if (fixture?.pending.type === "NewsDirection") user.position = 31
@@ -182,6 +187,82 @@ const board = {
     shares: shareFile.shares,
     financeNews,
     stockTips,
+}
+
+/**
+ * The backend's options for the player Maija controls, worked out here from the fixture: only what the allowed commands and her cash
+ * permit, at the printed prices (the real backend also applies Finance News modifiers).
+ */
+const fakeOptions = (allowedCommands: string[]): CommandOptions => {
+    const can = (command: string) => allowedCommands.includes(command)
+    const stateOf = (property: { built: boolean }) => property.built ? "built" as const : "unbuilt" as const
+    const deedOf = (square: number) => {
+        const deed = board.titleDeeds.find((item) => item.square === square)
+        if (!deed) throw new Error(`No title deed for square ${square}`)
+        return deed
+    }
+    const mine = game.state.properties.filter((property) => property.owner === user.playerId)
+    const priced = (items: { square: number; amount: number | null | undefined }[]) =>
+        items.flatMap((item) => item.amount == null ? [] : [{ square: item.square, amount: item.amount }])
+    return {
+        buyProperty: can("BuyProperty")
+            ? priced(
+                game.state.properties.filter((property) => property.owner === null).map((property) => ({
+                    square: property.square,
+                    amount: deedOf(property.square).price,
+                })),
+            )
+                .filter((offer) => offer.amount <= user.cash)
+            : [],
+        buyShare: can("BuyShare")
+            ? game.state.shares.filter((share) => share.owner === null).flatMap((share) => {
+                const value = board.shares.find((item) => item.id === share.id)?.value ?? 0
+                return value <= user.cash ? [{ share: share.id, amount: value }] : []
+            })
+            : [],
+        mortgage: can("Mortgage")
+            ? priced(
+                mine.filter((property) => !property.mortgaged).map((property) => ({
+                    square: property.square,
+                    amount: deedOf(property.square).mortgage?.[stateOf(property)],
+                })),
+            )
+            : [],
+        redeem: can("Redeem")
+            ? priced(
+                mine.filter((property) => property.mortgaged).map((property) => ({
+                    square: property.square,
+                    amount: deedOf(property.square).redemption?.[stateOf(property)],
+                })),
+            )
+            : [],
+        sellBackProperty: can("SellBackProperty")
+            ? priced(
+                mine.filter((property) => !property.mortgaged).map((property) => ({
+                    square: property.square,
+                    amount: deedOf(property.square).buyBack?.[stateOf(property)],
+                })),
+            )
+            : [],
+        sellBackShare: can("SellBackShare")
+            ? game.state.shares.filter((share) => share.owner === user.playerId).map((share) => ({
+                share: share.id,
+                amount: board.shares.find((item) => item.id === share.id)?.buyBack ?? 0,
+            }))
+            : [],
+        build: can("Build")
+            ? mine.filter((property) => !property.built && !property.mortgaged && deedOf(property.square).building).map((property) => ({
+                square: property.square,
+                amount: deedOf(property.square).building?.price ?? 0,
+            }))
+            : [],
+        // Finanssiyhtymä is split between Maija and Liisa with nothing left in the bank (see above); a takeover of €125,000 plus a fee fits her cash
+        shareholdersMeeting: can("CallShareholdersMeeting")
+            ? [{ group: "FINANSSIYHTYMA", brokerageFees: [20000, 30000].filter((fee) => 125_000 + fee <= user.cash) }]
+            : [],
+        buyBond: can("BuyBond") ? game.state.bonds.filter((bond) => bond.owner === null).map((bond) => bond.number) : [],
+        bondPrice: 500,
+    }
 }
 
 const turn = (playerId: string, dice: number[], from: number) => {
@@ -219,7 +300,12 @@ const events = [
             // ?tip=<id> shows another Stock Tip, e.g. ?afterRoll&tip=PV-31 for the longest text (not one she keeps)
             ...fixture && fixture.pending.type !== "StockTipChoice" ? [] : [
                 params.has("tip") || fixture?.pending.type === "StockTipChoice"
-                    ? { type: "StockTipDrawn", player: user.playerId, card: fixture?.pending.card ?? params.get("tip"), held: false }
+                    ? {
+                        type: "StockTipDrawn",
+                        player: user.playerId,
+                        card: (fixture?.pending && "card" in fixture.pending ? fixture.pending.card : undefined) ?? params.get("tip"),
+                        held: false,
+                    }
                     : { type: "StockTipDrawn", player: user.playerId, card: "PV-01", held: true },
             ],
         ]
@@ -328,36 +414,38 @@ globalThis.fetch = (input, init) => {
     }
     if (path.startsWith("/api/games/preview-game/events")) return Promise.resolve(Response.json(events))
     if (path === "/api/games/preview-game") {
+        const allowedCommands = finished
+            ? []
+            : fixture
+            ? fixture.commands
+            : !debug && game.state.currentPlayer !== user.playerId
+            ? []
+            : debug && game.state.currentPlayer !== user.playerId
+            ? [afterRoll ? "EndTurn" : "Roll", "RepayLoan", "Mortgage", "Redeem", "SellBackProperty", "SellBackShare", "Resign"]
+            : afterRoll
+            ? ["EndTurn", "RepayLoan", "Mortgage", "SellBackProperty", "SellBackShare", "UseHeldStockTip", "Resign"]
+            : [
+                "Roll",
+                "BuyCar",
+                "RepayLoan",
+                "BuyProperty",
+                "BuyShare",
+                "Build",
+                "Mortgage",
+                "Redeem",
+                "SellBackProperty",
+                "SellBackShare",
+                "UseHeldStockTip",
+                "CallShareholdersMeeting",
+                "Resign",
+            ]
         return Promise.resolve(Response.json({
             game,
             actingPlayer: game.state.pendingDecisions[0]?.player ?? game.state.currentPlayer,
             // What the backend allows Maija: building and buying (on 40) only before the roll, ending the turn only after it.
             // FL-01 is active, so the bank grants no new loans.
-            allowedCommands: finished
-                ? []
-                : fixture
-                ? fixture.commands
-                : !debug && game.state.currentPlayer !== user.playerId
-                ? []
-                : debug && game.state.currentPlayer !== user.playerId
-                ? [afterRoll ? "EndTurn" : "Roll", "RepayLoan", "Mortgage", "Redeem", "SellBackProperty", "SellBackShare", "Resign"]
-                : afterRoll
-                ? ["EndTurn", "RepayLoan", "Mortgage", "SellBackProperty", "SellBackShare", "UseHeldStockTip", "Resign"]
-                : [
-                    "Roll",
-                    "BuyCar",
-                    "RepayLoan",
-                    "BuyProperty",
-                    "BuyShare",
-                    "Build",
-                    "Mortgage",
-                    "Redeem",
-                    "SellBackProperty",
-                    "SellBackShare",
-                    "UseHeldStockTip",
-                    "CallShareholdersMeeting",
-                    "Resign",
-                ],
+            allowedCommands,
+            options: fakeOptions(allowedCommands),
         }))
     }
     if (path === "/api/me") return Promise.resolve(Response.json(profileOf(tester, debug)))
@@ -371,7 +459,7 @@ globalThis.fetch = (input, init) => {
     return Promise.resolve(Response.json({ detail: `No mock for ${path}` }, { status: 404 }))
 }
 
-ReactDOM.createRoot(document.getElementById("app")!).render(
+ReactDOM.createRoot(appRoot()).render(
     <StrictMode>
         <MemoryRouter initialEntries={["/games/preview-game"]}>
             {appLayout

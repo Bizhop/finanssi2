@@ -45,7 +45,7 @@
     "lint": {
         "rules": {
             "tags": ["recommended", "react", "jsx"],
-            "include": ["react-rules-of-hooks", "verbatim-module-syntax"]
+            "include": ["react-rules-of-hooks", "verbatim-module-syntax", "no-non-null-assertion"]
         }
     },
     "fmt": {

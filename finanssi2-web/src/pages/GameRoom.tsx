@@ -10,7 +10,7 @@ import { GameWindow, type GameWindowTab } from "../ui/GameWindow.tsx"
 import { TitleDeedCard } from "../game/components/Cards.tsx"
 import { buildAction, type PlayerControls } from "../game/rules/assetActions.ts"
 import { ConfirmDialog, type ConfirmRequest } from "../ui/ConfirmDialog.tsx"
-import { bankSalesOpen, meetingGroups, takeoverSum } from "../game/rules/gameRules.ts"
+import { takeoverSum } from "../game/rules/gameRules.ts"
 import { PlayerPanel } from "../game/components/PlayerPanel.tsx"
 import { useCurrentUser } from "../auth/CurrentUserContext.tsx"
 import { usePublicProfiles } from "../auth/PublicProfiles.tsx"
@@ -55,7 +55,7 @@ const GameRoomContent = () => {
     if (!view) return null
     if (view.game.mode === "DEBUG" && !debugMode) return <CircularProgress />
 
-    const { game: rawGame, allowedCommands } = view
+    const { game: rawGame, allowedCommands, options } = view
     const game = {
         ...rawGame,
         state: {
@@ -81,39 +81,36 @@ const GameRoomContent = () => {
     // Only a Stock Tip drawn during the current turn stays face up on the board
     const turnStockTip = findTurnStockTip(events)
     const deedOf = (square: number) => board?.titleDeeds.find((deed) => deed.square === square)
-    const buildable = game.state.properties.filter((property) => {
-        const deed = deedOf(property.square)
-        return property.owner === actingUid && deed != null && buildAction(allowedCommands, property, deed) != null
-    }).map((property) => property.square)
-    const purchasable = bankSalesOpen(game, actingUid, "property")
-        ? game.state.properties.filter((property) => property.owner === null).map((property) => property.square)
-        : []
+    // What can be done right now, with current prices, comes from the backend's options
+    const buildable = options.build.map((offer) => offer.square)
+    const purchasable = options.buyProperty.map((offer) => offer.square)
     const cash = actingPlayer?.cash ?? 0
     const requestBuy = (square: number) => {
         const deed = deedOf(square)
-        if (!deed) return
+        const offer = options.buyProperty.find((item) => item.square === square)
+        if (!deed || !offer) return
         setConfirmRequest({
             title: `Buy ${deed.name}?`,
             body: (
                 <Stack spacing={1.5} sx={{ alignItems: "center", fontSize: 13 }}>
                     <TitleDeedCard deed={deed} groupName={board?.groups.find((group) => group.id === deed.group)?.name} />
-                    <span>
-                        The bank sells it for {formatEuro(deed.price)}.
-                        {deed.price > cash && ` You have ${formatEuro(cash)}: raise ${formatEuro(deed.price - cash)} more first.`}
-                    </span>
+                    <span>The bank sells it for {formatEuro(offer.amount)}.</span>
                 </Stack>
             ),
             confirmLabel: "Buy",
             command: { type: "BuyProperty", square },
-            disabled: deed.price > cash,
         })
     }
-    const meetings = actingUid ? meetingGroups(game, board, actingUid).map((group) => ({ group, takeover: takeoverSum(game, board, group, actingUid) })) : []
+    // The takeover cost is shown for information; which meetings and fees are possible comes from the options
+    const meetings = options.shareholdersMeeting.map((offer) => ({
+        group: offer.group,
+        fees: offer.brokerageFees,
+        takeover: actingUid ? takeoverSum(game, board, offer.group, actingUid) : 0,
+    }))
     const meeting = meetings.find((item) => item.group === meetingGroup)
     const requestBuild = (square: number) => {
-        const property = game.state.properties.find((item) => item.square === square)
         const deed = deedOf(square)
-        const action = property && deed && buildAction(allowedCommands, property, deed)
+        const action = deed && buildAction(options, deed)
         if (action) setConfirmRequest(action.request)
     }
     const contextActions = game.status === "RUNNING" && !pending && (
@@ -140,11 +137,12 @@ const GameRoomContent = () => {
     )
     const controls: PlayerControls = {
         allowed: allowedCommands,
+        options,
         busy: commandBusy,
         send: (command) => void sendCommand(command),
         confirm: setConfirmRequest,
         contextActions: contextActions || undefined,
-        onBuyShare: bankSalesOpen(game, actingUid, "share") ? () => setBuyShareOpen(true) : undefined,
+        onBuyShare: options.buyShare.length > 0 ? () => setBuyShareOpen(true) : undefined,
     }
     const gameActivityTabs: GameWindowTab[] = [
         {
@@ -286,6 +284,7 @@ const GameRoomContent = () => {
                     key={JSON.stringify(pending)}
                     pending={pending}
                     allowed={allowedCommands}
+                    options={options}
                     send={sendCommand}
                     game={game}
                     board={board}
@@ -302,9 +301,8 @@ const GameRoomContent = () => {
             />
             <BuyShareDialog
                 open={buyShareOpen}
-                game={game}
+                offers={options.buyShare}
                 board={board}
-                cash={cash}
                 busy={commandBusy}
                 onClose={() => setBuyShareOpen(false)}
                 onBuy={(share) => void sendCommand({ type: "BuyShare", share })}
@@ -314,6 +312,7 @@ const GameRoomContent = () => {
                 key={meetingGroup ?? "closed"}
                 groupName={meeting ? board?.groups.find((group) => group.id === meetingGroup)?.name ?? meetingGroup : null}
                 takeover={meeting?.takeover ?? 0}
+                fees={meeting?.fees ?? []}
                 cash={cash}
                 busy={commandBusy}
                 onClose={() => setMeetingGroup(null)}

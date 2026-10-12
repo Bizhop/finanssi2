@@ -1,17 +1,9 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { onIdTokenChanged, reload, type User } from "firebase/auth"
 import { auth } from "./firebase.ts"
-import { gameApi } from "../api/gameApi.ts"
+import { gameApi, gameApiParsed, type UserProfile } from "../api/gameApi.ts"
+import { UserProfileSchema } from "../api/schemas.ts"
 
-export type UserProfile = {
-    id: string
-    email: string
-    displayName: string
-    avatar: string | null
-    avatarSource: "custom" | "provider" | null
-    version: number
-    capabilities: { debugMode: boolean }
-}
 export type AuthStatus = "initializing" | "signedOut" | "verificationRequired" | "profileLoading" | "ready" | "recoverableError"
 
 export const CurrentUserContext = createContext<UserState | null>(null)
@@ -48,7 +40,7 @@ export const CurrentUserProvider = ({ children }: CurrentUserProviderProps) => {
         if (!profileRef.current) setStatus("profileLoading")
         setError(null)
         try {
-            const result = await gameApi<UserProfile>(current, "/api/me")
+            const result = await gameApiParsed(current, "/api/me", UserProfileSchema)
             if (userRef.current?.uid !== current.uid || request !== requestRef.current) return
             setProfile(result)
             setStatus("ready")
@@ -84,7 +76,7 @@ export const CurrentUserProvider = ({ children }: CurrentUserProviderProps) => {
                     setStatus("verificationRequired")
                     return
                 }
-                const result = await gameApi<UserProfile>(nextUser, "/api/me")
+                const result = await gameApiParsed(nextUser, "/api/me", UserProfileSchema)
                 if (request !== requestRef.current || userRef.current?.uid !== nextUser.uid) return
                 setProfile(result)
                 setStatus("ready")

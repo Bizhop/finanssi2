@@ -30,7 +30,7 @@ function validateProductionEnvironment(mode: string) {
 
     let apiUrl: URL
     try {
-        apiUrl = new URL(process.env.VITE_FINANSSI_API_URL!)
+        apiUrl = new URL(process.env.VITE_FINANSSI_API_URL ?? "")
     } catch {
         throw new Error("VITE_FINANSSI_API_URL must be an absolute HTTPS URL")
     }

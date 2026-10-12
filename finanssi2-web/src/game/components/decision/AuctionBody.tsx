@@ -5,10 +5,10 @@ import Add from "@mui/icons-material/Add"
 import Remove from "@mui/icons-material/Remove"
 
 import { nextAuctionBid, validAuctionBid } from "../../labels/gameDecisions.ts"
-import { AssetChoice, CommandChoice, type DecisionEnv, type Pending, PersonTag } from "./shared.tsx"
+import { AssetChoice, CommandChoice, type DecisionEnv, type PendingOf, PersonTag } from "./shared.tsx"
 
 /** A sealed bond or asset auction: the lot, and the player's own sealed bid (0 passes) */
-export const AuctionBody = ({ pending, env, minimum }: { pending: Pending; env: DecisionEnv; minimum: number }) => {
+export const AuctionBody = ({ pending, env, minimum }: { pending: PendingOf<"BondAuction" | "AssetAuction">; env: DecisionEnv; minimum: number }) => {
     const { allowed, busy, cash } = env
     const [bid, setBid] = useState("0")
     const bondAuction = pending.type === "BondAuction"
@@ -20,8 +20,8 @@ export const AuctionBody = ({ pending, env, minimum }: { pending: Pending; env: 
     return (
         <>
             <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
-                <AssetChoice env={env} id={pending.type === "AssetAuction" ? String(pending.asset) : "B:?"} />
-                {pending.seller != null && <PersonTag env={env} playerId={String(pending.seller)} />}
+                <AssetChoice env={env} id={pending.type === "AssetAuction" ? pending.asset : "B:?"} />
+                {pending.type === "AssetAuction" && <PersonTag env={env} playerId={pending.seller} />}
             </Stack>
             <Stack direction="row" spacing={1} sx={{ alignItems: "flex-start" }}>
                 <TextField

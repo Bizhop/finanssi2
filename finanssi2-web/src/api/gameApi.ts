@@ -1,86 +1,13 @@
 import type { User } from "firebase/auth"
+import type { z } from "zod/mini"
 
-export type GamePlayer = {
-    playerId: string
-    name: string
-    photoUrl: string | null
-    piece: number
-    cash: number
-    position: number
-    car: boolean
-    loans: number
-    out: boolean
-    heldStockTips: string[]
-}
-
-export type Game = {
-    id: string
-    mode: "NORMAL" | "DEBUG"
-    status: "LOBBY" | "RUNNING" | "FINISHED"
-    creator: string
-    createdAt: number
-    version: number | null
-    state: {
-        players: GamePlayer[]
-        turnOrder: string[]
-        currentPlayer: string | null
-        settings: {
-            loanLimit: "OFFICIAL" | "UNLIMITED"
-            compulsorySaleMinimumBid: "NONE" | "HALF_NOMINAL_PRICE"
-            /** House rule ALL_ASSETS_BOUGHT (the default): a meeting needs every asset of the group bought from the bank */
-            shareholdersMeeting: "ALL_ASSETS_BOUGHT" | "ANY_OTHER_OWNER"
-        }
-        activeFinanceNews: string | null
-        finished: boolean
-        winner: string | null
-        phase: "BEFORE_ROLL" | "AFTER_ROLL" | null
-        /** A property or share has been bought this turn; only one purchase per turn is allowed */
-        boughtThisTurn?: boolean
-        finalStandings: { player: string; cash: number; netWorth: number; completeGroups: string[] }[]
-        properties: { square: number; owner: string | null; mortgaged: boolean; built: boolean }[]
-        shares: { id: string; owner: string | null }[]
-        bonds: { number: number; owner: string | null }[]
-        pendingDecisions: { type: string; player: string; [key: string]: unknown }[]
-    }
-}
-
-export type GameView = { game: Game; allowedCommands: string[]; actingPlayer: string | null }
+export type { Card, CommandOptions, Game, GameBoardData, GamePlayer, GameSquare, GameView, PendingDecision, PublicProfile, UserProfile } from "./schemas.ts"
 
 export class GameApiError extends Error {
     constructor(message: string, public status: number, public code?: string) {
         super(message)
     }
 }
-export type GameSquare = {
-    square: number
-    name: string
-    type: string
-    mandatoryStop?: boolean
-    group: string | null
-    price: number | null
-    text: string | null
-}
-export type GameBoardData = {
-    squares: GameSquare[]
-    groups: { id: string; name: string; color: string; properties: number[] }[]
-    titleDeeds: {
-        id: string
-        square: number
-        name: string
-        group: string | null
-        price: number
-        building: { label: string; price: number } | null
-        rent: { unbuilt: number | null; built: number | null } | null
-        parkingFee: number | null
-        mortgage: { unbuilt: number | null; built: number | null } | null
-        redemption: { unbuilt: number | null; built: number | null } | null
-        buyBack: { unbuilt: number | null; built: number | null } | null
-    }[]
-    shares: { id: string; group: string | null; value: number; dividendPercent: number; dividend: number; buyBack: number }[]
-    financeNews: Card[]
-    stockTips: Card[]
-}
-export type Card = { id: string; type: string; chapters: { type: string | null; text: string; "font-style": string | null }[] }
 
 export const avatarSrc = (avatar: string | null | undefined) => {
     if (!avatar) return undefined
@@ -106,3 +33,17 @@ export async function gameApi<T>(user: User, path: string, init: RequestInit = {
     const body = await response.text()
     return body ? JSON.parse(body) as T : undefined as T
 }
+
+/** Like gameApi, but the response must match the schema; what comes back is typed from it, not from a cast */
+export async function gameApiParsed<S extends z.ZodMiniType>(user: User, path: string, schema: S, init: RequestInit = {}): Promise<z.infer<S>> {
+    const body = await gameApi<unknown>(user, path, init)
+    const result = schema.safeParse(body)
+    if (!result.success) {
+        console.error(`Unexpected response from ${path}`, result.error)
+        throw new GameApiError("The server sent a response this version of the app does not understand. Reload the page.", 502)
+    }
+    return result.data
+}
+
+/** A path segment from an id, safe to put in a URL */
+export const segment = (id: string) => encodeURIComponent(id)

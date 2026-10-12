@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import type { User } from "firebase/auth"
 
-import { gameApi, GameApiError } from "../api/gameApi.ts"
+import { gameApi, GameApiError, segment } from "../api/gameApi.ts"
 import { useStompConnected, useStompSubscription } from "../realtime/StompContext.tsx"
 import { applyNewestPage, type ChatMessage, ChatMessageSchema, ChatMessageSchemaArray, mergeMessages, type NewChatMessage, PAGE_SIZE } from "./chatHistory.ts"
 
@@ -12,8 +12,8 @@ const accessChanged = (reason: unknown) => reason instanceof GameApiError && (re
  * topped up after every reconnect.
  */
 export const useChatHistory = (user: User, gameId?: string) => {
-    const path = gameId ? `/api/games/${gameId}/chat` : "/api/chat"
-    const topic = gameId ? `/topic/games/${gameId}/chat` : "/topic/chat"
+    const path = gameId ? `/api/games/${segment(gameId)}/chat` : "/api/chat"
+    const topic = gameId ? `/topic/games/${segment(gameId)}/chat` : "/topic/chat"
     const [messages, setMessages] = useState<ChatMessage[]>([])
     const [hasOlderMessages, setHasOlderMessages] = useState(true)
     const [loadingOlder, setLoadingOlder] = useState(false)

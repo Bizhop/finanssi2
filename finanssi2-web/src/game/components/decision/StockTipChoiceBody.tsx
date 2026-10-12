@@ -10,12 +10,11 @@ import SwapHoriz from "@mui/icons-material/SwapHoriz"
 import { formatEuro } from "../../../ui/format.ts"
 import { ASSET_PICK_TIPS, STOCK_TIP, TRAVEL_FEE } from "../../rules/stockTipCards.ts"
 import { GameBoard } from "../GameBoard.tsx"
-import { AssetChoice, Choice, CommandChoice, type DecisionEnv, type Pending, PersonTag } from "./shared.tsx"
+import { AssetChoice, Choice, CommandChoice, type DecisionEnv, type PendingOf, PersonTag } from "./shared.tsx"
 
 /** The options of a Stock Tip that asks the player to choose; each tip presents its options in its own way */
-export const StockTipChoiceBody = ({ pending, env }: { pending: Pending; env: DecisionEnv }) => {
-    const card = String(pending.card)
-    const options = Array.isArray(pending.options) ? pending.options.map(String) : []
+export const StockTipChoiceBody = ({ pending, env }: { pending: PendingOf<"StockTipChoice">; env: DecisionEnv }) => {
+    const { card, options } = pending
     if (card === STOCK_TIP.MOVE_TO_PROPERTY) return <MoveToProperty options={options} env={env} />
     if (card === STOCK_TIP.FIRE) return <Fire options={options} env={env} />
     return (

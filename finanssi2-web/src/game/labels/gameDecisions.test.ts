@@ -1,6 +1,6 @@
 import { assertEquals } from "@std/assert"
 import type { Game, GameBoardData } from "../../api/gameApi.ts"
-import { decisionLabels, newsDestination, nextAuctionBid, propertySaleProceeds, shareSaleProceeds, validAuctionBid } from "./gameDecisions.ts"
+import { decisionLabels, newsDestination, nextAuctionBid, validAuctionBid } from "./gameDecisions.ts"
 
 const game = {
     state: {
@@ -63,15 +63,4 @@ Deno.test("Finance News landing previews follow mandatory stops in both directio
     assertEquals(newsDestination(2, false, null), 1)
     assertEquals(newsDestination(45, true, null), 1)
     assertEquals(newsDestination(1, false, null), 44)
-})
-
-Deno.test("bank sale proceeds follow Finance News and round halved share proceeds up to €500", () => {
-    assertEquals(shareSaleProceeds(37500, "FL-06"), 19000)
-    assertEquals(shareSaleProceeds(37500, "FL-08"), 19000)
-    assertEquals(shareSaleProceeds(37500, "FL-09"), 19000)
-    assertEquals(shareSaleProceeds(37500, "FL-20"), 75000)
-    assertEquals(shareSaleProceeds(37500, null), 37500)
-    assertEquals(propertySaleProceeds(10000, false, "FL-11"), 15000)
-    assertEquals(propertySaleProceeds(10000, true, "FL-11"), 10000)
-    assertEquals(propertySaleProceeds(10000, false, "FL-14"), 10000)
 })

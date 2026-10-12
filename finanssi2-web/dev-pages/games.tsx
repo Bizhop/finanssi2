@@ -8,6 +8,7 @@ import { ToastContainer } from "react-toastify"
 import { Games } from "../src/pages/Games.tsx"
 import { type StompConnection, StompContext } from "../src/realtime/StompContext.tsx"
 import type { Game } from "../src/api/gameApi.ts"
+import { appRoot } from "./root.ts"
 import { FakeCurrentUser } from "./FakeCurrentUser.tsx"
 import { liisa as liisaPerson, olli as olliPerson, pekka as pekkaPerson, type Person, profileOf, publicProfiles, tester } from "./people.ts"
 
@@ -159,7 +160,7 @@ const OpenedGame = () => {
     )
 }
 
-ReactDOM.createRoot(document.getElementById("app")!).render(
+ReactDOM.createRoot(appRoot()).render(
     <StrictMode>
         <MemoryRouter initialEntries={["/games"]}>
             <FakeCurrentUser person={tester} debugMode={debug}>

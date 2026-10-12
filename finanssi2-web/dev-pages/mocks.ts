@@ -76,8 +76,9 @@ export const fakeStompConnection = (connected: boolean): StompConnection => ({
     connected,
     subscribe: (destination, onMessage) => {
         if (!connected) return () => {}
-        if (!fakeSubscriptions.has(destination)) fakeSubscriptions.set(destination, new Set())
-        fakeSubscriptions.get(destination)!.add(onMessage)
+        const subscribers = fakeSubscriptions.get(destination) ?? new Set<(body: string) => void>()
+        fakeSubscriptions.set(destination, subscribers)
+        subscribers.add(onMessage)
         return () => fakeSubscriptions.get(destination)?.delete(onMessage)
     },
 })

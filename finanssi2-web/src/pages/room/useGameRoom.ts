@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react"
 import { useNavigate } from "react-router"
 
-import { gameApi, GameApiError, type GameBoardData, type GameView } from "../../api/gameApi.ts"
+import { gameApi, GameApiError, gameApiParsed, type GameBoardData, type GameView, segment } from "../../api/gameApi.ts"
+import { GameBoardDataSchema, GameViewSchema } from "../../api/schemas.ts"
 import { useCurrentUser } from "../../auth/CurrentUserContext.tsx"
 import type { GameLogEntry } from "../../game/labels/gameEvents.ts"
 import { useStompConnected, useStompSubscription } from "../../realtime/StompContext.tsx"
@@ -40,7 +41,7 @@ export const useGameRoom = (id: string | undefined) => {
         if (!user || !id) return
         const sequence = ++refreshSequence.current
         try {
-            const latest = await gameApi<GameView>(user, `/api/games/${id}`)
+            const latest = await gameApiParsed(user, `/api/games/${segment(id)}`, GameViewSchema)
             if (!mounted.current || sequence !== refreshSequence.current) return
             setView(latest)
             setError(null)
@@ -57,7 +58,7 @@ export const useGameRoom = (id: string | undefined) => {
     const refreshEvents = useCallback(async (after = 0) => {
         if (!user || !id) return
         try {
-            const latest = await gameApi<GameLogEntry[]>(user, `/api/games/${id}/events?after=${after}`)
+            const latest = await gameApi<GameLogEntry[]>(user, `/api/games/${segment(id)}/events?after=${after}`)
             if (!mounted.current) return
             setEvents((current) => mergeEvents(current, latest))
         } catch (reason) {
@@ -74,7 +75,7 @@ export const useGameRoom = (id: string | undefined) => {
 
     useEffect(() => {
         if (!user) return
-        void gameApi<GameBoardData>(user, "/api/game-data").then((data) => {
+        void gameApiParsed(user, "/api/game-data", GameBoardDataSchema).then((data) => {
             if (mounted.current) setBoard(data)
         }).catch((reason) => {
             if (mounted.current) setError(apiError(reason))
@@ -153,7 +154,7 @@ export const useGameRoom = (id: string | undefined) => {
             return
         }
         await mutate(async () => {
-            await gameApi(user, debug ? `/api/debug/games/${id}/commands` : `/api/games/${id}/commands`, {
+            await gameApi(user, debug ? `/api/debug/games/${segment(id)}/commands` : `/api/games/${segment(id)}/commands`, {
                 method: "POST",
                 body: JSON.stringify(debug ? { actor: view.actingPlayer, expectedVersion: view.game.version, command, dice } : command),
             })
@@ -166,7 +167,7 @@ export const useGameRoom = (id: string | undefined) => {
     const selectCard = (deck: string, card: string) => {
         if (!user || !id || !view || !debugMode || !card) return
         void mutate(() =>
-            gameApi(user, `/api/debug/games/${id}/next-card`, {
+            gameApi(user, `/api/debug/games/${segment(id)}/next-card`, {
                 method: "PUT",
                 body: JSON.stringify({ deck, card, expectedVersion: view.game.version }),
             })

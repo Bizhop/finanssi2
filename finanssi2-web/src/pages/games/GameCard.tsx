@@ -1,7 +1,6 @@
 import { Avatar, Box, Button, Card, CardActions, CardContent, Stack, Typography } from "@mui/material"
 
-import { avatarSrc, type Game } from "../../api/gameApi.ts"
-import type { PublicProfile } from "../../auth/PublicProfiles.tsx"
+import { avatarSrc, type Game, type PublicProfile } from "../../api/gameApi.ts"
 
 /** One game in the list, with the controls its status and the viewer's role allow */
 export const GameCard = ({ game, viewerId, profiles, busy, onJoin, onLeave, onStart, onSettings, onOpen, onClose }: {

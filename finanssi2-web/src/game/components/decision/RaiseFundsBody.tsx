@@ -5,19 +5,15 @@ import BlockOutlined from "@mui/icons-material/BlockOutlined"
 import Check from "@mui/icons-material/Check"
 
 import { formatEuro } from "../../../ui/format.ts"
-import { propertySaleProceeds, shareSaleProceeds } from "../../labels/gameDecisions.ts"
-import { AssetChoice, CommandChoice, type DecisionEnv, type Pending, sellLabel } from "./shared.tsx"
+import { AssetChoice, CommandChoice, type DecisionEnv, sellLabel } from "./shared.tsx"
 
 /** A payment the player cannot yet cover: the loans, car, mortgages and sales that raise cash, then pay or go bankrupt */
-export const RaiseFundsBody = ({ pending, env }: { pending: Pending; env: DecisionEnv }) => {
-    const { allowed, board, busy, game, labels, send } = env
-    const activeNews = game.state.activeFinanceNews
-    const properties = game.state.properties.filter((property) => {
-        const deed = board?.titleDeeds.find((item) => item.square === property.square)
-        const state = property.built ? "built" : "unbuilt"
-        return property.owner === pending.player && !property.mortgaged &&
-            ((allowed.includes("Mortgage") && deed?.mortgage?.[state] != null) || (allowed.includes("SellBackProperty") && deed?.buyBack?.[state] != null))
-    })
+export const RaiseFundsBody = ({ env }: { env: DecisionEnv }) => {
+    const { allowed, board, busy, game, labels, options, send } = env
+    // What can be raised, and for how much, comes from the backend's options
+    const properties = game.state.properties.filter((property) =>
+        options.mortgage.some((offer) => offer.square === property.square) || options.sellBackProperty.some((offer) => offer.square === property.square)
+    )
     return (
         <>
             <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", alignItems: "flex-start" }}>
@@ -40,33 +36,32 @@ export const RaiseFundsBody = ({ pending, env }: { pending: Pending; env: Decisi
                     </AssetChoice>
                 )}
                 {properties.map((property) => {
-                    const deed = board!.titleDeeds.find((item) => item.square === property.square)!
-                    const state = property.built ? "built" : "unbuilt"
+                    const deed = board?.titleDeeds.find((item) => item.square === property.square)
+                    const mortgage = options.mortgage.find((offer) => offer.square === property.square)
+                    const sell = options.sellBackProperty.find((offer) => offer.square === property.square)
                     return (
                         <Box key={property.square}>
                             <AssetChoice env={env} id={`P:${property.square}`}>
                                 <Stack direction="row">
-                                    {allowed.includes("Mortgage") && deed.mortgage?.[state] != null && (
-                                        <Tooltip title={`Mortgage for ${formatEuro(deed.mortgage[state]!)}`}>
+                                    {mortgage && (
+                                        <Tooltip title={`Mortgage for ${formatEuro(mortgage.amount)}`}>
                                             <IconButton
                                                 size="small"
-                                                aria-label={`Mortgage ${deed.name}`}
+                                                aria-label={`Mortgage ${deed?.name ?? property.square}`}
                                                 disabled={busy}
-                                                onClick={() =>
-                                                    void send({ type: "Mortgage", square: property.square })}
+                                                onClick={() => void send({ type: "Mortgage", square: property.square })}
                                             >
                                                 <AccountBalanceOutlined fontSize="small" />
                                             </IconButton>
                                         </Tooltip>
                                     )}
-                                    {allowed.includes("SellBackProperty") && deed.buyBack?.[state] != null && (
-                                        <Tooltip title={sellLabel(propertySaleProceeds(deed.buyBack[state]!, property.built, activeNews))}>
+                                    {sell && (
+                                        <Tooltip title={sellLabel(sell.amount)}>
                                             <IconButton
                                                 size="small"
-                                                aria-label={`Sell ${deed.name}`}
+                                                aria-label={`Sell ${deed?.name ?? property.square}`}
                                                 disabled={busy}
-                                                onClick={() =>
-                                                    void send({ type: "SellBackProperty", square: property.square })}
+                                                onClick={() => void send({ type: "SellBackProperty", square: property.square })}
                                             >
                                                 <PaymentsOutlined fontSize="small" />
                                             </IconButton>
@@ -77,25 +72,22 @@ export const RaiseFundsBody = ({ pending, env }: { pending: Pending; env: Decisi
                         </Box>
                     )
                 })}
-                {allowed.includes("SellBackShare") && game.state.shares.filter((share) => share.owner === pending.player).map((share) => {
-                    const printed = board?.shares.find((item) => item.id === share.id)
-                    return (
-                        <Box key={share.id}>
-                            <AssetChoice env={env} id={`S:${share.id}`}>
-                                <Tooltip title={printed ? sellLabel(shareSaleProceeds(printed.buyBack, activeNews)) : "Sell to bank"}>
-                                    <IconButton
-                                        size="small"
-                                        aria-label={`Sell ${labels.share(share.id)}`}
-                                        disabled={busy}
-                                        onClick={() => void send({ type: "SellBackShare", share: share.id })}
-                                    >
-                                        <PaymentsOutlined fontSize="small" />
-                                    </IconButton>
-                                </Tooltip>
-                            </AssetChoice>
-                        </Box>
-                    )
-                })}
+                {options.sellBackShare.map((offer) => (
+                    <Box key={offer.share}>
+                        <AssetChoice env={env} id={`S:${offer.share}`}>
+                            <Tooltip title={sellLabel(offer.amount)}>
+                                <IconButton
+                                    size="small"
+                                    aria-label={`Sell ${labels.share(offer.share)}`}
+                                    disabled={busy}
+                                    onClick={() => void send({ type: "SellBackShare", share: offer.share })}
+                                >
+                                    <PaymentsOutlined fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        </AssetChoice>
+                    </Box>
+                ))}
             </Stack>
             <Stack direction="row" spacing={1}>
                 {allowed.includes("Pay") && <CommandChoice env={env} label="Settle payment" icon={<Check />} command={{ type: "Pay" }}>Pay</CommandChoice>}

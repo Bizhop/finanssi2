@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react"
 import { useNavigate } from "react-router"
 
-import { type Game, gameApi, GameApiError } from "../../api/gameApi.ts"
+import { type Game, gameApi, GameApiError, gameApiParsed, segment } from "../../api/gameApi.ts"
+import { GameSchema } from "../../api/schemas.ts"
+import { z } from "zod/mini"
 import { useCurrentUser } from "../../auth/CurrentUserContext.tsx"
 import { useStompConnected, useStompSubscription } from "../../realtime/StompContext.tsx"
 import { errorToast } from "../../ui/toasts.ts"
@@ -32,7 +34,7 @@ export const useGames = (onForbidden: () => void) => {
     const refresh = useCallback(() => {
         if (!user) return Promise.resolve()
         const request = ++requestRef.current
-        return gameApi<Game[]>(user, "/api/games")
+        return gameApiParsed(user, "/api/games", z.array(GameSchema))
             .then((items) => {
                 if (userRef.current !== user || request !== requestRef.current) return
                 setGames(items)
@@ -82,7 +84,7 @@ export const useGames = (onForbidden: () => void) => {
     }
 
     const post = (path: string) => user ? gameApi(user, path, { method: "POST" }) : Promise.resolve()
-    const open = (game: Game) => () => navigate(`/games/${game.id}`)
+    const open = (game: Game) => () => navigate(`/games/${segment(game.id)}`)
 
     return {
         games,
@@ -96,18 +98,21 @@ export const useGames = (onForbidden: () => void) => {
                 null,
                 () => user ? gameApi<Game>(user, "/api/debug/games", { method: "POST", body: JSON.stringify({ playerCount, settings }) }) : Promise.resolve(),
             ),
-        joinGame: (game: Game) => run(game.id, () => post(`/api/games/${game.id}/join`), open(game)),
-        leaveGame: (game: Game) => run(game.id, () => post(`/api/games/${game.id}/leave`)),
-        startGame: (game: Game) => run(game.id, () => post(`/api/games/${game.id}/start`), open(game)),
+        joinGame: (game: Game) => run(game.id, () => post(`/api/games/${segment(game.id)}/join`), open(game)),
+        leaveGame: (game: Game) => run(game.id, () => post(`/api/games/${segment(game.id)}/leave`)),
+        startGame: (game: Game) => run(game.id, () => post(`/api/games/${segment(game.id)}/start`), open(game)),
         closeGame: (game: Game, action: "end" | "delete") =>
             run(game.id, () => {
                 if (!user) return Promise.resolve()
                 return action === "delete"
-                    ? gameApi<void>(user, `/api/debug/games/${game.id}`, { method: "DELETE" })
-                    : gameApi(user, `/api/games/${game.id}/commands`, { method: "POST", body: JSON.stringify({ type: "EndGame" }) })
+                    ? gameApi<void>(user, `/api/debug/games/${segment(game.id)}`, { method: "DELETE" })
+                    : gameApi(user, `/api/games/${segment(game.id)}/commands`, { method: "POST", body: JSON.stringify({ type: "EndGame" }) })
             }),
         saveSettings: (game: Game, settings: RuleSettingsValues) =>
-            run(game.id, () => user ? gameApi(user, `/api/games/${game.id}/settings`, { method: "PUT", body: JSON.stringify(settings) }) : Promise.resolve()),
+            run(
+                game.id,
+                () => user ? gameApi(user, `/api/games/${segment(game.id)}/settings`, { method: "PUT", body: JSON.stringify(settings) }) : Promise.resolve(),
+            ),
         open,
     }
 }

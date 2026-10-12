@@ -25,14 +25,15 @@ const StompConnection = ({ children }: { children: ReactNode }) => {
             key={user ? `${user.uid}:${profile?.id ?? status}` : "signed-out"}
             url={stompUrl}
             enabled={user !== null && status === "ready"}
-            getAccessToken={() => user!.getIdToken()}
+            getAccessToken={() => user ? user.getIdToken() : Promise.reject(new Error("Not signed in"))}
         >
             {children}
         </StompProvider>
     )
 }
 
-const container = document.getElementById("app")!
+const container = document.getElementById("app")
+if (!container) throw new Error("The page has no #app element")
 const root = ReactDOM.createRoot(container)
 root.render(
     <StrictMode>

@@ -1,9 +1,9 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 
 import { useCurrentUser } from "./CurrentUserContext.tsx"
-import { gameApi } from "../api/gameApi.ts"
-
-export type PublicProfile = { id: string; displayName: string; avatar: string | null }
+import { gameApiParsed, type PublicProfile } from "../api/gameApi.ts"
+import { PublicProfileSchema } from "../api/schemas.ts"
+import { z } from "zod/mini"
 
 const REFRESH_MS = 15_000
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -51,7 +51,7 @@ export const PublicProfilesProvider = ({ children }: { children: ReactNode }) =>
             Promise.all(chunks.map((chunk) => {
                 const params = new URLSearchParams()
                 chunk.forEach((id) => params.append("ids", id))
-                return gameApi<PublicProfile[]>(user, `/api/users?${params}`)
+                return gameApiParsed(user, `/api/users?${params}`, z.array(PublicProfileSchema))
             })).then((groups) => {
                 if (active) setProfiles((current) => ({ ...current, ...Object.fromEntries(groups.flat().map((item) => [item.id, item])) }))
             }).catch(() => undefined)

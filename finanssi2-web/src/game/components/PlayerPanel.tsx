@@ -14,7 +14,16 @@ import StyleOutlined from "@mui/icons-material/StyleOutlined"
 import { CardPeek } from "./Cards.tsx"
 import { playerColor, playerShade } from "./PlayerToken.tsx"
 import { BondCard, CarCard, cardPeekSlotProps, CardRow, LoanCard, ShareCard, TitleDeedCard } from "./Cards.tsx"
-import { type AssetAction, carAction, loanActions, type PlayerControls, propertyActions, shareActions, stockTipAction } from "../rules/assetActions.ts"
+import {
+    type AssetAction,
+    carAction,
+    loanActions,
+    NO_OPTIONS,
+    type PlayerControls,
+    propertyActions,
+    shareActions,
+    stockTipAction,
+} from "../rules/assetActions.ts"
 import { rentDoubled } from "../rules/gameRules.ts"
 import type { Game, GameBoardData, GamePlayer } from "../../api/gameApi.ts"
 import { formatEuro } from "../../ui/format.ts"
@@ -136,6 +145,7 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected, contro
     const [loanMenu, setLoanMenu] = useState<HTMLElement | null>(null)
     const color = playerColor(player.piece)
     const allowed = controls?.allowed ?? []
+    const options = controls?.options ?? NO_OPTIONS
     const properties = game.state.properties.filter((property) => property.owner === player.playerId)
     const shares = game.state.shares.filter((share) => share.owner === player.playerId)
     const bonds = game.state.bonds.filter((bond) => bond.owner === player.playerId)
@@ -200,7 +210,7 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected, contro
                                             <ActionCard
                                                 key={property.square}
                                                 controls={controls}
-                                                actions={propertyActions(allowed, property, deed)}
+                                                actions={propertyActions(options, property, deed)}
                                                 card={
                                                     <TitleDeedCard
                                                         deed={deed}
@@ -231,7 +241,7 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected, contro
                                             <ActionCard
                                                 key={share.id}
                                                 controls={controls}
-                                                actions={shareActions(allowed, share, name)}
+                                                actions={shareActions(options, share, name)}
                                                 card={<ShareCard share={share} board={board} />}
                                             />
                                         )

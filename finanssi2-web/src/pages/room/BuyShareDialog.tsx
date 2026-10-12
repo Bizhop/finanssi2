@@ -1,15 +1,14 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack } from "@mui/material"
 
-import type { Game, GameBoardData } from "../../api/gameApi.ts"
+import type { CommandOptions, GameBoardData } from "../../api/gameApi.ts"
 import { ShareCard } from "../../game/components/Cards.tsx"
 import { formatEuro } from "../../ui/format.ts"
 
-/** The shares the bank sells, to pick one to buy */
-export const BuyShareDialog = ({ open, game, board, cash, busy, onClose, onBuy }: {
+/** The shares the player can buy from the bank right now, each at its current price */
+export const BuyShareDialog = ({ open, offers, board, busy, onClose, onBuy }: {
     open: boolean
-    game: Game
+    offers: CommandOptions["buyShare"]
     board: GameBoardData | null
-    cash: number
     busy: boolean
     onClose: () => void
     onBuy: (shareId: string) => void
@@ -18,22 +17,21 @@ export const BuyShareDialog = ({ open, game, board, cash, busy, onClose, onBuy }
         <DialogTitle>Buy a share from the bank</DialogTitle>
         <DialogContent sx={{ fontSize: 13 }}>
             <Stack direction="row" spacing={2} useFlexGap sx={{ flexWrap: "wrap", py: 1 }}>
-                {game.state.shares.filter((share) => share.owner === null).map((owned) => {
-                    const share = board?.shares.find((item) => item.id === owned.id)
+                {offers.map((offer) => {
+                    const share = board?.shares.find((item) => item.id === offer.share)
                     return share && (
                         <Stack key={share.id} spacing={0.75}>
                             <ShareCard share={share} board={board} />
                             <Button
                                 variant="contained"
                                 size="small"
-                                // Shown for every share for sale; one the player can't afford yet can't be bought
-                                disabled={busy || share.value > cash}
+                                disabled={busy}
                                 onClick={() => {
                                     onClose()
                                     onBuy(share.id)
                                 }}
                             >
-                                Buy {formatEuro(share.value)}
+                                Buy {formatEuro(offer.amount)}
                             </Button>
                         </Stack>
                     )

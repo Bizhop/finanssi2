@@ -4,23 +4,24 @@ import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextF
 import { twoDiceAtMost } from "../../game/rules/gameRules.ts"
 import { formatEuro } from "../../ui/format.ts"
 
-const BROKERAGE_FEES = [20000, 30000, 40000, 50000, 60000, 70000, 80000, 90000, 100000, 110000, 120000]
-
-/** Calling a shareholders' meeting for a group: the takeover cost and the brokerage fee, with the chance of success of each fee */
-export const MeetingDialog = ({ groupName, takeover, cash, busy, onClose, onCall }: {
+/**
+ * Calling a shareholders' meeting for a group: the takeover cost, and a brokerage fee out of those the backend accepts (it already
+ * leaves out the fees the player cannot afford), with the chance of success of each.
+ */
+export const MeetingDialog = ({ groupName, takeover, fees, cash, busy, onClose, onCall }: {
     /** Null while closed */
     groupName: string | null
     takeover: number
+    /** The brokerage fees the backend accepts for this meeting */
+    fees: number[]
     cash: number
     busy: boolean
     onClose: () => void
     onCall: (brokerageFee: number) => void
 }) => {
-    const [fee, setFee] = useState(BROKERAGE_FEES[0])
-    const open = groupName !== null
-    const short = takeover + fee > cash
+    const [fee, setFee] = useState(fees[0] ?? 0)
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+        <Dialog open={groupName !== null} onClose={onClose} maxWidth="xs" fullWidth>
             <DialogTitle>Shareholders' meeting: {groupName}</DialogTitle>
             <DialogContent>
                 <Stack spacing={2} sx={{ pt: 1 }}>
@@ -35,17 +36,14 @@ export const MeetingDialog = ({ groupName, takeover, cash, busy, onClose, onCall
                         onChange={(event) => setFee(Number(event.target.value))}
                         slotProps={{ select: { native: true } }}
                     >
-                        {BROKERAGE_FEES.map((option) => (
-                            <option key={option} value={option} disabled={takeover + option > cash}>
-                                {formatEuro(option)}:{" "}
-                                {Math.round(twoDiceAtMost(option / 10000) * 100)}% chance{takeover + option > cash ? " (not enough cash)" : ""}
+                        {fees.map((option) => (
+                            <option key={option} value={option}>
+                                {formatEuro(option)}: {Math.round(twoDiceAtMost(option / 10000) * 100)}% chance
                             </option>
                         ))}
                     </TextField>
-                    <Typography variant="body2" color={short ? "error" : "text.secondary"}>
-                        {short
-                            ? `You need ${formatEuro(takeover + fee)}: raise ${formatEuro(takeover + fee - cash)} more first, e.g. by mortgaging or selling.`
-                            : `The takeover succeeds on a dice total of ${fee / 10000} or less.`}
+                    <Typography variant="body2" color="text.secondary">
+                        The takeover succeeds on a dice total of {fee / 10000} or less.
                     </Typography>
                 </Stack>
             </DialogContent>
@@ -53,7 +51,7 @@ export const MeetingDialog = ({ groupName, takeover, cash, busy, onClose, onCall
                 <Button onClick={onClose}>Cancel</Button>
                 <Button
                     variant="contained"
-                    disabled={short || busy}
+                    disabled={busy || !fees.includes(fee)}
                     onClick={() => {
                         onClose()
                         onCall(fee)

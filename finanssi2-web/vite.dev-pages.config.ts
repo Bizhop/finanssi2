@@ -11,7 +11,7 @@ export default defineConfig((env) =>
             server: {
                 port: 3001,
                 // Pages import app components from ../src and the real game data from the backend
-                fs: { allow: [import.meta.dirname!, `${import.meta.dirname}/../finanssi2-backend/src/main/resources/gamedata`] },
+                fs: { allow: [import.meta.dirname ?? ".", `${import.meta.dirname}/../finanssi2-backend/src/main/resources/gamedata`] },
             },
         }),
     )

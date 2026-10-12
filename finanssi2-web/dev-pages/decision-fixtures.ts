@@ -1,14 +1,13 @@
-import type { Game } from "../src/api/gameApi.ts"
+import type { PendingDecision } from "../src/api/gameApi.ts"
 import { liisa, olli, pekka, tester } from "./people.ts"
 
-type Decision = Game["state"]["pendingDecisions"][number]
-type Fixture = { pending: Decision; commands: string[]; cash?: number }
+type Fixture = { pending: PendingDecision; commands: string[]; cash?: number }
 const player = tester.id
 const stockTip = (card: string, options: string[]): Fixture => ({
-    pending: { type: "StockTipChoice", player, card, options },
+    pending: { type: "StockTipChoice" as const, player, card, options },
     commands: ["ChooseStockTipOption"],
 })
-const raiseFunds = { type: "RaiseFunds", player, creditor: pekka.id, amount: 20000, charges: [{ amount: 20000, reason: "RENT" }] }
+const raiseFunds = { type: "RaiseFunds" as const, player, creditor: pekka.id, amount: 20000, charges: [{ amount: 20000, reason: "RENT" }] }
 
 // Same serialized decisions as the backend. These exercise presentation and command submission, not rule transitions.
 export const decisionFixtures: Record<string, Fixture> = {

@@ -5,6 +5,7 @@ import ReactDOM from "react-dom/client"
 import { Button, Stack } from "@mui/material"
 
 import { ErrorBoundary } from "../src/ui/ErrorBoundary.tsx"
+import { appRoot } from "./root.ts"
 
 let broken = true
 
@@ -25,7 +26,7 @@ const Page = () => {
     )
 }
 
-ReactDOM.createRoot(document.getElementById("app")!).render(
+ReactDOM.createRoot(appRoot()).render(
     <StrictMode>
         <Page />
     </StrictMode>,

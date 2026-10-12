@@ -68,10 +68,3 @@ export const nextAuctionBid = (input: string, direction: 1 | -1, minimum: number
     if (direction === 1) return amount < first ? first : Math.floor(amount / 500) * 500 + 500
     return amount <= first ? 0 : Math.max(first, Math.ceil(amount / 500) * 500 - 500)
 }
-
-export const shareSaleProceeds = (printed: number, news: string | null) => {
-    if (["FL-06", "FL-08", "FL-09"].includes(news ?? "")) return Math.ceil(printed / 1000) * 500
-    return news === "FL-20" ? printed * 2 : printed
-}
-
-export const propertySaleProceeds = (printed: number, built: boolean, news: string | null) => !built && news === "FL-11" ? printed * 3 / 2 : printed
