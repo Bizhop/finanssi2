@@ -7,6 +7,7 @@ import fi.bizhop.finanssi2.game.engine.PendingDecision.RaiseFunds;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
 /** All changes in cash. The bank's money is unlimited, so only players' cash is tracked. */
 public class Payments {
@@ -22,7 +23,7 @@ public class Payments {
     }
 
     /** The player pays a player, or the bank when {@code to} is null; the caller has checked the cash */
-    public GameEvent transfer(PlayerState from, PlayerState to, int amount, MoneyReason reason) {
+    public GameEvent transfer(PlayerState from, @Nullable PlayerState to, int amount, MoneyReason reason) {
         if (from.getCash() < amount) {
             throw new IllegalStateException(from.getPlayerId() + " cannot pay " + amount);
         }
@@ -38,7 +39,7 @@ public class Payments {
      * payment is made when the player pays it. A player who already has a payment pending gets the new one queued too, so payments
      * are made in order. {@code creditor} is null for the bank.
      */
-    public List<GameEvent> charge(GameState state, PlayerState player, String creditor, List<Charge> charges) {
+    public List<GameEvent> charge(GameState state, PlayerState player, @Nullable String creditor, List<Charge> charges) {
         var decision = new RaiseFunds(player.getPlayerId(), creditor, charges);
         var paymentPending = state.getPendingDecisions().stream()
                 .anyMatch(pending -> pending instanceof RaiseFunds && pending.player().equals(player.getPlayerId()));

@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 
 /** The signed-in user's own profile: display name and avatar, versioned so concurrent edits fail instead of overwriting */
 @Service
@@ -23,7 +24,7 @@ public class ProfileService {
     final ApplicationUserRepository users;
     final DebugAccess debugAccess;
 
-    public record Me(String id, String email, String displayName, String avatar, String avatarSource, long version, Capabilities capabilities) {}
+    public record Me(String id, String email, String displayName, @Nullable String avatar, @Nullable String avatarSource, long version, Capabilities capabilities) {}
 
     public record Capabilities(boolean debugMode) {}
 

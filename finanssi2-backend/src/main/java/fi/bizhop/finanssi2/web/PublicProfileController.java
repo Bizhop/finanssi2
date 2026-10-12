@@ -17,13 +17,14 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.springframework.http.MediaType;
+import org.jspecify.annotations.Nullable;
 
 @RestController
 @RequiredArgsConstructor
 public class PublicProfileController {
     final ApplicationUserRepository users;
 
-    public record PublicProfile(String id, String displayName, String avatar) {}
+    public record PublicProfile(String id, String displayName, @Nullable String avatar) {}
 
     @GetMapping("/api/users")
     public List<PublicProfile> profiles(@RequestParam List<String> ids) {

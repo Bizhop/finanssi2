@@ -16,6 +16,7 @@ import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 import java.util.Map;
 import jakarta.servlet.http.HttpServletResponse;
+import org.jspecify.annotations.Nullable;
 
 public class FirebaseTokenFilter extends AbstractPreAuthenticatedProcessingFilter {
     static final String GOOGLE_EMAIL_VERIFICATION_PATH = "/api/me/verify-linked-google-email";
@@ -28,12 +29,12 @@ public class FirebaseTokenFilter extends AbstractPreAuthenticatedProcessingFilte
     }
 
     @Override
-    protected Object getPreAuthenticatedPrincipal(@NonNull HttpServletRequest request) {
+    protected @Nullable Object getPreAuthenticatedPrincipal(@NonNull HttpServletRequest request) {
         return null;
     }
 
     @Override
-    protected Object getPreAuthenticatedCredentials(@NonNull HttpServletRequest request) {
+    protected @Nullable Object getPreAuthenticatedCredentials(@NonNull HttpServletRequest request) {
         return null;
     }
 

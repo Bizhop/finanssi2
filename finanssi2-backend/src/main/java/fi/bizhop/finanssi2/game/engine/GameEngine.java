@@ -64,8 +64,18 @@ import static fi.bizhop.finanssi2.game.data.GameConstants.CAR_PRICE;
 import static fi.bizhop.finanssi2.game.data.GameConstants.CAR_SELL_BACK_PRICE;
 import static fi.bizhop.finanssi2.game.data.GameConstants.LOAN_AMOUNT;
 import static fi.bizhop.finanssi2.game.data.GameConstants.SQUARE_COUNT;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_06;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_10;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_12;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_16;
+import static fi.bizhop.finanssi2.game.engine.StockTipCard.PV_01;
+import static fi.bizhop.finanssi2.game.engine.StockTipCard.PV_07;
+import static fi.bizhop.finanssi2.game.engine.StockTipCard.PV_25;
+import static fi.bizhop.finanssi2.game.engine.StockTipCard.PV_29;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Applies player commands to a game state. Each command is first validated without changes and then applied, so a rejected command
@@ -155,7 +165,7 @@ public class GameEngine {
                 IntStream.rangeClosed(1, BOND_COUNT).mapToObj(number -> (GameCommand) new GameCommand.BuyBond(number)),
                 Stream.of(new GameCommand.Pass(), new GameCommand.BidBond(0), new GameCommand.ChooseNewsDirection(true),
                         new GameCommand.ChooseNewsDirection(false), new GameCommand.ChooseStockTipOption(""),
-                        new GameCommand.UseHeldStockTip("PV-25"), new GameCommand.BidAsset(0), new GameCommand.EndGame()));
+                        new GameCommand.UseHeldStockTip(PV_25.id()), new GameCommand.BidAsset(0), new GameCommand.EndGame()));
         var meetingCommands = gameData.groups().stream().map(group -> (GameCommand) new GameCommand.CallShareholdersMeeting(group.id(), 20_000));
         candidateCommands = Stream.of(SIMPLE_COMMANDS.stream(), propertyCommands, shareCommands, bondCommands, meetingCommands)
                 .flatMap(commands -> commands)
@@ -319,7 +329,7 @@ public class GameEngine {
         return winner == null ? List.of() : finish(state, winner);
     }
 
-    private List<GameEvent> finish(GameState state, String winner) {
+    private List<GameEvent> finish(GameState state, @Nullable String winner) {
         var standings = state.getPlayers().stream().map(player -> {
             var properties = new Ownership(gameData, state).propertiesOf(player.getPlayerId());
             var propertyValue = properties.stream().mapToInt(property -> {
@@ -355,9 +365,9 @@ public class GameEngine {
         var roll = rollDice(dice, rules.movementDice(state, player));
         events.add(new DiceRolled(player.getPlayerId(), roll));
         var from = player.getPosition();
-        var pips = "FL-06".equals(state.getActiveFinanceNews()) ? roll.stream().mapToInt(Integer::intValue).min().orElse(0)
+        var pips = FL_06.isActive(state) ? roll.stream().mapToInt(Integer::intValue).min().orElse(0)
                 : roll.stream().mapToInt(Integer::intValue).sum();
-        if ("FL-16".equals(state.getActiveFinanceNews())) pips *= 2;
+        if (FL_16.isActive(state)) pips *= 2;
         var to = moveForward(from, pips);
         player.setPosition(to);
         events.add(new PieceMoved(player.getPlayerId(), from, to));
@@ -455,7 +465,7 @@ public class GameEngine {
 
     /** Square 34: the player rolls both dice, car or not, and the bank pays a reward by the pips */
     List<GameEvent> bankEntrance(GameState state, PlayerState player, Square square, Dice dice) {
-        if ("FL-10".equals(state.getActiveFinanceNews())) return moveTo(state, player, 1, dice);
+        if (FL_10.isActive(state)) return moveTo(state, player, 1, dice);
         var roll = rollDice(dice, 2);
         return List.of(
                 new BankEntranceRoll(player.getPlayerId(), roll),
@@ -553,7 +563,7 @@ public class GameEngine {
     /** Square 46: dividend on all shares as on 16 and 28; the bond purchase comes with step 08 */
     List<GameEvent> bondPurchaseAndDividend(GameState state, PlayerState player, Square square, Dice dice) {
         var events = new ArrayList<GameEvent>();
-        if ("FL-16".equals(state.getActiveFinanceNews())) {
+        if (FL_16.isActive(state)) {
             for (var recipient : state.playersFrom(player.getPlayerId())) {
                 if (!recipient.isOut()) events.addAll(bankDividend(state, recipient, square, dice));
             }
@@ -590,7 +600,7 @@ public class GameEngine {
             if (next.getMissedTurns() == 0) {
                 if (next.isMissedTurnsInJail()) next.setJailExemption(true);
                 next.setMissedTurnsInJail(false);
-                if (next.getHeldStockTips().contains("PV-29")) next.setTransportNewsDue(true);
+                if (PV_29.heldBy(next)) next.setTransportNewsDue(true);
             }
             events.add(new TurnSkipped(next.getPlayerId(), next.getMissedTurns()));
             state.setCurrentPlayer(next.getPlayerId());
@@ -603,9 +613,9 @@ public class GameEngine {
         events.add(new TurnStarted(next.getPlayerId()));
         if (next.isTransportNewsDue()) {
             next.setTransportNewsDue(false);
-            next.getHeldStockTips().remove("PV-29");
-            state.getStockTipDeck().addLast("PV-29");
-            events.add(new GameEvent.StockTipUsed(next.getPlayerId(), "PV-29"));
+            next.getHeldStockTips().remove(PV_29.id());
+            state.getStockTipDeck().addLast(PV_29.id());
+            events.add(new GameEvent.StockTipUsed(next.getPlayerId(), PV_29.id()));
             events.addAll(financeNews.financeNews(state, next, gameData.square(next.getPosition()), dice));
         }
         return List.copyOf(events);
@@ -664,7 +674,7 @@ public class GameEngine {
 
     List<GameEvent> mortgage(GameState state, PlayerState player, int square) {
         var property = state.property(square);
-        var value = rules.mortgageValue(state, deed(square), property);
+        var value = Objects.requireNonNull(rules.mortgageValue(state, deed(square), property));
         property.setMortgaged(true);
         return List.of(new PropertyMortgaged(player.getPlayerId(), square), payments.fromBank(player, value, MoneyReason.MORTGAGE));
     }
@@ -678,7 +688,7 @@ public class GameEngine {
 
     List<GameEvent> sellBackProperty(GameState state, PlayerState player, int square) {
         var property = state.property(square);
-        var value = rules.propertyBuyBack(state, deed(square), property);
+        var value = Objects.requireNonNull(rules.propertyBuyBack(state, deed(square), property));
         property.setOwner(null);
         property.setBuilt(false);
         return List.of(new PropertySoldBack(player.getPlayerId(), square), payments.fromBank(player, value, MoneyReason.PROPERTY_SALE));
@@ -699,23 +709,23 @@ public class GameEngine {
             events.add(new PropertyBuilt(player.getPlayerId(), square, deed.building().industrial()));
         }
         var permit = buildingPermit(state, player);
-        if (permit != null) events.addAll(stockTips.consumeHeldTip(state, player, permit));
+        if (permit != null) events.addAll(stockTips.consumeHeldTip(state, player, permit.id()));
         return List.copyOf(events);
     }
 
-    String buildingPermit(GameState state, PlayerState player) {
+    @Nullable StockTipCard buildingPermit(GameState state, PlayerState player) {
         var onProject = rules.canBuildAtProject(state, player);
-        var hasProjectPermit = player.getHeldStockTips().contains("PV-01");
-        var hasSinglePermit = player.getHeldStockTips().contains("PV-07");
-        if ("FL-12".equals(state.getActiveFinanceNews())) {
-            if (onProject && hasProjectPermit) return "PV-01";
-            return hasSinglePermit ? "PV-07" : null;
+        var hasProjectPermit = PV_01.heldBy(player);
+        var hasSinglePermit = PV_07.heldBy(player);
+        if (FL_12.isActive(state)) {
+            if (onProject && hasProjectPermit) return PV_01;
+            return hasSinglePermit ? PV_07 : null;
         }
         if (state.getPhase() == TurnPhase.AFTER_ROLL) {
-            if (onProject && hasProjectPermit) return "PV-01";
-            return hasSinglePermit ? "PV-07" : null;
+            if (onProject && hasProjectPermit) return PV_01;
+            return hasSinglePermit ? PV_07 : null;
         }
-        return !onProject && hasSinglePermit ? "PV-07" : null;
+        return !onProject && hasSinglePermit ? PV_07 : null;
     }
 
     List<GameEvent> buyCar(PlayerState player) {

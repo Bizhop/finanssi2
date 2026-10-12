@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Data
+@SuppressWarnings("NullAway.Init") // filled in by Jackson after the no-arg constructor
 @NoArgsConstructor
 public class PlayerState {
     // Application user UUID, or a game-local debug seat ID

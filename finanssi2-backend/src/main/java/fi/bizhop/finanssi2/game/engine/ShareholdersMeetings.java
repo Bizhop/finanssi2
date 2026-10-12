@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Objects;
 
 import static fi.bizhop.finanssi2.game.data.GameConstants.BROKERAGE_FEE_STEP;
 import static fi.bizhop.finanssi2.game.data.GameConstants.BROKERAGE_FEE_TO_BANK;
@@ -117,7 +118,7 @@ class ShareholdersMeetings {
         }
         for (var sellerUid : sellerIds) {
             var seller = state.player(sellerUid).orElseThrow();
-            var payout = brokeragePayouts.get(sellerUid);
+            var payout = Objects.requireNonNull(brokeragePayouts.get(sellerUid)); // one entry per seller
             if (payout > 0) events.add(payments.transfer(caller, seller, payout, MoneyReason.SHAREHOLDERS_MEETING));
         }
         var bankFee = brokerageFee - brokeragePayouts.values().stream().mapToInt(Integer::intValue).sum();

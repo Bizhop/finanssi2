@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import fi.bizhop.finanssi2.game.data.SquareType;
 
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
 /** Something that happened in a game, in the order it happened. Serialized with its simple class name as {@code type}. */
 @JsonTypeInfo(use = JsonTypeInfo.Id.SIMPLE_NAME, property = "type")
@@ -40,7 +41,7 @@ public sealed interface GameEvent {
 
     record LandedOn(String player, int square) implements GameEvent {}
 
-    record FinanceNewsDrawn(String player, String card, String replaced) implements GameEvent {}
+    record FinanceNewsDrawn(String player, String card, @Nullable String replaced) implements GameEvent {}
 
     record StockTipDrawn(String player, String card, boolean held) implements GameEvent {}
     record StockTipUsed(String player, String card) implements GameEvent {}
@@ -52,7 +53,7 @@ public sealed interface GameEvent {
     record ShareIssued(String player, String share) implements GameEvent {}
     record ShareTaken(String player, String from, String share) implements GameEvent {}
     record ShareLost(String player, String share) implements GameEvent {}
-    record AssetAuctionCompleted(String seller, String asset, int amount, String winner, List<PendingDecision.Bid> bids)
+    record AssetAuctionCompleted(String seller, String asset, int amount, @Nullable String winner, List<PendingDecision.Bid> bids)
             implements GameEvent {
         public AssetAuctionCompleted { bids = List.copyOf(bids); }
     }
@@ -88,7 +89,7 @@ public sealed interface GameEvent {
     record CarSold(String player) implements GameEvent {}
 
     /** {@code from} or {@code to} is null for the bank */
-    record MoneyTransferred(String from, String to, int amount, MoneyReason reason) implements GameEvent {}
+    record MoneyTransferred(@Nullable String from, @Nullable String to, int amount, MoneyReason reason) implements GameEvent {}
 
     /** {@code loans}: how many the player has now */
     record LoanTaken(String player, int loans) implements GameEvent {}
@@ -96,7 +97,7 @@ public sealed interface GameEvent {
     record LoanRepaid(String player, int loans) implements GameEvent {}
 
     /** The player cannot pay from cash and must raise funds or go bankrupt; see {@link PendingDecision.RaiseFunds} */
-    record PaymentDue(String player, String creditor, int amount) implements GameEvent {}
+    record PaymentDue(String player, @Nullable String creditor, int amount) implements GameEvent {}
 
     /** Roll for the square 34 reward */
     record BankEntranceRoll(String player, List<Integer> dice) implements GameEvent {
@@ -105,9 +106,9 @@ public sealed interface GameEvent {
         }
     }
 
-    record PlayerBankrupt(String player, String creditor) implements GameEvent {}
+    record PlayerBankrupt(String player, @Nullable String creditor) implements GameEvent {}
     record PlayerResigned(String player) implements GameEvent {}
-    record GameEnded(String winner, List<PlayerStanding> standings) implements GameEvent {
+    record GameEnded(@Nullable String winner, List<PlayerStanding> standings) implements GameEvent {
         public GameEnded { standings = List.copyOf(standings); }
     }
 
@@ -153,8 +154,8 @@ public sealed interface GameEvent {
     record TurnSkipped(String player, int remaining) implements GameEvent {}
 
     record BondBought(String player, int number) implements GameEvent {}
-    record BondDrawn(int number, int prize, String winner) implements GameEvent {}
-    record BondAuctionCompleted(int amount, String winner, int number, List<PendingDecision.Bid> bids) implements GameEvent {
+    record BondDrawn(int number, int prize, @Nullable String winner) implements GameEvent {}
+    record BondAuctionCompleted(int amount, @Nullable String winner, int number, List<PendingDecision.Bid> bids) implements GameEvent {
         public BondAuctionCompleted {
             bids = List.copyOf(bids);
         }

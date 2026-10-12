@@ -12,6 +12,27 @@ import static fi.bizhop.finanssi2.game.data.GameConstants.BANK_FIRST_SQUARE;
 import static fi.bizhop.finanssi2.game.data.GameConstants.INDUSTRIAL_SQUARES;
 import static fi.bizhop.finanssi2.game.data.GameConstants.SQUARE_COUNT;
 import static fi.bizhop.finanssi2.game.engine.GameEngine.rollDice;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_01;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_02;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_03;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_04;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_05;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_06;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_07;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_08;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_09;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_10;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_11;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_12;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_13;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_14;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_15;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_16;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_17;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_18;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_19;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_20;
+import static fi.bizhop.finanssi2.game.engine.FinanceNewsCard.FL_21;
 
 /** Finance News cards: drawing, the lasting card and the effects that touch every player. */
 class FinanceNews {
@@ -32,29 +53,29 @@ class FinanceNews {
         if (state.getFinanceNewsDeck().isEmpty()) return List.of();
         var deck = state.getFinanceNewsDeck();
         var id = deck.removeFirst();
+        var card = FinanceNewsCard.of(id);
         deck.addLast(id);
         var replaced = state.getActiveFinanceNews();
-        state.setActiveFinanceNews(switch (id) {
-            case "FL-01", "FL-05", "FL-06", "FL-08", "FL-09", "FL-10", "FL-11", "FL-12", "FL-14", "FL-15",
-                    "FL-16", "FL-17", "FL-20", "FL-21" -> id;
+        state.setActiveFinanceNews(switch (card) {
+            case FL_01, FL_05, FL_06, FL_08, FL_09, FL_10, FL_11, FL_12, FL_14, FL_15, FL_16, FL_17, FL_20, FL_21 -> id;
             default -> null;
         });
         var events = new ArrayList<GameEvent>();
         events.add(new GameEvent.FinanceNewsDrawn(player.getPlayerId(), id, replaced));
-        if (id.equals("FL-02") || id.equals("FL-03")) events.addAll(engine.grandBondDraw(state, player, dice));
-        if (id.equals("FL-01")) events.addAll(engine.chargePlayers(state, player, p -> p.isCar() ? 5_000 : 0, MoneyReason.FINANCE_NEWS));
-        if (id.equals("FL-07")) events.addAll(engine.chargePlayers(state, player, p -> roundUp500(p.getCash(), 2), MoneyReason.FINANCE_NEWS));
-        if (id.equals("FL-13")) events.addAll(engine.chargePlayers(state, player, p -> roundUp500(
+        if (card == FL_02 || card == FL_03) events.addAll(engine.grandBondDraw(state, player, dice));
+        if (card == FL_01) events.addAll(engine.chargePlayers(state, player, p -> p.isCar() ? 5_000 : 0, MoneyReason.FINANCE_NEWS));
+        if (card == FL_07) events.addAll(engine.chargePlayers(state, player, p -> roundUp500(p.getCash(), 2), MoneyReason.FINANCE_NEWS));
+        if (card == FL_13) events.addAll(engine.chargePlayers(state, player, p -> roundUp500(
                 Math.min(p.getCash(), 100_000) / 10 + Math.max(0, p.getCash() - 100_000) / 4, 1), MoneyReason.FINANCE_NEWS));
-        if (id.equals("FL-04")) state.getPendingDecisions().add(new PendingDecision.NewsDirection(player.getPlayerId(), id));
-        if (id.equals("FL-10")) {
+        if (card == FL_04) state.getPendingDecisions().add(new PendingDecision.NewsDirection(player.getPlayerId(), id));
+        if (card == FL_10) {
             for (var playerId : List.copyOf(state.getTurnOrder())) {
                 var standing = state.player(playerId).orElseThrow();
                 if (!standing.isOut() && standing.getPosition() == BANK_FIRST_SQUARE) events.addAll(engine.moveTo(state, standing, 1, dice));
             }
         }
-        if (id.equals("FL-19")) events.addAll(energyTax(state, player, dice));
-        if (id.equals("FL-18")) {
+        if (card == FL_19) events.addAll(energyTax(state, player, dice));
+        if (card == FL_18) {
             for (var shareholder : state.getTurnOrder()) {
                 var recipient = state.player(shareholder).orElseThrow();
                 if (recipient.isOut()) continue;

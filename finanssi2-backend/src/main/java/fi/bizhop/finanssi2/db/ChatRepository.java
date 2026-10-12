@@ -11,6 +11,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import fi.bizhop.finanssi2.game.db.GameEntity;
+import org.jspecify.annotations.Nullable;
 
 @Repository
 @RequiredArgsConstructor
@@ -39,7 +40,7 @@ public class ChatRepository {
     }
 
     @Transactional
-    public ChatMessage save(ChatMessage message, UUID gameId, UUID senderId) {
+    public ChatMessage save(ChatMessage message, @Nullable UUID gameId, UUID senderId) {
         var row = new ChatMessageEntity();
         row.message = message.message();
         row.timestamp = message.timestamp();

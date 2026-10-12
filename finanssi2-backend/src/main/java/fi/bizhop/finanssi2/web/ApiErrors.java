@@ -18,6 +18,7 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.util.NoSuchElementException;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The one error format of the API: every failure is a ProblemDetail whose {@code detail} is what the frontend shows.
@@ -27,7 +28,7 @@ import java.util.NoSuchElementException;
 public class ApiErrors extends ResponseEntityExceptionHandler {
     /** Only request bodies that fail to parse; other Jackson failures are server errors */
     @Override
-    protected ResponseEntity<Object> handleHttpMessageNotReadable(@NonNull HttpMessageNotReadableException e, @NonNull HttpHeaders headers,
+    protected @Nullable ResponseEntity<Object> handleHttpMessageNotReadable(@NonNull HttpMessageNotReadableException e, @NonNull HttpHeaders headers,
             @NonNull HttpStatusCode status, @NonNull WebRequest request) {
         var problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Invalid request body or unexpected fields");
         return handleExceptionInternal(e, problem, headers, status, request);

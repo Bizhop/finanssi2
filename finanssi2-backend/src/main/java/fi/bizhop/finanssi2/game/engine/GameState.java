@@ -6,9 +6,11 @@ import lombok.Data;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 
 /** Everything on the table. The engine changes it in place; the service saves it as part of the game. */
 @Data
+@SuppressWarnings("NullAway.Init") // the current player and phase are set when the game starts
 public class GameState {
     // In join order
     List<PlayerState> players = new ArrayList<>();
@@ -31,9 +33,9 @@ public class GameState {
     @JsonIgnore
     List<String> stockTipDeck = new ArrayList<>();
     // The current lasting Finance News card, if any.
-    String activeFinanceNews;
+    @Nullable String activeFinanceNews;
     boolean finished;
-    String winner;
+    @Nullable String winner;
     List<PlayerStanding> finalStandings = new ArrayList<>();
 
     /** The player who may act now: the one addressed by the first pending decision, otherwise the one whose turn it is */
@@ -65,7 +67,7 @@ public class GameState {
         return player(currentPlayer).orElseThrow();
     }
 
-    public void finish(String winner, List<PlayerStanding> standings) {
+    public void finish(@Nullable String winner, List<PlayerStanding> standings) {
         this.finished = true;
         this.winner = winner;
         this.finalStandings = List.copyOf(standings);

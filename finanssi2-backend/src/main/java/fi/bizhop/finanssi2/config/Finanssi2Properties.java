@@ -29,7 +29,7 @@ public record Finanssi2Properties(Endpoints endpoints, Web web, Debug debug, Fir
     public record Firebase(Path credentials) {}
 
     public Finanssi2Properties {
-        endpoints = endpoints == null ? new Endpoints(null) : endpoints;
-        debug = debug == null ? new Debug(null) : debug;
+        endpoints = endpoints == null ? new Endpoints(List.of()) : endpoints;
+        debug = debug == null ? new Debug(Set.of()) : debug;
     }
 }

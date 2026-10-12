@@ -10,6 +10,7 @@ import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.stereotype.Component;
+import org.jspecify.annotations.Nullable;
 
 /** Rechecks debug-game chat authorization for each recipient at delivery time. */
 @Component
@@ -20,7 +21,7 @@ public class PrivateChatDeliveryInterceptor implements ChannelInterceptor {
     final DebugAccess debugAccess;
 
     @Override
-    public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
+    public @Nullable Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
         var headers = SimpMessageHeaderAccessor.wrap(message);
         var destination = headers.getDestination();
         if (destination == null || !destination.matches("/topic/games/[0-9a-fA-F-]{36}/chat")) return message;

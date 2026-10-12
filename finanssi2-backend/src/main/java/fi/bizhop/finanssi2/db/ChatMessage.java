@@ -1,8 +1,10 @@
 package fi.bizhop.finanssi2.db;
 
+import org.jspecify.annotations.Nullable;
+
 public record ChatMessage(
     // Monotonic PostgreSQL identity, exposed as a string for the existing API.
-    String id,
+    @Nullable String id,
     String userId,
     String message,
     long timestamp) {

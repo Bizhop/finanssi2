@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import fi.bizhop.finanssi2.game.db.GameMode;
+import org.jspecify.annotations.Nullable;
 
 @Service
 @RequiredArgsConstructor
@@ -71,7 +72,7 @@ public class ChatService {
         return saved;
     }
 
-    public static void validateMessage(String message) {
+    public static void validateMessage(@Nullable String message) {
         if (message == null || message.isBlank() || message.length() > 100) {
             throw new IllegalArgumentException("message must contain 1–100 nonblank characters");
         }

@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
 @RestController
 @RequiredArgsConstructor
@@ -55,13 +57,13 @@ public class ChatController {
     }
 
     private static String validMessage(ChatMessageInput input) {
+        var message = input == null ? null : input.message();
         try {
-            var message = input == null ? null : input.message();
             ChatService.validateMessage(message);
-            return message;
         } catch (IllegalArgumentException invalid) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, invalid.getMessage());
         }
+        return Objects.requireNonNull(message); // validated as present above
     }
 
     private static void validatePage(String before, int size) {

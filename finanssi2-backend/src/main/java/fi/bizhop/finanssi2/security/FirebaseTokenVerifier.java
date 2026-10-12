@@ -9,6 +9,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 
 /** Verifies Firebase ID tokens, for both HTTP requests and websocket connections */
 @Slf4j
@@ -23,7 +24,7 @@ public class FirebaseTokenVerifier {
     }
 
     /** Verifies the token in an {@code Authorization: Bearer <token>} header value; empty when missing, invalid or expired */
-    public Optional<FirebaseToken> verifyAuthorizationHeader(String authorizationHeader) {
+    public Optional<FirebaseToken> verifyAuthorizationHeader(@Nullable String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
             return Optional.empty();
         }

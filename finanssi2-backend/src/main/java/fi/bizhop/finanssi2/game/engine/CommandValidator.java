@@ -34,6 +34,9 @@ import static fi.bizhop.finanssi2.game.engine.GameEngine.decisionCommands;
 import static fi.bizhop.finanssi2.game.engine.GameEngine.ownProperty;
 import static fi.bizhop.finanssi2.game.engine.GameEngine.require;
 import static fi.bizhop.finanssi2.game.engine.GameEngine.requirePurchase;
+import static fi.bizhop.finanssi2.game.engine.StockTipCard.PV_01;
+import static fi.bizhop.finanssi2.game.engine.StockTipCard.PV_07;
+import static fi.bizhop.finanssi2.game.engine.StockTipCard.PV_25;
 
 /** Checks whether a command is allowed right now, changing nothing. */
 class CommandValidator {
@@ -130,7 +133,7 @@ class CommandValidator {
             case Build build -> {
                 require(rules.canBuild(state, player), "Building is allowed only on squares 17 and 40");
                 require(!build.squares().isEmpty(), "Nothing to build");
-                if ("PV-07".equals(engine.buildingPermit(state, player)))
+                if (engine.buildingPermit(state, player) == PV_07)
                     require(build.squares().size() == 1, "This permit covers one property");
                 require(build.squares().stream().distinct().count() == build.squares().size(), "One building per property");
                 var cost = build.squares().stream().mapToInt(square -> {
@@ -156,7 +159,7 @@ class CommandValidator {
                 require(pending.getFirst() instanceof PendingDecision.StockTipChoice, "No Stock Tip choice to make");
                 require(((PendingDecision.StockTipChoice) pending.getFirst()).options().contains(choose.option()), "Invalid Stock Tip choice");
             }
-            case GameCommand.UseHeldStockTip use -> require(use.card().equals("PV-25")
+            case GameCommand.UseHeldStockTip use -> require(PV_25.id().equals(use.card())
                     && player.getHeldStockTips().contains(use.card()) && state.getPhase() == TurnPhase.BEFORE_ROLL,
                     "This held Stock Tip cannot be used now");
             case GameCommand.BidAsset bid -> {
@@ -197,10 +200,12 @@ class CommandValidator {
         if (command instanceof Build && phase == TurnPhase.AFTER_ROLL) {
             var player = state.current();
             if (player.isNoMovementRollThisTurn() && player.getPosition() == PROJECT_SQUARES.getFirst()) return;
-            if (player.getHeldStockTips().contains("PV-07")
-                    || player.getHeldStockTips().contains("PV-01") && PROJECT_SQUARES.contains(player.getPosition())) return;
+            if (PV_07.heldBy(player)
+                    || PV_01.heldBy(player) && PROJECT_SQUARES.contains(player.getPosition())) return;
         }
-        switch (TIMING.get(command.getClass())) {
+        var timing = TIMING.get(command.getClass());
+        if (timing == null) throw new IllegalArgumentException("No timing for " + command.getClass().getSimpleName());
+        switch (timing) {
             case BEFORE_ROLL -> require(phase == TurnPhase.BEFORE_ROLL, "Only allowed before rolling");
             case AFTER_ROLL -> require(phase == TurnPhase.AFTER_ROLL, "Only allowed after rolling");
             case OWN_TURN -> {}

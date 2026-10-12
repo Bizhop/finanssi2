@@ -14,6 +14,7 @@ import java.util.List;
 import static fi.bizhop.finanssi2.game.data.GameConstants.CAR_SELL_BACK_PRICE;
 import static fi.bizhop.finanssi2.game.data.GameConstants.LOAN_AMOUNT;
 import static fi.bizhop.finanssi2.game.data.GameConstants.LOAN_REPAYMENT_SQUARE;
+import org.jspecify.annotations.Nullable;
 
 /** Going bankrupt or resigning, and what happens to the player's assets. */
 class Bankruptcy {
@@ -48,7 +49,7 @@ class Bankruptcy {
         return List.copyOf(events);
     }
 
-    List<GameEvent> bankrupt(GameState state, PlayerState player, String creditorUid, Dice dice) {
+    List<GameEvent> bankrupt(GameState state, PlayerState player, @Nullable String creditorUid, Dice dice) {
         var wasCurrent = player.getPlayerId().equals(state.getCurrentPlayer());
         state.getPendingDecisions().removeIf(pending -> pending.player().equals(player.getPlayerId()));
         var events = new ArrayList<GameEvent>();
