@@ -93,7 +93,8 @@ export function createFrontend(
             "default-src 'none'",
             "script-src 'self' https://apis.google.com",
             "style-src 'self' 'unsafe-inline'",
-            `img-src 'self' data: blob: https://${settings.apiHostname}`,
+            // Provider avatars (Google profile photos) are loaded straight from Google.
+            `img-src 'self' data: blob: https://${settings.apiHostname} https://*.googleusercontent.com`,
             "font-src 'self' data:",
             `connect-src 'self' https://${settings.apiHostname} wss://${settings.apiHostname} https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com`,
             `frame-src https://${settings.firebaseAuthDomain} https://accounts.google.com`,
