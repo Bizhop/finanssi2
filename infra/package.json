@@ -1,9 +1,16 @@
 {
   "name": "finanssi2-infra",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "build": "tsc --noEmit",
-    "preview": "pulumi preview"
+    "typecheck": "tsc",
+    "fmt": "deno fmt",
+    "fmt:check": "deno fmt --check",
+    "lint": "deno lint",
+    "preview": "pulumi preview",
+    "shellcheck": "shellcheck -x scripts/*.sh userdata/bootstrap.sh userdata/host/*"
   },
   "dependencies": {
     "@pulumi/aws": "7.50.0",

@@ -3,9 +3,10 @@ import * as aws from "@pulumi/aws"
 export function createMonitoring(
     prefix: string,
     provider: aws.Provider,
-    budgetProvider: aws.Provider,
+    usEast1Provider: aws.Provider,
     settings: {
         instance: aws.ec2.Instance
+        databaseCluster: aws.rds.Cluster
         hostLogGroup: aws.cloudwatch.LogGroup
         monthlyBudgetUsd: number
         alertEmail: string
@@ -13,7 +14,6 @@ export function createMonitoring(
 ): void {
     const alarmTopic = new aws.sns.Topic(`${prefix}-alarm-notifications`, {
         name: `${prefix}-alarms`,
-        tags: { Application: "finanssi2" },
     }, { provider })
     new aws.sns.TopicSubscription(`${prefix}-alarm-email-subscription`, {
         topic: alarmTopic.arn,
@@ -74,7 +74,8 @@ export function createMonitoring(
         evaluationPeriods: 3,
         threshold: 85,
         comparisonOperator: "GreaterThanOrEqualToThreshold",
-        treatMissingData: "notBreaching",
+        // A stopped CloudWatch agent stops reporting; treat that as a breach.
+        treatMissingData: "breaching",
         alarmActions: [alarmTopic.arn],
     }, { provider })
     new aws.cloudwatch.MetricAlarm(`${prefix}-disk-alarm`, {
@@ -88,6 +89,22 @@ export function createMonitoring(
         evaluationPeriods: 3,
         threshold: 80,
         comparisonOperator: "GreaterThanOrEqualToThreshold",
+        treatMissingData: "notBreaching",
+        alarmActions: [alarmTopic.arn],
+    }, { provider })
+
+    // Aurora should auto-pause when idle; capacity above zero for a whole day means something keeps it awake and billing.
+    new aws.cloudwatch.MetricAlarm(`${prefix}-database-awake-alarm`, {
+        name: `${prefix}-database-never-paused`,
+        alarmDescription: "Aurora Serverless v2 capacity has stayed above zero for 24 hours (auto-pause is not happening)",
+        namespace: "AWS/RDS",
+        metricName: "ServerlessDatabaseCapacity",
+        dimensions: { DBClusterIdentifier: settings.databaseCluster.clusterIdentifier },
+        statistic: "Minimum",
+        period: 3600,
+        evaluationPeriods: 24,
+        threshold: 0,
+        comparisonOperator: "GreaterThanThreshold",
         treatMissingData: "notBreaching",
         alarmActions: [alarmTopic.arn],
     }, { provider })
@@ -138,6 +155,5 @@ export function createMonitoring(
                 subscriberEmailAddresses: [settings.alertEmail],
             },
         ],
-    }, { provider: budgetProvider })
-
+    }, { provider: usEast1Provider })
 }

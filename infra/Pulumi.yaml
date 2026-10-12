@@ -5,3 +5,6 @@ runtime:
     typescript: true
 description: AWS infrastructure for the Finanssi 2 production deployment
 main: index.ts
+config:
+  pulumi:disable-default-providers:
+    value: ["aws"]

@@ -1,0 +1,11 @@
+{
+    "fmt": {
+        "include": ["*.ts"],
+        "semiColons": false,
+        "indentWidth": 4,
+        "lineWidth": 160
+    },
+    "lint": {
+        "include": ["*.ts"]
+    }
+}

@@ -5,20 +5,19 @@ export interface Networking {
     vpc: aws.ec2.Vpc
     backendSecurityGroup: aws.ec2.SecurityGroup
     databaseSecurityGroup: aws.ec2.SecurityGroup
-    publicSubnetIds: pulumi.Output<string>[]
-    privateSubnetIds: pulumi.Output<string>[]
+    publicSubnetIds: [pulumi.Output<string>, pulumi.Output<string>]
+    privateSubnetIds: [pulumi.Output<string>, pulumi.Output<string>]
 }
 
 export function createNetworking(prefix: string, provider: aws.Provider): Networking {
     const zones = aws.getAvailabilityZonesOutput({ state: "available" }, { provider }).names
-    const zoneA = zones.apply((names) => {
-        if (names.length < 2) throw new Error("The selected AWS region must have at least two available availability zones")
-        return names[0]
-    })
-    const zoneB = zones.apply((names) => {
-        if (names.length < 2) throw new Error("The selected AWS region must have at least two available availability zones")
-        return names[1]
-    })
+    const [zoneA, zoneB] = [0, 1].map((index) =>
+        zones.apply((names) => {
+            const zone = names[index]
+            if (!zone) throw new Error("The selected AWS region must have at least two available availability zones")
+            return zone
+        })
+    ) as [pulumi.Output<string>, pulumi.Output<string>]
 
     const vpc = new aws.ec2.Vpc(`${prefix}-vpc`, {
         cidrBlock: "10.42.0.0/16",
@@ -77,17 +76,17 @@ export function createNetworking(prefix: string, provider: aws.Provider): Networ
         vpcId: vpc.id,
         description: "Public HTTPS proxy; no direct Spring or SSH ingress",
         ingress: [
-            { protocol: "tcp", fromPort: 80, toPort: 80, cidrBlocks: ["0.0.0.0/0"] },
-            { protocol: "tcp", fromPort: 443, toPort: 443, cidrBlocks: ["0.0.0.0/0"] },
+            { protocol: "tcp", fromPort: 80, toPort: 80, cidrBlocks: ["0.0.0.0/0"], description: "HTTP, for ACME challenges and redirect to HTTPS" },
+            { protocol: "tcp", fromPort: 443, toPort: 443, cidrBlocks: ["0.0.0.0/0"], description: "HTTPS to Caddy" },
         ],
-        egress: [{ protocol: "-1", fromPort: 0, toPort: 0, cidrBlocks: ["0.0.0.0/0"] }],
+        egress: [{ protocol: "-1", fromPort: 0, toPort: 0, cidrBlocks: ["0.0.0.0/0"], description: "All outbound" }],
         tags: { Name: `${prefix}-backend-sg` },
     }, { provider })
 
     const databaseSecurityGroup = new aws.ec2.SecurityGroup(`${prefix}-database-sg`, {
         vpcId: vpc.id,
         description: "PostgreSQL ingress from the single backend instance only",
-        ingress: [{ protocol: "tcp", fromPort: 5432, toPort: 5432, securityGroups: [backendSecurityGroup.id] }],
+        ingress: [{ protocol: "tcp", fromPort: 5432, toPort: 5432, securityGroups: [backendSecurityGroup.id], description: "PostgreSQL from the backend" }],
         tags: { Name: `${prefix}-database-sg` },
     }, { provider })
 

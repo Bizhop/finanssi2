@@ -16,6 +16,10 @@ uses TLS hostname verification and a small idle-closing Hikari pool for Aurora a
 a database-independent public liveness route. The image includes the AWS RDS global CA bundle pinned by checksum; TLS handshake and
 deployed pause/resume behavior still need live validation.
 
+Infrastructure improvements (branch `improvements/infra`, 2026-10-12): the container JVM options (40% heap, `ExitOnOutOfMemoryError`) are
+now set only in the `Dockerfile`, and the host runs the container hardened (read-only root, dropped capabilities). All deploy checkpoints were applied on 2026-10-12: the backend
+is healthy on the replaced host, recovers unaided after a reboot, and the container logs show no read-only or `/tmp` errors. See [infra setup](../infra/README.md).
+
 Production Pulumi infrastructure was deployed on 2026-10-09: VPC/Aurora PostgreSQL 17.11, x86-64 `t3.small` EC2, ECR, scoped
 IAM/Secrets Manager, S3, staged CloudFront certificate/distribution, and cost/host alarms. S3 resource types and the EC2 primary
 network interface use current provider inputs. TypeScript compilation passed, and the deployment completed without warnings.

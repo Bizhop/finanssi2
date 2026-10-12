@@ -12,8 +12,8 @@ export interface Database {
 
 export function createDatabase(
     prefix: string,
-    networking: Networking,
     provider: aws.Provider,
+    networking: Networking,
     settings: { engineVersion: string; minCapacity: number; maxCapacity: number; autoPauseSeconds: number },
 ): Database {
     const passwordCharacters = "!#$%&()*+,-.:;<=>?[]^_{|}~"
@@ -54,15 +54,18 @@ export function createDatabase(
         skipFinalSnapshot: true,
         deletionProtection: false,
         applyImmediately: true,
-        tags: { Name: `${prefix}-database`, Application: "finanssi2" },
-    }, { provider })
+        tags: { Name: `${prefix}-database` },
+    }, {
+        provider,
+        // Aurora applies minor upgrades itself; do not try to downgrade to the version pinned at creation.
+        ignoreChanges: ["engineVersion"],
+    })
 
     const instance = new aws.rds.ClusterInstance(`${prefix}-database-writer`, {
         identifier: `${prefix}-database-writer`,
         clusterIdentifier: cluster.id,
         instanceClass: "db.serverless",
         engine: "aurora-postgresql",
-        engineVersion: settings.engineVersion,
         dbSubnetGroupName: databaseSubnetGroup.name,
         publiclyAccessible: false,
         tags: { Name: `${prefix}-database-writer` },
@@ -72,36 +75,34 @@ export function createDatabase(
         name: `${prefix}-database-admin`,
         description: "Aurora master credentials; used only for database administration and bootstrap",
         recoveryWindowInDays: 0,
-        tags: { Application: "finanssi2" },
     }, { provider })
     new aws.secretsmanager.SecretVersion(`${prefix}-database-admin-version`, {
         secretId: adminSecret.id,
-        secretString: pulumi.secret(pulumi.all([cluster.endpoint, adminPassword.result]).apply(([host, password]) => JSON.stringify({
+        secretString: pulumi.secret(pulumi.jsonStringify({
             username: "finanssi_admin",
-            password,
+            password: adminPassword.result,
             engine: "aurora-postgresql",
-            host,
-            port: 5432,
-            dbname: "finanssi",
-        }))),
+            host: cluster.endpoint,
+            port: cluster.port,
+            dbname: cluster.databaseName,
+        })),
     }, { provider, dependsOn: [instance] })
 
     const applicationSecret = new aws.secretsmanager.Secret(`${prefix}-database-application-secret`, {
         name: `${prefix}-database-application`,
         description: "Finanssi application database credentials",
         recoveryWindowInDays: 0,
-        tags: { Application: "finanssi2" },
     }, { provider })
     new aws.secretsmanager.SecretVersion(`${prefix}-database-application-version`, {
         secretId: applicationSecret.id,
-        secretString: pulumi.secret(pulumi.all([cluster.endpoint, applicationPassword.result]).apply(([host, password]) => JSON.stringify({
+        secretString: pulumi.secret(pulumi.jsonStringify({
             username: "finanssi_app",
-            password,
+            password: applicationPassword.result,
             engine: "aurora-postgresql",
-            host,
-            port: 5432,
-            dbname: "finanssi",
-        }))),
+            host: cluster.endpoint,
+            port: cluster.port,
+            dbname: cluster.databaseName,
+        })),
     }, { provider, dependsOn: [instance] })
 
     return { cluster, instance, adminSecret, applicationSecret }

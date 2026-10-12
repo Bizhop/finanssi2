@@ -16,10 +16,11 @@ const frontendHostname = config.get("frontendHostname") ?? "finanssi.bizhop.fi"
 const apiHostname = config.get("apiHostname") ?? "api.finanssi.bizhop.fi"
 const allowedOrigin = config.get("allowedOrigin") ?? `https://${frontendHostname}`
 const debugAllowedEmails = config.get("debugAllowedEmails") ?? ""
-const monthlyBudgetLimitUsd = config.getNumber("monthlyBudgetLimitUsd")
-const budgetAlertEmail = config.get("budgetAlertEmail") ?? ""
+const monthlyBudgetLimitUsd = config.requireNumber("monthlyBudgetLimitUsd")
+const budgetAlertEmail = config.require("budgetAlertEmail")
 const firebaseWeb = config.requireObject<FirebaseWebConfig>("firebaseWeb")
 const createFrontendDistribution = config.getBoolean("createFrontendDistribution") ?? false
+const cspReportOnly = config.getBoolean("frontendCspReportOnly") ?? false
 
 interface FirebaseWebConfig {
     apiKey: string
@@ -38,9 +39,12 @@ const firebaseWebKeys: (keyof FirebaseWebConfig)[] = [
     "messagingSenderId",
     "appId",
 ]
-const missingFirebaseSettings = firebaseWebKeys.filter((key) => !firebaseWeb[key]?.trim())
+const missingFirebaseSettings = firebaseWebKeys.filter((key) => {
+    const value = firebaseWeb[key]?.trim()
+    return !value || value.includes("replace-me")
+})
 if (missingFirebaseSettings.length > 0) {
-    throw new Error(`Missing Firebase web configuration fields: ${missingFirebaseSettings.join(", ")}`)
+    throw new Error(`Missing or placeholder Firebase web configuration fields: ${missingFirebaseSettings.join(", ")}`)
 }
 if (firebaseWeb.authDomain !== `${firebaseWeb.projectId}.firebaseapp.com`) {
     throw new Error("firebaseWeb.authDomain must use the project's default Firebase auth domain")
@@ -79,10 +83,10 @@ const debugEmails = debugAllowedEmails.split(",").map((email) => email.trim()).f
 if (debugEmails.some((email) => !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email))) {
     throw new Error("debugAllowedEmails must contain comma-separated email addresses")
 }
-if (!monthlyBudgetLimitUsd || monthlyBudgetLimitUsd <= 0) {
+if (monthlyBudgetLimitUsd <= 0) {
     throw new Error("monthlyBudgetLimitUsd must be set to the operator's chosen alert amount")
 }
-if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(budgetAlertEmail)) {
+if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(budgetAlertEmail) || budgetAlertEmail.endsWith("@example.com")) {
     throw new Error("budgetAlertEmail must be set to an address that should receive AWS cost alerts")
 }
 
@@ -99,10 +103,12 @@ if (autoPauseSeconds < 300 || autoPauseSeconds > 86400) {
     throw new Error("auroraAutoPauseSeconds must be between 300 and 86400 seconds")
 }
 
-const provider = new aws.Provider("finanssi-aws", { region })
+const defaultTags = { tags: { Application: "finanssi2", Stack: pulumi.getStack(), ManagedBy: "pulumi" } }
+const provider = new aws.Provider("finanssi-aws", { region, defaultTags })
+const usEast1Provider = new aws.Provider("finanssi-certificate-aws", { region: "us-east-1", defaultTags })
 
 const networking = createNetworking(prefix, provider)
-const database = createDatabase(prefix, networking, provider, {
+const database = createDatabase(prefix, provider, networking, {
     engineVersion,
     minCapacity: minimumCapacity,
     maxCapacity: maximumCapacity,
@@ -120,13 +126,16 @@ const backend = createBackend(prefix, provider, {
     database,
     networking,
 })
-const certificateProvider = new aws.Provider("finanssi-certificate-aws", { region: "us-east-1" })
-const frontend = createFrontend(prefix, provider, certificateProvider, {
+const frontend = createFrontend(prefix, provider, usEast1Provider, {
     hostname: frontendHostname,
+    apiHostname,
+    firebaseAuthDomain: firebaseWeb.authDomain,
     createDistribution: createFrontendDistribution,
+    cspReportOnly,
 })
-createMonitoring(prefix, provider, certificateProvider, {
+createMonitoring(prefix, provider, usEast1Provider, {
     instance: backend.instance,
+    databaseCluster: database.cluster,
     hostLogGroup: backend.hostLogGroup,
     monthlyBudgetUsd: monthlyBudgetLimitUsd,
     alertEmail: budgetAlertEmail,
@@ -147,6 +156,7 @@ export const databaseApplicationSecretArn = database.applicationSecret.arn
 export const firebaseAdminSecretArn = firebaseAdminSecret.arn
 export const backendInstanceId = backend.instance.id
 export const backendElasticIp = backend.elasticIp.publicIp
+export const backendImageRefParameter = backend.imageRefParameterName
 export const backendRepositoryUrl = backend.repository.repositoryUrl
 export const backendApiUrl = `https://${apiHostname}`
 export const frontendBucketName = frontend.bucket.bucket
@@ -155,4 +165,5 @@ export const frontendCertificateArn = frontend.certificate.arn
 export const frontendCertificateDnsRecords = frontend.certificate.domainValidationOptions.apply((options) =>
     options.map((option) => ({ name: option.resourceRecordName, type: option.resourceRecordType, value: option.resourceRecordValue }))
 )
+export const frontendDistributionId = frontend.distribution?.id ?? null
 export const frontendDistributionHostname = frontend.distribution?.domainName ?? null

@@ -18,12 +18,14 @@ Install exact locked package versions and type-check the project:
 
 ```bash
 npm ci
-npm run build
+npm run typecheck
+npm run lint
+npm run fmt:check   # `npm run fmt` fixes formatting; needs deno
 ```
 
 Create a local production stack config from `Pulumi.prod.yaml.example`, replace the public Firebase web placeholders, then initialize
-the stack and store the Firebase Admin service-account JSON with Pulumi's `--secret` option. The example is ignored by Git along
-with real `Pulumi.*.yaml` files. Never place Firebase Admin JSON in the stack YAML as plaintext or in `firebaseWeb`.
+the stack and store the Firebase Admin service-account JSON with Pulumi's `--secret` option. The example is tracked; real
+`Pulumi.*.yaml` files are ignored by Git. Never place Firebase Admin JSON in the stack YAML as plaintext or in `firebaseWeb`.
 
 The stack uses `aws:region` with a default of `eu-north-1`. Set `monthlyBudgetLimitUsd` to the alert amount you choose and
 `budgetAlertEmail` to the recipient address. Confirm the SNS subscription email after deployment. Check that the configured Aurora PostgreSQL engine version is currently
@@ -36,9 +38,46 @@ the app started. `frontendDistributionHostname` currently returns `null` because
 The first stack stage creates billable AWS resources even while the frontend distribution is disabled. Review the resource and cost
 preview before future infrastructure changes.
 
-The EC2 image reference is intentionally absent at bootstrap. It installs host services and waits for the release helpers below to
-set an immutable ECR digest through SSM. The host exposes only 80/443; SSH and PostgreSQL are not public, and Aurora accepts traffic
-only from the backend security group. S3 is private and accepts reads only through CloudFront when the distribution stage is enabled.
+On a brand-new stack the EC2 image reference is absent at bootstrap: the host installs its services and waits for the release helpers
+below to deploy an immutable ECR digest. After that the deploy script records the digest in the SSM parameter
+`/finanssi2/<stack>/image-ref` (output `backendImageRefParameter`), and a replaced host reads it at bootstrap and starts the last
+deployed image by itself. The host exposes only 80/443; SSH and PostgreSQL are not public, and Aurora accepts traffic only from the
+backend security group. S3 is private and accepts reads only through CloudFront when the distribution stage is enabled.
+
+## Host configuration
+
+The host bootstrap is `userdata/bootstrap.sh`, with the host scripts in `userdata/host/` embedded by `userdata.ts` (`# @include`
+lines). Run `npm run shellcheck` after editing them; EC2 allows 16 KB of user data and the build fails above that.
+
+- **Runtime settings** (allowed origin, debug emails) live in the SSM parameter `/finanssi2/<stack>/runtime-settings`, which Pulumi
+  manages. `finanssi2-run` reads it at every service start, so after a `pulumi up` that changes a setting, restart the service
+  (`systemctl restart finanssi2` through SSM) instead of replacing the host. Changing other values baked into user data (API hostname,
+  secret ARNs, scripts) still replaces the instance.
+- **AMI**: `ignoreChanges: ["ami"]` keeps routine `pulumi up` from replacing the host when a new Amazon Linux 2023 AMI is released.
+  Roll the host deliberately with `pulumi up --replace <instance urn>`; the new host starts the recorded image without a redeploy.
+- **Logs**: `rsyslog` provides `/var/log/messages` for the CloudWatch agent; the `BackendStarts` metric and the restart alarm count the
+  `backend container start` lines in it. The RDS CA bundle is fetched when the secrets service starts, not during bootstrap.
+- **Container**: runs with all capabilities dropped, `no-new-privileges`, a read-only root filesystem and a 128 MB `/tmp` tmpfs. JVM
+  options (heap percentage, `ExitOnOutOfMemoryError`) are set only in the backend `Dockerfile`.
+
+## Monitoring
+
+Alarms notify the SNS topic `<prefix>-alarms`: EC2 status checks, CPU, CPU credits, memory and root disk (a silent memory metric counts
+as a breach, since it means the CloudWatch agent stopped), backend restarts (four starts in five minutes), Aurora never pausing
+(capacity above zero for 24 hours) and the monthly cost budget.
+
+## Maintenance routine
+
+Do this monthly (there is no CI; Dependabot for npm, Gradle and Docker digests is an option that opens PRs without a pipeline):
+
+1. **OS patches.** The host's package repositories are locked to the AMI release. Patch in place through Systems Manager:
+   `aws ssm send-command --document-name AWS-RunShellScript --instance-ids <id> --parameters 'commands=["dnf -y upgrade --releasever=latest"]'`,
+   then restart the services (`systemctl restart caddy finanssi2`) or reboot. Alternatively roll the AMI deliberately (see above).
+2. **Disk.** Every deploy prunes unused Docker images older than a week after the health check passes; watch the disk alarm.
+3. **Dependencies.** `npm outdated`; before bumping TypeScript check `@pulumi/pulumi`'s peer range (TypeScript 7 is not supported yet);
+   keep `@types/node` on the Node major in `.node-version`. Refresh the Caddy version and sha512 in `userdata/bootstrap.sh`, the Temurin
+   digests and the RDS CA bundle hash in the backend `Dockerfile`, and review Aurora and Node release calendars.
+4. **Checks.** `npm run typecheck`, `npm run lint`, `npm run fmt:check`, `npm run shellcheck`, then `pulumi preview` before any `up`.
 
 ## Backend releases
 
@@ -59,7 +98,13 @@ image reference and restarts the previous release. Set `DEPLOY_BACKEND=false` to
 
 `publish-frontend.sh` builds the frontend (`deno task build`, which needs the untracked `finanssi2-web/.env.production`), uploads hashed
 assets to the S3 bucket first, then `index.html` with `no-cache`, and invalidates `/index.html` on CloudFront when the distribution
-exists. It needs AWS credentials, Deno and Pulumi access to the stack.
+exists. Assets that are not part of the build are deleted once they are older than `ASSET_RETENTION_DAYS` (default 30), which keeps
+bundles for visitors holding an older `index.html`; the bucket has no expiry rule, so a frontend left untouched keeps working. The
+frontend directory must have no uncommitted changes. It needs AWS credentials, Deno, jq and Pulumi access to the stack.
+
+The CloudFront response headers policy sets HSTS, `nosniff`, frame denial and a CSP that allows the API origin, `wss:` to the API,
+Firebase sign-in and the Google popup. If sign-in ever breaks after a change, set `frontendCspReportOnly: true` in the stack config
+and `pulumi up`: the policy is then sent as `Content-Security-Policy-Report-Only`, and the browser console lists what it would block.
 
 ```bash
 ./infra/scripts/publish-frontend.sh
@@ -88,6 +133,5 @@ The production stack is live (2026-10-12): `https://finanssi.bizhop.fi` serves t
 `https://api.finanssi.bizhop.fi` answers `/api/health/live` through Caddy. Sign-in works; the first request after an idle period is
 slow while Aurora resumes.
 
-- Service restart monitoring relies on host syslog forwarding.
 - Not yet measured: Aurora pause/resume timing and backend memory under real gameplay on the 2 GiB host, EC2 reboot behavior.
 - Live multiplayer acceptance with friends is in progress; see the backend and frontend STATUS files.

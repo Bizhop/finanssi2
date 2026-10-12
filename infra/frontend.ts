@@ -4,19 +4,24 @@ import * as pulumi from "@pulumi/pulumi"
 export interface Frontend {
     bucket: aws.s3.Bucket
     certificate: aws.acm.Certificate
-    distribution?: aws.cloudfront.Distribution
+    distribution?: aws.cloudfront.Distribution | undefined
 }
 
 export function createFrontend(
     prefix: string,
     provider: aws.Provider,
-    certificateProvider: aws.Provider,
-    settings: { hostname: string; createDistribution: boolean },
+    usEast1Provider: aws.Provider,
+    settings: {
+        hostname: string
+        apiHostname: string
+        firebaseAuthDomain: string
+        createDistribution: boolean
+        cspReportOnly: boolean
+    },
 ): Frontend {
     const bucket = new aws.s3.Bucket(`${prefix}-frontend`, {
         bucket: `${prefix}-frontend`,
         forceDestroy: true,
-        tags: { Application: "finanssi2" },
     }, { provider })
     new aws.s3.BucketPublicAccessBlock(`${prefix}-frontend-public-access-block`, {
         bucket: bucket.id,
@@ -33,15 +38,6 @@ export function createFrontend(
         bucket: bucket.id,
         rules: [{ applyServerSideEncryptionByDefault: { sseAlgorithm: "AES256" } }],
     }, { provider })
-    new aws.s3.BucketLifecycleConfiguration(`${prefix}-frontend-asset-retention`, {
-        bucket: bucket.id,
-        rules: [{
-            id: "expire-old-hashed-assets",
-            status: "Enabled",
-            filter: { prefix: "assets/" },
-            expiration: { days: 90 },
-        }],
-    }, { provider })
 
     const originAccessControl = new aws.cloudfront.OriginAccessControl(`${prefix}-frontend-oac`, {
         name: `${prefix}-frontend-oac`,
@@ -54,15 +50,14 @@ export function createFrontend(
     const certificate = new aws.acm.Certificate(`${prefix}-frontend-certificate`, {
         domainName: settings.hostname,
         validationMethod: "DNS",
-        tags: { Application: "finanssi2" },
-    }, { provider: certificateProvider })
+    }, { provider: usEast1Provider, protect: true }) // referenced by manually maintained DNS records
 
     let distribution: aws.cloudfront.Distribution | undefined
     if (settings.createDistribution) {
         const validation = new aws.acm.CertificateValidation(`${prefix}-frontend-certificate-validation`, {
             certificateArn: certificate.arn,
             validationRecordFqdns: certificate.domainValidationOptions.apply((options) => options.map((option) => option.resourceRecordName)),
-        }, { provider: certificateProvider })
+        }, { provider: usEast1Provider })
 
         const routeFunction = new aws.cloudfront.Function(`${prefix}-spa-route-rewrite`, {
             name: `${prefix}-spa-route-rewrite`,
@@ -92,6 +87,38 @@ export function createFrontend(
             },
         }, { provider })
 
+        // Allows the API (REST and websocket), Firebase sign-in (identity endpoints, the gapi script, the auth-domain iframe) and nothing else.
+        // No Cross-Origin-Opener-Policy: it would break the Google sign-in popup.
+        const contentSecurityPolicy = [
+            "default-src 'none'",
+            "script-src 'self' https://apis.google.com",
+            "style-src 'self' 'unsafe-inline'",
+            // Provider avatars (Google profile photos) are loaded straight from Google.
+            `img-src 'self' data: blob: https://${settings.apiHostname} https://*.googleusercontent.com`,
+            "font-src 'self' data:",
+            `connect-src 'self' https://${settings.apiHostname} wss://${settings.apiHostname} https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com`,
+            `frame-src https://${settings.firebaseAuthDomain} https://accounts.google.com`,
+            "base-uri 'self'",
+            "form-action 'self'",
+            "object-src 'none'",
+            "frame-ancestors 'none'",
+        ].join("; ")
+        const responseHeadersPolicy = new aws.cloudfront.ResponseHeadersPolicy(`${prefix}-frontend-headers`, {
+            name: `${prefix}-frontend-headers`,
+            comment: "Security headers for the Finanssi frontend",
+            securityHeadersConfig: {
+                strictTransportSecurity: { override: true, accessControlMaxAgeSec: 31536000, includeSubdomains: false, preload: false },
+                contentTypeOptions: { override: true },
+                frameOptions: { override: true, frameOption: "DENY" },
+                referrerPolicy: { override: true, referrerPolicy: "strict-origin-when-cross-origin" },
+                // Report-only mode lets a changed policy be tried against real sign-ins without blocking anything.
+                ...(settings.cspReportOnly ? {} : { contentSecurityPolicy: { override: true, contentSecurityPolicy } }),
+            },
+            ...(settings.cspReportOnly
+                ? { customHeadersConfig: { items: [{ header: "Content-Security-Policy-Report-Only", override: true, value: contentSecurityPolicy }] } }
+                : {}),
+        }, { provider })
+
         distribution = new aws.cloudfront.Distribution(`${prefix}-frontend-cdn`, {
             enabled: true,
             comment: "Finanssi 2 frontend",
@@ -109,6 +136,7 @@ export function createFrontend(
                 cachedMethods: ["GET", "HEAD", "OPTIONS"],
                 compress: true,
                 cachePolicyId: cachePolicy.id,
+                responseHeadersPolicyId: responseHeadersPolicy.id,
                 functionAssociations: [{ eventType: "viewer-request", functionArn: routeFunction.arn }],
             },
             restrictions: { geoRestriction: { restrictionType: "none" } },
@@ -118,24 +146,24 @@ export function createFrontend(
                 minimumProtocolVersion: "TLSv1.2_2021",
             },
             priceClass: "PriceClass_100",
-            tags: { Application: "finanssi2" },
+            httpVersion: "http2and3",
+            isIpv6Enabled: true,
         }, { provider, dependsOn: [validation] })
 
-        const bucketPolicy = new aws.s3.BucketPolicy(`${prefix}-frontend-cdn-policy`, {
+        new aws.s3.BucketPolicy(`${prefix}-frontend-cdn-policy`, {
             bucket: bucket.id,
-            policy: pulumi.all([bucket.arn, distribution.arn]).apply(([bucketArn, distributionArn]) => JSON.stringify({
+            policy: pulumi.jsonStringify({
                 Version: "2012-10-17",
                 Statement: [{
                     Sid: "AllowCloudFrontReadOnly",
                     Effect: "Allow",
                     Principal: { Service: "cloudfront.amazonaws.com" },
                     Action: "s3:GetObject",
-                    Resource: `${bucketArn}/*`,
-                    Condition: { StringEquals: { "AWS:SourceArn": distributionArn } },
+                    Resource: pulumi.interpolate`${bucket.arn}/*`,
+                    Condition: { StringEquals: { "AWS:SourceArn": distribution.arn } },
                 }],
-            })),
+            }),
         }, { provider, dependsOn: [distribution] })
-        void bucketPolicy
     }
 
     return { bucket, certificate, distribution }

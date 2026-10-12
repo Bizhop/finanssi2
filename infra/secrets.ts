@@ -10,7 +10,6 @@ export function createFirebaseAdminSecret(
         name: `${prefix}-firebase-admin`,
         description: "Firebase Admin service account for the production backend",
         recoveryWindowInDays: 0,
-        tags: { Application: "finanssi2" },
     }, { provider })
     new aws.secretsmanager.SecretVersion(`${prefix}-firebase-admin-version`, {
         secretId: secret.id,

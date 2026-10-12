@@ -1,32 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-fail() {
-    printf 'error: %s\n' "$*" >&2
-    exit 1
-}
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=lib.sh
+# shellcheck source-path=SCRIPTDIR
+source "$script_dir/lib.sh"
 
 [[ $# -eq 1 ]] || fail "usage: $0 <repository-uri@sha256:digest>"
-for command in aws python3 pulumi; do
-    command -v "$command" >/dev/null 2>&1 || fail "required command not found: $command"
-done
+require_commands aws jq python3 pulumi
 
-script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 infra_dir=$(cd -- "$script_dir/.." && pwd)
 stack=${PULUMI_STACK:-prod}
 image_ref=$1
 
-repository_url=$(cd "$infra_dir" && pulumi stack output backendRepositoryUrl --stack "$stack")
-instance_id=$(cd "$infra_dir" && pulumi stack output backendInstanceId --stack "$stack")
-region=$(cd "$infra_dir" && pulumi config get aws:region --stack "$stack")
+load_stack_outputs "$infra_dir" "$stack"
+repository_url=$(stack_output backendRepositoryUrl)
+instance_id=$(stack_output backendInstanceId)
+image_ref_parameter=$(stack_output backendImageRefParameter)
+region=$(stack_region "$infra_dir" "$stack")
 
-[[ "$repository_url" =~ ^[0-9]{12}\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com/[a-z0-9._/-]+$ ]] \
-    || fail "unexpected ECR repository URL from stack output"
+validate_repository_url "$repository_url"
 [[ "$image_ref" == "$repository_url"@sha256:* ]] || fail "image must belong to the stack's backend repository"
 digest=${image_ref#*@}
 [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]] || fail "image must use a valid immutable SHA-256 digest"
 [[ "$instance_id" =~ ^i-[a-f0-9]+$ ]] || fail "unexpected EC2 instance ID from stack output"
-[[ "$region" =~ ^[a-z0-9-]+$ ]] || fail "unexpected AWS region from stack config"
+[[ "$image_ref_parameter" =~ ^/[A-Za-z0-9_./-]+$ ]] || fail "unexpected image reference parameter name from stack output"
 
 aws sts get-caller-identity --output text >/dev/null
 ping_status=$(aws ssm describe-instance-information \
@@ -53,7 +51,12 @@ TEMP_FILE="${REF_FILE}.new"
 OLD_REF=$(cat "$REF_FILE" 2>/dev/null || true)
 
 if command -v cloud-init >/dev/null 2>&1; then
-    if ! cloud-init status --wait; then
+    # Exit status 2 means a recoverable error ("degraded"); anything else non-zero is a failed bootstrap.
+    cloud_init_status=0
+    cloud-init status --wait || cloud_init_status=$?
+    if [ "$cloud_init_status" -eq 2 ]; then
+        echo 'cloud-init finished degraded; continuing (see /var/log/cloud-init-output.log)' >&2
+    elif [ "$cloud_init_status" -ne 0 ]; then
         echo 'EC2 bootstrap failed; inspect /var/log/cloud-init-output.log' >&2
         if [ -r /var/log/cloud-init-output.log ]; then
             tail -n 120 /var/log/cloud-init-output.log >&2
@@ -95,9 +98,11 @@ if ! systemctl restart finanssi2; then
     exit 1
 fi
 
-for attempt in $(seq 1 120); do
+for _ in $(seq 1 120); do
     if curl --fail --silent http://127.0.0.1:8080/api/health/live >/dev/null; then
         echo "Backend is healthy on $IMAGE_REF"
+        # Keep the 12 GiB root disk from filling with superseded releases; the running image is never pruned.
+        docker image prune -af --filter until=168h >/dev/null || true
         exit 0
     fi
     sleep 5
@@ -123,32 +128,23 @@ command_id=$(aws ssm send-command \
     --output text)
 printf 'SSM command: %s\n' "$command_id" >&2
 
+invocation() {
+    aws ssm get-command-invocation --region "$region" --command-id "$command_id" --instance-id "$instance_id" --output json 2>/dev/null || true
+}
+
 deadline=$((SECONDS + 1860))
-while (( SECONDS < deadline )); do
-    status=$(aws ssm get-command-invocation \
-        --region "$region" \
-        --command-id "$command_id" \
-        --instance-id "$instance_id" \
-        --query Status \
-        --output text 2>/dev/null || true)
+while ((SECONDS < deadline)); do
+    result=$(invocation)
+    status=$(jq -r '.Status // empty' <<<"$result")
     case "$status" in
         Success)
-            aws ssm get-command-invocation \
-                --region "$region" \
-                --command-id "$command_id" \
-                --instance-id "$instance_id" \
-                --query StandardOutputContent \
-                --output text
+            jq -r '.StandardOutputContent' <<<"$result"
+            # Recorded only after the health check passed, so a replaced host starts the last good image.
+            aws ssm put-parameter --region "$region" --name "$image_ref_parameter" --type String --value "$image_ref" --overwrite >/dev/null
             exit 0
             ;;
-        Failed|Cancelled|TimedOut|DeliveryTimedOut|ExecutionTimedOut|Undeliverable|Terminated)
-            details=$(aws ssm get-command-invocation --region "$region" --command-id "$command_id" \
-                --instance-id "$instance_id" --query StatusDetails --output text 2>/dev/null || true)
-            stderr=$(aws ssm get-command-invocation --region "$region" --command-id "$command_id" \
-                --instance-id "$instance_id" --query StandardErrorContent --output text 2>/dev/null || true)
-            stdout=$(aws ssm get-command-invocation --region "$region" --command-id "$command_id" \
-                --instance-id "$instance_id" --query StandardOutputContent --output text 2>/dev/null || true)
-            printf '%s\n%s\n%s\n' "$details" "$stderr" "$stdout" >&2
+        Failed | Cancelled | TimedOut | DeliveryTimedOut | ExecutionTimedOut | Undeliverable | Terminated)
+            jq -r '[.StatusDetails, .StandardErrorContent, .StandardOutputContent] | join("\n")' <<<"$result" >&2
             fail "backend deployment command ended with status $status"
             ;;
         *) sleep 5 ;;
