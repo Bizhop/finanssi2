@@ -56,6 +56,9 @@ import java.util.stream.Stream;
 
 import static fi.bizhop.finanssi2.game.data.GameConstants.BAIL;
 import static fi.bizhop.finanssi2.game.data.GameConstants.BOND_COUNT;
+import static fi.bizhop.finanssi2.game.data.GameConstants.BROKERAGE_FEE_STEP;
+import static fi.bizhop.finanssi2.game.data.GameConstants.MAX_BROKERAGE_FEE;
+import static fi.bizhop.finanssi2.game.data.GameConstants.MIN_BROKERAGE_FEE;
 import static fi.bizhop.finanssi2.game.data.GameConstants.LOAN_REPAYMENT_SQUARE;
 import static fi.bizhop.finanssi2.game.data.GameConstants.WINNING_CASH;
 import static fi.bizhop.finanssi2.game.data.GameConstants.WINNING_COMPLETE_GROUPS;
@@ -240,6 +243,51 @@ public class GameEngine {
                 .distinct()
                 .sorted()
                 .toList();
+    }
+
+    /** The concrete choices the player has right now, with current prices; empty when it is not their turn to act */
+    public CommandOptions options(GameState state, String playerId) {
+        var allowed = candidateCommands.stream().filter(command -> isAllowed(state, playerId, command)).toList();
+        if (allowed.isEmpty()) return CommandOptions.NONE;
+        var buyProperty = new ArrayList<CommandOptions.SquareOffer>();
+        var buyShare = new ArrayList<CommandOptions.ShareOffer>();
+        var mortgage = new ArrayList<CommandOptions.SquareOffer>();
+        var redeem = new ArrayList<CommandOptions.SquareOffer>();
+        var sellBackProperty = new ArrayList<CommandOptions.SquareOffer>();
+        var sellBackShare = new ArrayList<CommandOptions.ShareOffer>();
+        var build = new ArrayList<CommandOptions.SquareOffer>();
+        var meetings = new ArrayList<CommandOptions.MeetingOffer>();
+        var bonds = new ArrayList<Integer>();
+        for (var command : allowed) {
+            switch (command) {
+                case BuyProperty buy -> buyProperty.add(new CommandOptions.SquareOffer(buy.square(), rules.propertyPrice(state, deed(buy.square()))));
+                case BuyShare buy -> buyShare.add(new CommandOptions.ShareOffer(buy.share(), rules.sharePrice(state, share(buy.share()))));
+                case Mortgage mortgageCommand -> {
+                    var value = rules.mortgageValue(state, deed(mortgageCommand.square()), state.property(mortgageCommand.square()));
+                    if (value != null) mortgage.add(new CommandOptions.SquareOffer(mortgageCommand.square(), value));
+                }
+                case Redeem redeemCommand -> redeem.add(new CommandOptions.SquareOffer(redeemCommand.square(),
+                        rules.redemptionPrice(state, deed(redeemCommand.square()), state.property(redeemCommand.square()))));
+                case SellBackProperty sell -> {
+                    var value = rules.propertyBuyBack(state, deed(sell.square()), state.property(sell.square()));
+                    if (value != null) sellBackProperty.add(new CommandOptions.SquareOffer(sell.square(), value));
+                }
+                case SellBackShare sell -> sellBackShare.add(new CommandOptions.ShareOffer(sell.share(), rules.shareBuyBack(state, share(sell.share()))));
+                case Build buildCommand when buildCommand.squares().size() == 1 -> build.add(new CommandOptions.SquareOffer(
+                        buildCommand.squares().getFirst(), rules.buildingPrice(state, deed(buildCommand.squares().getFirst()))));
+                case GameCommand.BuyBond buy -> bonds.add(buy.number());
+                case GameCommand.CallShareholdersMeeting meeting -> {
+                    // The candidate carries the lowest fee; every legal fee is found by trying them all
+                    var fees = IntStream.rangeClosed(MIN_BROKERAGE_FEE / BROKERAGE_FEE_STEP, MAX_BROKERAGE_FEE / BROKERAGE_FEE_STEP)
+                            .map(step -> step * BROKERAGE_FEE_STEP)
+                            .filter(fee -> isAllowed(state, playerId, new GameCommand.CallShareholdersMeeting(meeting.group(), fee))).boxed().toList();
+                    meetings.add(new CommandOptions.MeetingOffer(meeting.group(), fees));
+                }
+                default -> { }
+            }
+        }
+        return new CommandOptions(buyProperty, buyShare, mortgage, redeem, sellBackProperty, sellBackShare, build, meetings, bonds,
+                rules.bondPrice(state));
     }
 
     boolean isAllowed(GameState state, String playerId, GameCommand command) {

@@ -40,7 +40,7 @@ public class GameController {
     @GetMapping(value = "/api/games/{id}", produces = "application/json")
     GameView get(@PathVariable String id, @RequestAttribute("user") User user) {
         var game = gameService.get(id, user);
-        return new GameView(game, gameService.allowedCommands(game, user), gameService.actingPlayer(game, user));
+        return new GameView(game, gameService.allowedCommands(game, user), gameService.actingPlayer(game, user), gameService.options(game, user));
     }
 
     /** Runs an in-game command, e.g. {@code {"type": "Roll"}}, and returns the events it caused */

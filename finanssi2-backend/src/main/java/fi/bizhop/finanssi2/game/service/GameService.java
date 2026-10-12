@@ -10,6 +10,7 @@ import fi.bizhop.finanssi2.game.db.GameMode;
 import fi.bizhop.finanssi2.game.db.GameRepository;
 import fi.bizhop.finanssi2.game.db.GameStatus;
 import fi.bizhop.finanssi2.game.engine.Dice;
+import fi.bizhop.finanssi2.game.engine.CommandOptions;
 import fi.bizhop.finanssi2.game.engine.GameCommand;
 import fi.bizhop.finanssi2.game.engine.GameEngine;
 import fi.bizhop.finanssi2.game.engine.GameEvent;
@@ -282,6 +283,11 @@ public class GameService {
             }
             case LOBBY, FINISHED -> List.of();
         };
+    }
+
+    /** The concrete choices (with current prices) behind the allowed command types, for the seat the user acts as */
+    public CommandOptions options(Game game, User user) {
+        return game.getStatus() == GameStatus.RUNNING ? gameEngine.options(game.getState(), actingPlayer(game, user)) : CommandOptions.NONE;
     }
 
     static void requireCreator(Game game, User user, String reason) {

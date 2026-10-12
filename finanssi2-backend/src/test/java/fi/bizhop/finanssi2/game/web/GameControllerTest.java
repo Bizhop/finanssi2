@@ -179,6 +179,11 @@ class GameControllerTest extends ApiTest {
         assertEquals(GAME_ID, forA.get("game").get("id").asString());
         assertEquals("[\"BuyCar\",\"EndGame\",\"Resign\",\"Roll\",\"TakeLoan\"]", forA.get("allowedCommands").toString());
         assertEquals("[\"Resign\"]", get("/" + GAME_ID, "b").getBody().get("allowedCommands").toString());
+        // The concrete choices and what they cost come with the view, additive to the command types
+        var options = forA.get("options");
+        assertEquals(500, options.get("bondPrice").asInt());
+        assertTrue(options.has("buyProperty") && options.has("buyShare") && options.has("shareholdersMeeting"));
+        assertEquals(0, get("/" + GAME_ID, "b").getBody().get("options").get("buyProperty").size());
     }
 
     @Test
