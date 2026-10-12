@@ -3,7 +3,7 @@ import * as aws from "@pulumi/aws"
 export function createMonitoring(
     prefix: string,
     provider: aws.Provider,
-    budgetProvider: aws.Provider,
+    usEast1Provider: aws.Provider,
     settings: {
         instance: aws.ec2.Instance
         hostLogGroup: aws.cloudwatch.LogGroup
@@ -137,5 +137,5 @@ export function createMonitoring(
                 subscriberEmailAddresses: [settings.alertEmail],
             },
         ],
-    }, { provider: budgetProvider })
+    }, { provider: usEast1Provider })
 }

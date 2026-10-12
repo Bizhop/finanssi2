@@ -10,7 +10,7 @@ export interface Frontend {
 export function createFrontend(
     prefix: string,
     provider: aws.Provider,
-    certificateProvider: aws.Provider,
+    usEast1Provider: aws.Provider,
     settings: { hostname: string; createDistribution: boolean },
 ): Frontend {
     const bucket = new aws.s3.Bucket(`${prefix}-frontend`, {
@@ -44,14 +44,14 @@ export function createFrontend(
     const certificate = new aws.acm.Certificate(`${prefix}-frontend-certificate`, {
         domainName: settings.hostname,
         validationMethod: "DNS",
-    }, { provider: certificateProvider, protect: true }) // referenced by manually maintained DNS records
+    }, { provider: usEast1Provider, protect: true }) // referenced by manually maintained DNS records
 
     let distribution: aws.cloudfront.Distribution | undefined
     if (settings.createDistribution) {
         const validation = new aws.acm.CertificateValidation(`${prefix}-frontend-certificate-validation`, {
             certificateArn: certificate.arn,
             validationRecordFqdns: certificate.domainValidationOptions.apply((options) => options.map((option) => option.resourceRecordName)),
-        }, { provider: certificateProvider })
+        }, { provider: usEast1Provider })
 
         const routeFunction = new aws.cloudfront.Function(`${prefix}-spa-route-rewrite`, {
             name: `${prefix}-spa-route-rewrite`,

@@ -12,8 +12,8 @@ export interface Database {
 
 export function createDatabase(
     prefix: string,
-    networking: Networking,
     provider: aws.Provider,
+    networking: Networking,
     settings: { engineVersion: string; minCapacity: number; maxCapacity: number; autoPauseSeconds: number },
 ): Database {
     const passwordCharacters = "!#$%&()*+,-.:;<=>?[]^_{|}~"

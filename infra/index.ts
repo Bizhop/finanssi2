@@ -104,9 +104,10 @@ if (autoPauseSeconds < 300 || autoPauseSeconds > 86400) {
 
 const defaultTags = { tags: { Application: "finanssi2", Stack: pulumi.getStack(), ManagedBy: "pulumi" } }
 const provider = new aws.Provider("finanssi-aws", { region, defaultTags })
+const usEast1Provider = new aws.Provider("finanssi-certificate-aws", { region: "us-east-1", defaultTags })
 
 const networking = createNetworking(prefix, provider)
-const database = createDatabase(prefix, networking, provider, {
+const database = createDatabase(prefix, provider, networking, {
     engineVersion,
     minCapacity: minimumCapacity,
     maxCapacity: maximumCapacity,
@@ -124,12 +125,11 @@ const backend = createBackend(prefix, provider, {
     database,
     networking,
 })
-const certificateProvider = new aws.Provider("finanssi-certificate-aws", { region: "us-east-1", defaultTags })
-const frontend = createFrontend(prefix, provider, certificateProvider, {
+const frontend = createFrontend(prefix, provider, usEast1Provider, {
     hostname: frontendHostname,
     createDistribution: createFrontendDistribution,
 })
-createMonitoring(prefix, provider, certificateProvider, {
+createMonitoring(prefix, provider, usEast1Provider, {
     instance: backend.instance,
     hostLogGroup: backend.hostLogGroup,
     monthlyBudgetUsd: monthlyBudgetLimitUsd,
