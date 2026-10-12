@@ -28,7 +28,7 @@ public class AvatarController {
     @Transactional
     public CapabilitiesController.Me upload(@RequestAttribute("user") User user,
             @RequestParam long version, @RequestPart("file") MultipartFile file) {
-        var profile = users.findById(java.util.UUID.fromString(user.userId())).orElseThrow();
+        var profile = users.findById(java.util.UUID.fromString(user.userId())).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account profile not found"));
         requireVersion(profile.getVersion(), version);
         profile.setCustomAvatar(imageProcessor.process(file));
         flushOrConflict();
@@ -38,7 +38,7 @@ public class AvatarController {
     @DeleteMapping("/api/me/avatar")
     @Transactional
     public CapabilitiesController.Me remove(@RequestAttribute("user") User user, @RequestParam long version) {
-        var profile = users.findById(java.util.UUID.fromString(user.userId())).orElseThrow();
+        var profile = users.findById(java.util.UUID.fromString(user.userId())).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account profile not found"));
         requireVersion(profile.getVersion(), version);
         profile.removeCustomAvatar();
         flushOrConflict();

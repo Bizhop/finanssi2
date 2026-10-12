@@ -29,7 +29,7 @@ public class CapabilitiesController {
 
     @GetMapping("/api/me")
     public Me me(@RequestAttribute("user") User user) {
-        var profile = users.findById(java.util.UUID.fromString(user.userId())).orElseThrow();
+        var profile = users.findById(java.util.UUID.fromString(user.userId())).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account profile not found"));
         var avatar = profile.avatarUrl();
         var source = profile.getCustomAvatar() != null ? "custom" : profile.getProviderPhotoUrl() != null ? "provider" : null;
         return new Me(user.userId(), profile.getEmail(), profile.getDisplayName(), avatar, source, profile.getVersion(),
@@ -44,7 +44,7 @@ public class CapabilitiesController {
         var displayName = update.displayName() == null ? "" : update.displayName().trim();
         if (displayName.isEmpty() || displayName.length() > 50)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "displayName must contain 1–50 characters");
-        var profile = users.findById(java.util.UUID.fromString(user.userId())).orElseThrow();
+        var profile = users.findById(java.util.UUID.fromString(user.userId())).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account profile not found"));
         if (profile.getVersion() != update.version())
             throw new ResponseStatusException(HttpStatus.CONFLICT, "PROFILE_VERSION_CONFLICT");
         profile.updateDisplayName(displayName);

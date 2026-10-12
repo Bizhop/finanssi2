@@ -33,9 +33,9 @@ public class PublicProfileController {
 
     @GetMapping("/api/users/{id}/avatar")
     public ResponseEntity<byte[]> avatar(@PathVariable String id, @RequestParam long v) {
-        var profile = users.findById(parseId(id)).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        var profile = users.findById(parseId(id)).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found"));
         if (profile.getVersion() != v || profile.getCustomAvatar() == null)
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Avatar not found");
         var encoded = profile.getCustomAvatar().substring(profile.getCustomAvatar().indexOf(',') + 1);
         var bytes = Base64.getDecoder().decode(encoded);
         return ResponseEntity.ok().contentType(org.springframework.http.MediaType.IMAGE_JPEG)
