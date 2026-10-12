@@ -6,7 +6,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
-import java.util.Locale;
+import java.util.Objects;
 
 @Service
 public class AuthenticatedUserService {
@@ -20,7 +20,7 @@ public class AuthenticatedUserService {
     public User resolve(com.google.firebase.auth.FirebaseToken token) {
         var email = token.getEmail();
         if (!token.isEmailVerified() || email == null || email.isBlank()) throw new UnverifiedEmailException();
-        var normalized = email.trim().toLowerCase(Locale.ROOT);
+        var normalized = Objects.requireNonNull(Emails.normalize(email));
         try {
             return transactions.execute(status -> resolveInTransaction(token, normalized));
         } catch (DataIntegrityViolationException competingInsert) {

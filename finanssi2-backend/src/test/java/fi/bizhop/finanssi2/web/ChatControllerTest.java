@@ -1,24 +1,15 @@
 package fi.bizhop.finanssi2.web;
 
 import fi.bizhop.finanssi2.db.ChatMessage;
-import fi.bizhop.finanssi2.db.ChatRepository;
 import fi.bizhop.finanssi2.game.db.Game;
-import fi.bizhop.finanssi2.game.db.GameRepository;
 import fi.bizhop.finanssi2.game.engine.PlayerState;
 import fi.bizhop.finanssi2.security.User;
-import fi.bizhop.finanssi2.service.MessagingService;
+import fi.bizhop.finanssi2.ApiTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.resttestclient.TestRestTemplate;
-import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.data.domain.Limit;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,25 +19,22 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureTestRestTemplate
-@ActiveProfiles("test")
-public class ChatControllerTest {
+public class ChatControllerTest extends ApiTest {
     static final String OLDEST_LOADED_ID = "0000000000000000010";
-
-    @LocalServerPort
-    int port;
-    @Autowired
-    TestRestTemplate restTemplate;
-    @MockitoBean
-    MessagingService messagingService;
-    @MockitoBean
-    ChatRepository chatRepository;
-    @MockitoBean
-    GameRepository gameRepository;
 
     String url(String query) {
         return String.format("http://localhost:%d/api/chat%s", port, query);
+    }
+
+    private <T> org.springframework.http.ResponseEntity<T> getAsPlayer(String query, Class<T> type) {
+        return restTemplate.exchange(url(query), org.springframework.http.HttpMethod.GET, new HttpEntity<>(headersFor("player")), type);
+    }
+
+    @Test
+    public void unauthenticatedRequestsAreRejectedExceptOnTheWhitelist() {
+        assertEquals(HttpStatus.UNAUTHORIZED, restTemplate.getForEntity(url(""), String.class).getStatusCode());
+        assertEquals(HttpStatus.OK, restTemplate.getForEntity("http://localhost:" + port + "/api/health/live", String.class).getStatusCode());
+        verifyNoInteractions(chatRepository);
     }
 
     @Test
@@ -54,7 +42,7 @@ public class ChatControllerTest {
         var newest = new ChatMessage("0000000000000000011", "tester@example.com", "Hello", 1000L);
         when(chatRepository.findAllByOrderByIdDesc(Limit.of(20))).thenReturn(List.of(newest));
 
-        var response = restTemplate.getForEntity(url(""), ChatMessage[].class);
+        var response = getAsPlayer("", ChatMessage[].class);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(List.of(newest), List.of(response.getBody()));
@@ -65,7 +53,7 @@ public class ChatControllerTest {
         var older = new ChatMessage("0000000000000000009", "tester@example.com", "Older", 500L);
         when(chatRepository.findByIdLessThanOrderByIdDesc(OLDEST_LOADED_ID, Limit.of(5))).thenReturn(List.of(older));
 
-        var response = restTemplate.getForEntity(url("?before=" + OLDEST_LOADED_ID + "&size=5"), ChatMessage[].class);
+        var response = getAsPlayer("?before=" + OLDEST_LOADED_ID + "&size=5", ChatMessage[].class);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(List.of(older), List.of(response.getBody()));
@@ -74,7 +62,7 @@ public class ChatControllerTest {
     @Test
     public void testInvalidParameters() {
         for (var query : List.of("?size=0", "?size=101", "?size=abc", "?before=not-an-id")) {
-            var response = restTemplate.getForEntity(url(query), String.class);
+            var response = getAsPlayer(query, String.class);
             assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode(), query);
         }
         verifyNoInteractions(chatRepository);
@@ -85,7 +73,7 @@ public class ChatControllerTest {
         when(chatRepository.findAllByOrderByIdDesc(any())).thenReturn(List.of());
 
         for (var size : List.of(1, 100)) {
-            var response = restTemplate.getForEntity(url("?size=" + size), String.class);
+            var response = getAsPlayer("?size=" + size, String.class);
             assertEquals(HttpStatus.OK, response.getStatusCode(), "size=" + size);
         }
     }

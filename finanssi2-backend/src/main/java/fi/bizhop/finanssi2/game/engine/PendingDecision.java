@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.util.List;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Input the game waits for before play continues, possibly from a player whose turn it is not. Only the addressed player of the
@@ -20,7 +21,7 @@ public sealed interface PendingDecision permits PendingDecision.RaiseFunds, Pend
      * The player owes more than their cash. They may raise funds, then pay, or go bankrupt if they cannot. {@code creditor} is a
      * player playerId, or null for the bank.
      */
-    record RaiseFunds(String player, String creditor, List<Charge> charges) implements PendingDecision {
+    record RaiseFunds(String player, @Nullable String creditor, List<Charge> charges) implements PendingDecision {
         public RaiseFunds {
             charges = List.copyOf(charges);
         }

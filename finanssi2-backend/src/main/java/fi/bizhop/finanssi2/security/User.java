@@ -1,12 +1,13 @@
 package fi.bizhop.finanssi2.security;
 
 import com.google.firebase.auth.FirebaseToken;
+import org.jspecify.annotations.Nullable;
 
-public record User(String userId, String email, String name, String photoUrl, boolean emailVerified, String firebaseUid) {
-    public User(String uid, String email, String name, String photoUrl, boolean emailVerified) {
+public record User(String userId, @Nullable String email, @Nullable String name, @Nullable String photoUrl, boolean emailVerified, String firebaseUid) {
+    public User(String uid, @Nullable String email, @Nullable String name, @Nullable String photoUrl, boolean emailVerified) {
         this(uid, email, name, photoUrl, emailVerified, uid);
     }
-    public User(String uid, String email, String name, String photoUrl) {
+    public User(String uid, @Nullable String email, @Nullable String name, @Nullable String photoUrl) {
         this(uid, email, name, photoUrl, false, uid);
     }
 

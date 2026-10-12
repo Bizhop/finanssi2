@@ -17,4 +17,8 @@ public record TitleDeed(
         ByState mortgage,
         ByState redemption,
         ByState buyBack) {
+    /** The deed's price, plus the building's price once it is built */
+    public int value(boolean built) {
+        return price + (built ? building.price() : 0);
+    }
 }

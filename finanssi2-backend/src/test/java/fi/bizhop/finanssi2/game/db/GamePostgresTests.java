@@ -23,7 +23,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import tools.jackson.databind.ObjectMapper;
@@ -71,7 +70,6 @@ abstract class GamePostgresTests {
     void cleanUp() {
         for (var id : createdGames) {
             gameRepository.deleteById(id);
-            gameLogRepository.deleteByGameId(id);
         }
     }
 
@@ -87,6 +85,18 @@ abstract class GamePostgresTests {
         var game = gameService.create(user(playerId));
         createdGames.add(game.getId());
         return game;
+    }
+
+    @Test
+    void accessLookupReturnsModeAndCreatorWithoutTheState() {
+        var game = create("access-owner");
+
+        var access = gameRepository.findAccess(game.getId()).orElseThrow();
+
+        assertEquals(GameMode.NORMAL, access.mode());
+        assertEquals(game.getCreator(), access.creator());
+        assertTrue(gameRepository.findAccess(UUID.randomUUID().toString()).isEmpty());
+        assertTrue(gameRepository.findAccess("not-a-uuid").isEmpty());
     }
 
     @Test
@@ -416,7 +426,7 @@ abstract class GamePostgresTests {
             gameRepository.save(game);
         }
 
-        var ids = gameRepository.findByStatusOrPlayer(GameStatus.LOBBY, user("b").userId(), Sort.by(Sort.Direction.DESC, "createdAt"))
+        var ids = gameRepository.findByStatusOrPlayer(GameStatus.LOBBY, user("b").userId())
                 .stream().map(Game::getId).toList();
 
         assertTrue(ids.contains(lobby));

@@ -16,13 +16,15 @@ import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import org.springframework.http.MediaType;
+import org.jspecify.annotations.Nullable;
 
 @RestController
 @RequiredArgsConstructor
 public class PublicProfileController {
     final ApplicationUserRepository users;
 
-    public record PublicProfile(String id, String displayName, String avatar) {}
+    public record PublicProfile(String id, String displayName, @Nullable String avatar) {}
 
     @GetMapping("/api/users")
     public List<PublicProfile> profiles(@RequestParam List<String> ids) {
@@ -33,12 +35,12 @@ public class PublicProfileController {
 
     @GetMapping("/api/users/{id}/avatar")
     public ResponseEntity<byte[]> avatar(@PathVariable String id, @RequestParam long v) {
-        var profile = users.findById(parseId(id)).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        var profile = users.findById(parseId(id)).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found"));
         if (profile.getVersion() != v || profile.getCustomAvatar() == null)
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Avatar not found");
         var encoded = profile.getCustomAvatar().substring(profile.getCustomAvatar().indexOf(',') + 1);
         var bytes = Base64.getDecoder().decode(encoded);
-        return ResponseEntity.ok().contentType(org.springframework.http.MediaType.IMAGE_JPEG)
+        return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG)
                 .cacheControl(CacheControl.maxAge(365, TimeUnit.DAYS).cachePublic().immutable())
                 .eTag("\"avatar-" + profile.getVersion() + "\"").body(bytes);
     }

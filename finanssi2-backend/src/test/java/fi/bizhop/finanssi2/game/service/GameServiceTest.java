@@ -2,6 +2,7 @@ package fi.bizhop.finanssi2.game.service;
 
 import fi.bizhop.finanssi2.game.data.GameData;
 import fi.bizhop.finanssi2.game.data.GameDataConfig;
+import fi.bizhop.finanssi2.config.Finanssi2Properties;
 import fi.bizhop.finanssi2.game.db.Game;
 import fi.bizhop.finanssi2.game.db.GameLogEntry;
 import fi.bizhop.finanssi2.game.db.GameLogRepository;
@@ -21,7 +22,8 @@ import fi.bizhop.finanssi2.game.engine.RuleViolation;
 import fi.bizhop.finanssi2.game.engine.ScriptedDice;
 import fi.bizhop.finanssi2.game.engine.ShareholdersMeeting;
 import fi.bizhop.finanssi2.security.User;
-import fi.bizhop.finanssi2.service.MessagingService;
+import fi.bizhop.finanssi2.service.Broadcast;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -62,7 +64,7 @@ class GameServiceTest {
     @Mock
     GameLogRepository gameLogRepository;
     @Mock
-    MessagingService messagingService;
+    ApplicationEventPublisher publisher;
 
     @BeforeAll
     static void load() throws IOException {
@@ -76,8 +78,8 @@ class GameServiceTest {
     GameService service(Integer... dice) {
         var rules = new Rules(gameData);
         var scripted = new ScriptedDice(dice);
-        return new GameService(gameRepository, gameLogRepository, messagingService, gameData, new GameSetup(gameData),
-                new GameEngine(gameData, rules), gameId -> scripted, new Random(1), new DebugAccess(""));
+        return new GameService(gameRepository, gameLogRepository, publisher, gameData, new GameSetup(gameData),
+                new GameEngine(gameData, rules), gameId -> scripted, new Random(1), new DebugAccess(new Finanssi2Properties(null, null, null, null)));
     }
 
     /** A saved game in the lobby with the given players, the first one the creator */
@@ -130,8 +132,8 @@ class GameServiceTest {
         assertEquals(1, entries.size());
         assertEquals(GameLogEntry.of(id, 1, entries.getFirst().time(), new GameEvent.PlayerJoined("a", 0)),
                 entries.getFirst());
-        verify(messagingService).send("/topic/games/" + id, new GameUpdate(id, 0, entries));
-        verify(messagingService).send("/topic/games", new LobbyChange(id, game));
+        verify(publisher).publishEvent(new Broadcast("/topic/games/" + id, new GameUpdate(id, 0, entries)));
+        verify(publisher).publishEvent(new Broadcast("/topic/games", new LobbyChange(id, game)));
     }
 
     @Test
@@ -194,7 +196,7 @@ class GameServiceTest {
         service().leave(GAME_ID, user("a"));
 
         verify(gameRepository).delete(game);
-        verify(messagingService).send("/topic/games", new LobbyChange(GAME_ID, null));
+        verify(publisher).publishEvent(new Broadcast("/topic/games", new LobbyChange(GAME_ID, null)));
         verify(gameRepository, never()).saveWithEvents(any(), anyList());
     }
 
@@ -217,8 +219,8 @@ class GameServiceTest {
         assertEquals(List.of(3, 4, 5, 6), entries.stream().map(GameLogEntry::seq).toList());
         assertEquals(List.of("StartingRoll", "StartingRoll", "GameStarted", "TurnStarted"),
                 entries.stream().map(GameLogEntry::type).toList());
-        verify(messagingService).send("/topic/games/" + GAME_ID, new GameUpdate(GAME_ID, 4, entries));
-        verify(messagingService).send("/topic/games", new LobbyChange(GAME_ID, game));
+        verify(publisher).publishEvent(new Broadcast("/topic/games/" + GAME_ID, new GameUpdate(GAME_ID, 4, entries)));
+        verify(publisher).publishEvent(new Broadcast("/topic/games", new LobbyChange(GAME_ID, game)));
     }
 
     @Test
@@ -230,7 +232,7 @@ class GameServiceTest {
 
         assertEquals(LoanLimit.UNLIMITED, game.getState().getSettings().loanLimit());
         assertEquals(new GameEvent.SettingsChanged(new GameSettings(LoanLimit.UNLIMITED)), savedEntries().getFirst().event());
-        verify(messagingService).send("/topic/games", new LobbyChange(GAME_ID, game));
+        verify(publisher).publishEvent(new Broadcast("/topic/games", new LobbyChange(GAME_ID, game)));
     }
 
     @Test
@@ -272,7 +274,7 @@ class GameServiceTest {
 
         assertThrows(OptimisticLockingFailureException.class, () -> service().join(GAME_ID, user("b")));
 
-        verifyNoInteractions(gameLogRepository, messagingService);
+        verifyNoInteractions(gameLogRepository, publisher);
     }
 
     /** A running game of a and b, a to roll */
@@ -294,8 +296,9 @@ class GameServiceTest {
         assertEquals(List.of("DiceRolled", "PieceMoved", "LandedOn", "FinanceNewsDrawn"),
                 entries.stream().map(GameLogEntry::type).toList());
         assertEquals(entries, savedEntries());
-        verify(messagingService).send("/topic/games/" + GAME_ID, new GameUpdate(GAME_ID, 4, entries));
-        verify(messagingService, never()).send(eq("/topic/games"), any());
+        verify(publisher).publishEvent(new Broadcast("/topic/games/" + GAME_ID, new GameUpdate(GAME_ID, 4, entries)));
+        verify(publisher, never()).publishEvent(org.mockito.ArgumentMatchers.<Object>argThat(
+                event -> event instanceof Broadcast broadcast && broadcast.topic().equals("/topic/games")));
     }
 
     @Test

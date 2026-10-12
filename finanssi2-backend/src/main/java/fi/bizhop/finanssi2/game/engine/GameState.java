@@ -6,9 +6,11 @@ import lombok.Data;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 
-/** Everything on the table. The engine changes it in place; the service saves it as part of the game document. */
+/** Everything on the table. The engine changes it in place; the service saves it as part of the game. */
 @Data
+@SuppressWarnings("NullAway.Init") // the current player and phase are set when the game starts
 public class GameState {
     // In join order
     List<PlayerState> players = new ArrayList<>();
@@ -31,10 +33,41 @@ public class GameState {
     @JsonIgnore
     List<String> stockTipDeck = new ArrayList<>();
     // The current lasting Finance News card, if any.
-    String activeFinanceNews;
+    @Nullable String activeFinanceNews;
     boolean finished;
-    String winner;
+    @Nullable String winner;
     List<PlayerStanding> finalStandings = new ArrayList<>();
+
+    public void addPlayer(PlayerState player) {
+        players.add(player);
+    }
+
+    public void removePlayer(PlayerState player) {
+        players.remove(player);
+    }
+
+    /** Queues a decision behind the pending ones */
+    public void enqueueDecision(PendingDecision decision) {
+        pendingDecisions.add(decision);
+    }
+
+    /** Puts a decision first, e.g. the next bidder of an auction */
+    public void pushDecision(PendingDecision decision) {
+        pendingDecisions.addFirst(decision);
+    }
+
+    /** Takes the first pending decision, the one being resolved */
+    public PendingDecision popDecision() {
+        return pendingDecisions.removeFirst();
+    }
+
+    public void dropDecisionsOf(String playerId) {
+        pendingDecisions.removeIf(pending -> pending.player().equals(playerId));
+    }
+
+    public void replaceDecision(int index, PendingDecision decision) {
+        pendingDecisions.set(index, decision);
+    }
 
     /** The player who may act now: the one addressed by the first pending decision, otherwise the one whose turn it is */
     public String actor() {
@@ -65,10 +98,17 @@ public class GameState {
         return player(currentPlayer).orElseThrow();
     }
 
-    public void finish(String winner, List<PlayerStanding> standings) {
+    public void finish(@Nullable String winner, List<PlayerStanding> standings) {
         this.finished = true;
         this.winner = winner;
         this.finalStandings = List.copyOf(standings);
+    }
+
+    /** Everyone in turn order starting with the given player, those who are out included; callers check {@code isOut} when they act */
+    public List<PlayerState> playersFrom(String playerId) {
+        var start = turnOrder.indexOf(playerId);
+        return java.util.stream.IntStream.range(0, turnOrder.size())
+                .mapToObj(i -> player(turnOrder.get((start + i) % turnOrder.size())).orElseThrow()).toList();
     }
 
     public Optional<PlayerState> player(String playerId) {

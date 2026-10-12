@@ -14,7 +14,7 @@ class StockTipsTest {
         var state = TestGame.players("a", "b").state();
         state.getStockTipDeck().addAll(List.of("PV-01", "PV-03"));
 
-        var events = ENGINE.drawStockTip(state, state.current(), new ScriptedDice());
+        var events = ENGINE.stockTips.drawStockTip(state, state.current(), new ScriptedDice());
 
         assertEquals(List.of(new GameEvent.StockTipDrawn("a", "PV-01", true)), events);
         assertEquals(List.of("PV-01"), state.current().getHeldStockTips());
@@ -26,7 +26,7 @@ class StockTipsTest {
         var state = TestGame.players("a", "b").state();
         state.getStockTipDeck().addAll(List.of("PV-03", "PV-01"));
 
-        var events = ENGINE.drawStockTip(state, state.current(), new ScriptedDice());
+        var events = ENGINE.stockTips.drawStockTip(state, state.current(), new ScriptedDice());
 
         assertEquals(List.of(new GameEvent.StockTipDrawn("a", "PV-03", false),
                 new GameEvent.ShareIssued("a", EngineTests.GAME_DATA.fundShares().stream()
@@ -57,7 +57,7 @@ class StockTipsTest {
         var state = TestGame.players("a", "b").car("a").state();
         state.getStockTipDeck().add("PV-04");
 
-        var events = ENGINE.drawStockTip(state, state.current(), new ScriptedDice());
+        var events = ENGINE.stockTips.drawStockTip(state, state.current(), new ScriptedDice());
 
         assertEquals(List.of(new GameEvent.StockTipDrawn("a", "PV-04", false), new GameEvent.CarLost("a")), events);
         assertTrue(!state.current().isCar());
@@ -81,7 +81,7 @@ class StockTipsTest {
         var state = TestGame.players("a", "b").state();
         state.getStockTipDeck().add("PV-29");
         state.getFinanceNewsDeck().add("FL-05");
-        ENGINE.drawStockTip(state, state.current(), new ScriptedDice());
+        ENGINE.stockTips.drawStockTip(state, state.current(), new ScriptedDice());
         assertEquals(2, state.current().getMissedTurns());
 
         state.setPhase(TurnPhase.AFTER_ROLL);
@@ -105,7 +105,7 @@ class StockTipsTest {
         // Original rules: no minimum bid, so the 500 bids are valid
         var state = TestGame.players("a", "b", "c").settings(GameSettings.ORIGINAL).owns("a", 3).state();
         state.getStockTipDeck().add("PV-36");
-        ENGINE.drawStockTip(state, state.current(), new ScriptedDice());
+        ENGINE.stockTips.drawStockTip(state, state.current(), new ScriptedDice());
         EngineTests.send(state, "a", new GameCommand.ChooseStockTipOption("P:3"));
 
         EngineTests.send(state, "b", new GameCommand.BidAsset(500));

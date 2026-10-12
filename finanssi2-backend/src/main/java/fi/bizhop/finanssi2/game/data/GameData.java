@@ -17,6 +17,7 @@ import static fi.bizhop.finanssi2.game.data.GameConstants.INDUSTRIAL_SQUARES;
 import static fi.bizhop.finanssi2.game.data.GameConstants.MORTGAGE_REDEMPTION_PERCENT;
 import static fi.bizhop.finanssi2.game.data.GameConstants.SQUARE_COUNT;
 import static fi.bizhop.finanssi2.game.data.GameConstants.STOCK_TIP_CARD_COUNT;
+import org.jspecify.annotations.Nullable;
 
 /** Static game assets, checked for consistency on construction */
 public final class GameData {
@@ -101,7 +102,7 @@ public final class GameData {
         return require(cards.get(id), "card " + id);
     }
 
-    static <T> T require(T value, String what) {
+    static <T> T require(@Nullable T value, String what) {
         if (value == null) {
             throw new IllegalArgumentException("No " + what);
         }
@@ -151,6 +152,7 @@ public final class GameData {
                 var square = squares.get(number);
                 check(square != null && square.type() == SquareType.PROPERTY,
                         "Group " + group.id() + " lists square " + number + ", which is not a property");
+                Objects.requireNonNull(square); // checked above
                 check(group.id().equals(square.group()),
                         "Group " + group.id() + " lists square " + number + " of group " + square.group());
                 check(listed.add(number), "Square " + number + " is listed in more than one group");
@@ -168,7 +170,7 @@ public final class GameData {
                     "Square " + square.number() + (deed == null ? " has no title deed" : " is not a property but has a title deed"));
         }
         for (var deed : titleDeeds.values()) {
-            var square = squares.get(deed.square());
+            var square = require(squares.get(deed.square()), "square " + deed.square());
             var at = "Title deed " + deed.id() + ": ";
             check(square.name().equals(deed.name()) && square.price().equals(deed.price()) && Objects.equals(square.group(), deed.group()),
                     at + "name, price or group differs from square " + deed.square());
@@ -223,7 +225,7 @@ public final class GameData {
             check(groupShares.size() == group.properties().size(),
                     "Group " + group.id() + " has " + groupShares.size() + " shares for " + group.properties().size() + " properties");
             var capital = groupShares.stream().mapToInt(Share::value).sum();
-            check(capital == groupShareCapital.get(group.id()),
+            check(capital == require(groupShareCapital.get(group.id()), "share capital of group " + group.id()),
                     "Shares of group " + group.id() + " sum to " + capital + ", not " + groupShareCapital.get(group.id()));
         }
         check(fundShares().size() == FUND_SHARE_COUNT, "Expected " + FUND_SHARE_COUNT + " fund shares, got " + fundShares().size());

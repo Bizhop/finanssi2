@@ -3,6 +3,7 @@ package fi.bizhop.finanssi2.security;
 import com.google.firebase.auth.FirebaseToken;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.jspecify.annotations.Nullable;
 
 public class FirebaseAuthenticationToken extends AbstractAuthenticationToken {
     private final FirebaseToken firebaseToken;
@@ -24,7 +25,7 @@ public class FirebaseAuthenticationToken extends AbstractAuthenticationToken {
     }
 
     @Override
-    public Object getCredentials() {
+    public @Nullable Object getCredentials() {
         return null;
     }
 

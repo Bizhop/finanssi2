@@ -6,6 +6,7 @@ import fi.bizhop.finanssi2.game.db.GameMode;
 import fi.bizhop.finanssi2.game.db.GameRepository;
 import fi.bizhop.finanssi2.game.service.DebugAccess;
 import fi.bizhop.finanssi2.game.service.NotAllowedException;
+import fi.bizhop.finanssi2.security.AuthenticatedUserService;
 import fi.bizhop.finanssi2.security.FirebaseAuthenticationToken;
 import fi.bizhop.finanssi2.security.FirebaseTokenVerifier;
 import fi.bizhop.finanssi2.security.User;
@@ -29,7 +30,7 @@ class PrivateChatDeliveryInterceptorTest {
         var gameRepository = mock(GameRepository.class);
         var debugAccess = mock(DebugAccess.class);
         var tokenVerifier = mock(FirebaseTokenVerifier.class);
-        var authentication = new StompAuthenticationInterceptor(tokenVerifier, gameRepository, debugAccess);
+        var authentication = new StompAuthenticationInterceptor(tokenVerifier, mock(AuthenticatedUserService.class), gameRepository, debugAccess);
         var firebaseToken = mock(FirebaseToken.class);
         when(firebaseToken.getUid()).thenReturn("owner");
         var auth = new FirebaseAuthenticationToken(firebaseToken);
@@ -39,9 +40,9 @@ class PrivateChatDeliveryInterceptorTest {
         var id = "66f9a1b2-c3d4-5e6f-8718-2931a2b3c4d5";
         var game = new Game(GameMode.DEBUG);
         game.setCreator("owner");
-        when(gameRepository.findById(id)).thenReturn(Optional.of(game));
+        when(gameRepository.findAccess(id)).thenReturn(Optional.of(new GameRepository.Access(game.getMode(), game.getCreator())));
         doThrow(new NotAllowedException("Debug access is not enabled for this account"))
-                .when(debugAccess).requireOwner(game, user);
+                .when(debugAccess).requireOwner(GameMode.DEBUG, "owner", user);
 
         var accessor = SimpMessageHeaderAccessor.create(SimpMessageType.MESSAGE);
         accessor.setDestination("/topic/games/" + id + "/chat");

@@ -10,6 +10,7 @@ import fi.bizhop.finanssi2.game.db.GameMode;
 import fi.bizhop.finanssi2.game.db.GameRepository;
 import fi.bizhop.finanssi2.game.db.GameStatus;
 import fi.bizhop.finanssi2.game.engine.Dice;
+import fi.bizhop.finanssi2.game.engine.CommandOptions;
 import fi.bizhop.finanssi2.game.engine.GameCommand;
 import fi.bizhop.finanssi2.game.engine.GameEngine;
 import fi.bizhop.finanssi2.game.engine.GameEvent;
@@ -18,9 +19,9 @@ import fi.bizhop.finanssi2.game.engine.GameSetup;
 import fi.bizhop.finanssi2.game.engine.PlayerState;
 import fi.bizhop.finanssi2.game.engine.RuleViolation;
 import fi.bizhop.finanssi2.security.User;
-import fi.bizhop.finanssi2.service.MessagingService;
+import fi.bizhop.finanssi2.service.Broadcast;
+import org.springframework.context.ApplicationEventPublisher;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayDeque;
@@ -32,6 +33,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static fi.bizhop.finanssi2.game.data.GameConstants.MAX_PLAYERS;
+import java.util.UUID;
 
 /**
  * Saves state and new events in one PostgreSQL transaction, then broadcasts the committed change. Optimistic locking rejects
@@ -44,7 +46,7 @@ public class GameService {
 
     final GameRepository gameRepository;
     final GameLogRepository gameLogRepository;
-    final MessagingService messagingService;
+    final ApplicationEventPublisher publisher;
     final GameData gameData;
     final GameSetup gameSetup;
     final GameEngine gameEngine;
@@ -59,7 +61,7 @@ public class GameService {
     /** Creates a game in the lobby with its creator as the first player */
     public Game create(User user) {
         var game = new Game();
-        game.setId(java.util.UUID.randomUUID().toString());
+        game.setId(UUID.randomUUID().toString());
         game.setCreator(user.userId());
         game.setCreatedAt(System.currentTimeMillis());
         return commit(game, List.of(addPlayer(game, user)), true).game();
@@ -70,7 +72,7 @@ public class GameService {
         if (playerCount < 2 || playerCount > MAX_PLAYERS) throw new RuleViolation("playerCount must be 2–6");
         if (settings.loanLimit() == null) throw new RuleViolation("loanLimit is required");
         var game = new Game(GameMode.DEBUG);
-        game.setId(java.util.UUID.randomUUID().toString());
+        game.setId(UUID.randomUUID().toString());
         game.setCreator(user.userId());
         game.setCreatedAt(System.currentTimeMillis());
         game.getState().setSettings(settings);
@@ -87,9 +89,9 @@ public class GameService {
     public void deleteDebug(String id, User user) {
         var game = get(id);
         debugAccess.requireOwner(game, user);
-        // Versioned removal makes a concurrent save fail rather than recreate the document.
+        // Versioned removal makes a concurrent save fail rather than recreate the game.
         gameRepository.delete(game);
-        messagingService.send(gameTopic(id), new GameDeleted(id, true));
+        publisher.publishEvent(new Broadcast(gameTopic(id), new GameDeleted(id, true)));
     }
 
     public record GameDeleted(String gameId, boolean deleted) {}
@@ -112,7 +114,7 @@ public class GameService {
 
     /** Games in the lobby and games the user is in, newest first */
     public List<Game> list(User user) {
-        return gameRepository.findByStatusOrPlayer(GameStatus.LOBBY, user.userId(), Sort.by(Sort.Direction.DESC, "createdAt"))
+        return gameRepository.findByStatusOrPlayer(GameStatus.LOBBY, user.userId())
                 .stream().filter(game -> game.getMode() == GameMode.NORMAL
                         || (game.getCreator().equals(user.userId()) && debugAccess.allowed(user))).toList();
     }
@@ -151,10 +153,10 @@ public class GameService {
         var players = game.getState().getPlayers();
         if (players.size() == 1) {
             gameRepository.delete(game);
-            messagingService.send(LOBBY_TOPIC, new LobbyChange(id, null));
+            publisher.publishEvent(new Broadcast(LOBBY_TOPIC, new LobbyChange(id, null)));
             return;
         }
-        players.remove(player);
+        game.getState().removePlayer(player);
         if (game.getCreator().equals(user.userId())) {
             game.setCreator(players.getFirst().getPlayerId());
         }
@@ -283,6 +285,11 @@ public class GameService {
         };
     }
 
+    /** The concrete choices (with current prices) behind the allowed command types, for the seat the user acts as */
+    public CommandOptions options(Game game, User user) {
+        return game.getStatus() == GameStatus.RUNNING ? gameEngine.options(game.getState(), actingPlayer(game, user)) : CommandOptions.NONE;
+    }
+
     static void requireCreator(Game game, User user, String reason) {
         if (!game.getCreator().equals(user.userId())) {
             throw new NotAllowedException(reason);
@@ -299,7 +306,7 @@ public class GameService {
         var players = game.getState().getPlayers();
         var taken = players.stream().map(PlayerState::getPiece).toList();
         var piece = IntStream.range(0, MAX_PLAYERS).filter(p -> !taken.contains(p)).findFirst().orElseThrow();
-        players.add(new PlayerState(user.userId(), piece));
+        game.getState().addPlayer(new PlayerState(user.userId(), piece));
         return new GameEvent.PlayerJoined(user.userId(), piece);
     }
 
@@ -315,9 +322,9 @@ public class GameService {
         game.setLastEventSeq(game.getLastEventSeq() + events.size());
         var saved = gameRepository.saveWithEvents(game, entries);
 
-        messagingService.send(gameTopic(saved.getId()), new GameUpdate(saved.getId(), saved.getVersion(), entries));
+        publisher.publishEvent(new Broadcast(gameTopic(saved.getId()), new GameUpdate(saved.getId(), saved.getVersion(), entries)));
         if (lobbyChange && saved.getMode() == GameMode.NORMAL) {
-            messagingService.send(LOBBY_TOPIC, new LobbyChange(saved.getId(), saved));
+            publisher.publishEvent(new Broadcast(LOBBY_TOPIC, new LobbyChange(saved.getId(), saved)));
         }
         return new Committed(saved, entries);
     }

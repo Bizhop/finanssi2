@@ -43,6 +43,8 @@ class FirebaseAuthenticationFilterTest {
         var pending = request("pending-uid");
         assertEquals(403, pending.getStatusCode().value());
         assertTrue(pending.getBody().contains("EMAIL_VERIFICATION_REQUIRED"));
+        assertTrue(pending.getBody().contains("\"detail\":\"A verified email address is required\""));
+        assertTrue(pending.getHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
         assertEquals(0, users.count());
     }
 

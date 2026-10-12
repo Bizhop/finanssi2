@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.1.1'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'net.ltgt.errorprone' version '5.1.1'
 }
 
 group = 'fi.bizhop'
@@ -24,15 +25,24 @@ repositories {
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	runtimeOnly 'org.postgresql:postgresql'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.springframework.boot:spring-boot-starter-websocket'
-	implementation 'com.google.firebase:firebase-admin:9.11.0'
+	// Only Firebase Auth is used; firebase-admin drags in Firestore, Cloud Storage and the gRPC stack for the other products
+	implementation('com.google.firebase:firebase-admin:9.11.0') {
+		exclude group: 'com.google.cloud', module: 'google-cloud-firestore'
+		exclude group: 'com.google.cloud', module: 'google-cloud-storage'
+	}
+	// firebase-admin uses this JSON factory but only declares it through the modules excluded above; matches google-http-client
+	runtimeOnly 'com.google.http-client:google-http-client-jackson2:2.2.0'
+	// Page, in the signatures of FirebaseAuth's list methods; the same version the excluded modules pulled in
+	runtimeOnly 'com.google.api:gax:2.85.0'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
+	errorprone 'com.google.errorprone:error_prone_core:2.50.0'
+	errorprone 'com.uber.nullaway:nullaway:0.14.2'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
 	testImplementation 'org.springframework.boot:spring-boot-resttestclient'
@@ -42,6 +52,21 @@ dependencies {
 	testImplementation 'org.testcontainers:testcontainers-postgresql'
 	testRuntimeOnly 'com.h2database:h2'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.withType(JavaCompile).configureEach {
+	options.compilerArgs += ['-Xlint:deprecation', '-Xlint:removal']
+	options.errorprone {
+		disableAllChecks = true
+		check('NullAway', net.ltgt.gradle.errorprone.CheckSeverity.ERROR)
+		option('NullAway:OnlyNullMarked', 'true')
+		option('NullAway:JSpecifyMode', 'true')
+	}
+}
+
+// Null checks guard the production code; tests pass null on purpose
+tasks.named('compileTestJava') {
+	options.errorprone.enabled = false
 }
 
 tasks.named('test') {

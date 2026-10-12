@@ -13,6 +13,7 @@ import jakarta.persistence.Index;
 import fi.bizhop.finanssi2.game.db.GameEntity;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import jakarta.persistence.ForeignKey;
 
 @Entity
 @Table(name = "chat_messages", indexes = @Index(name = "chat_messages_game_id_id_idx", columnList = "game_id, id"))
@@ -25,10 +26,10 @@ public class ChatMessageEntity {
     @Column(nullable = false)
     long timestamp;
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "sender_user_id", nullable = false, foreignKey = @jakarta.persistence.ForeignKey(name = "chat_messages_sender_user_id_fkey"))
+    @JoinColumn(name = "sender_user_id", nullable = false, foreignKey = @ForeignKey(name = "chat_messages_sender_user_id_fkey"))
     ApplicationUser sender;
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "game_id", foreignKey = @jakarta.persistence.ForeignKey(name = "chat_messages_game_id_fkey"))
+    @JoinColumn(name = "game_id", foreignKey = @ForeignKey(name = "chat_messages_game_id_fkey"))
     @OnDelete(action = OnDeleteAction.CASCADE)
     GameEntity game;
 }

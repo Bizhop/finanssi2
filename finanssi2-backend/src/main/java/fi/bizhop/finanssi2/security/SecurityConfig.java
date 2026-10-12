@@ -1,7 +1,7 @@
 package fi.bizhop.finanssi2.security;
 
+import fi.bizhop.finanssi2.config.Finanssi2Properties;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -24,15 +24,11 @@ public class SecurityConfig {
     final FirebaseTokenVerifier tokenVerifier;
     final AuthenticatedUserService authenticatedUserService;
 
-    @Value("${finanssi2.endpoints.whitelist}")
-    String whitelist;
-
-    @Value("${finanssi2.web.allowed-origin}")
-    String allowedOrigin;
+    final Finanssi2Properties properties;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        var whitelistArray = whitelist.split(" ");
+        var whitelistArray = properties.endpoints().whitelist().toArray(String[]::new);
 
         http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -51,10 +47,9 @@ public class SecurityConfig {
 
     public CorsConfigurationSource corsConfigurationSource() {
         var configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(allowedOrigin));
+        configuration.setAllowedOrigins(List.of(properties.web().allowedOrigin()));
         configuration.setAllowedMethods(List.of("HEAD", "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L); // 1 hour
 
         var source = new UrlBasedCorsConfigurationSource();

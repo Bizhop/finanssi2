@@ -4,9 +4,8 @@ import fi.bizhop.finanssi2.db.ChatRepository;
 import fi.bizhop.finanssi2.db.ChatMessage;
 import fi.bizhop.finanssi2.security.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import fi.bizhop.finanssi2.game.db.GameRepository;
 import fi.bizhop.finanssi2.game.service.DebugAccess;
 import fi.bizhop.finanssi2.game.service.GameNotFoundException;
@@ -16,6 +15,8 @@ import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import fi.bizhop.finanssi2.game.db.GameMode;
+import org.jspecify.annotations.Nullable;
 
 @Service
 @RequiredArgsConstructor
@@ -24,7 +25,7 @@ public class ChatService {
 
     final ChatRepository chatRepository;
 
-    final MessagingService messagingService;
+    final ApplicationEventPublisher publisher;
     final GameRepository gameRepository;
     final DebugAccess debugAccess;
 
@@ -45,7 +46,7 @@ public class ChatService {
         // Broadcast the saved message so clients get its id
         var savedMessage = chatRepository.save(newMessage, null, UUID.fromString(author.userId()));
 
-        messagingService.send(CHAT_TOPIC, savedMessage);
+        publisher.publishEvent(new Broadcast(CHAT_TOPIC, savedMessage));
         return savedMessage;
     }
 
@@ -60,20 +61,18 @@ public class ChatService {
         validateMessage(message);
         var game = gameRepository.findByIdForUpdate(gameId).orElseThrow(() -> new GameNotFoundException(gameId));
         debugAccess.requireRead(game, author);
-        if (game.getMode() == fi.bizhop.finanssi2.game.db.GameMode.NORMAL
+        if (game.getMode() == GameMode.NORMAL
                 && game.getState().player(author.userId()).isEmpty()) {
             throw new NotAllowedException("Join the game before sending messages");
         }
         var saved = chatRepository.save(new ChatMessage(null, author.userId(), message,
                 System.currentTimeMillis()), UUID.fromString(gameId), UUID.fromString(author.userId()));
         var topic = "/topic/games/" + gameId + "/chat";
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override public void afterCommit() { messagingService.send(topic, saved); }
-        });
+        publisher.publishEvent(new Broadcast(topic, saved));
         return saved;
     }
 
-    public static void validateMessage(String message) {
+    public static void validateMessage(@Nullable String message) {
         if (message == null || message.isBlank() || message.length() > 100) {
             throw new IllegalArgumentException("message must contain 1–100 nonblank characters");
         }

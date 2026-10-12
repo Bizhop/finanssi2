@@ -5,6 +5,7 @@ import fi.bizhop.finanssi2.game.service.DebugAccess;
 import fi.bizhop.finanssi2.security.FirebaseAuthenticationToken;
 import fi.bizhop.finanssi2.security.FirebaseTokenVerifier;
 import fi.bizhop.finanssi2.security.AuthenticatedUserService;
+import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -13,11 +14,12 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 import java.util.concurrent.ConcurrentHashMap;
+import fi.bizhop.finanssi2.game.db.GameMode;
+import java.util.Map;
 
 
 /**
@@ -26,25 +28,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * REST. A rejected frame gets an ERROR frame and the connection is closed.
  */
 @Component
+@RequiredArgsConstructor
 public class StompAuthenticationInterceptor implements ChannelInterceptor {
     final FirebaseTokenVerifier tokenVerifier;
     final AuthenticatedUserService authenticatedUserService;
     final GameRepository gameRepository;
     final DebugAccess debugAccess;
-    java.util.Map<String, FirebaseAuthenticationToken> sessions = new ConcurrentHashMap<>();
-
-    @Autowired
-    StompAuthenticationInterceptor(FirebaseTokenVerifier tokenVerifier, AuthenticatedUserService authenticatedUserService,
-                                   GameRepository gameRepository, DebugAccess debugAccess) {
-        this.tokenVerifier = tokenVerifier;
-        this.authenticatedUserService = authenticatedUserService;
-        this.gameRepository = gameRepository;
-        this.debugAccess = debugAccess;
-    }
-
-    StompAuthenticationInterceptor(FirebaseTokenVerifier tokenVerifier, GameRepository gameRepository, DebugAccess debugAccess) {
-        this(tokenVerifier, null, gameRepository, debugAccess);
-    }
+    final Map<String, FirebaseAuthenticationToken> sessions = new ConcurrentHashMap<>();
 
     @Override
     public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
@@ -59,9 +49,7 @@ public class StompAuthenticationInterceptor implements ChannelInterceptor {
                 // Remembered for the rest of the session, so later frames carry it too
                 final FirebaseAuthenticationToken auth;
                 try {
-                    auth = authenticatedUserService == null
-                            ? new FirebaseAuthenticationToken(token)
-                            : new FirebaseAuthenticationToken(token, authenticatedUserService.resolve(token));
+                    auth = new FirebaseAuthenticationToken(token, authenticatedUserService.resolve(token));
                 } catch (RuntimeException e) {
                     throw new MessageDeliveryException("Verified email and valid account required: " + e.getClass().getSimpleName());
                 }
@@ -91,7 +79,7 @@ public class StompAuthenticationInterceptor implements ChannelInterceptor {
                     try {
                         var game = gameRepository.findById(id).orElseThrow();
                         debugAccess.requireRead(game, auth.user());
-                        if (chat && game.getMode() == fi.bizhop.finanssi2.game.db.GameMode.DEBUG) {
+                        if (chat && game.getMode() == GameMode.DEBUG) {
                             debugAccess.requireOwner(game, auth.user());
                         }
                     } catch (RuntimeException e) {

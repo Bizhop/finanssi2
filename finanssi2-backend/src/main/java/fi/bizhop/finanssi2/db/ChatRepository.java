@@ -1,18 +1,22 @@
 package fi.bizhop.finanssi2.db;
 
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
+import fi.bizhop.finanssi2.game.db.GameEntity;
+import org.jspecify.annotations.Nullable;
 
 @Repository
+@RequiredArgsConstructor
 public class ChatRepository {
-    @PersistenceContext EntityManager entityManager;
+    final EntityManager entityManager;
 
     @Transactional(readOnly = true)
     public List<ChatMessage> findAllByOrderByIdDesc(Limit limit) {
@@ -36,12 +40,12 @@ public class ChatRepository {
     }
 
     @Transactional
-    public ChatMessage save(ChatMessage message, UUID gameId, UUID senderId) {
+    public ChatMessage save(ChatMessage message, @Nullable UUID gameId, UUID senderId) {
         var row = new ChatMessageEntity();
         row.message = message.message();
         row.timestamp = message.timestamp();
         row.sender = entityManager.getReference(ApplicationUser.class, senderId);
-        if (gameId != null) row.game = entityManager.getReference(fi.bizhop.finanssi2.game.db.GameEntity.class, gameId);
+        if (gameId != null) row.game = entityManager.getReference(GameEntity.class, gameId);
         entityManager.persist(row);
         entityManager.flush();
         return model(row);
@@ -62,7 +66,7 @@ public class ChatRepository {
     }
 
     private static ChatMessage model(ChatMessageEntity row) {
-        return new ChatMessage(String.format(java.util.Locale.ROOT, "%019d", row.id), row.sender.getId().toString(),
+        return new ChatMessage(String.format(Locale.ROOT, "%019d", row.id), row.sender.getId().toString(),
                 row.message, row.timestamp);
     }
 }

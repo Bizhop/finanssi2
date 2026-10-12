@@ -4,8 +4,10 @@ import fi.bizhop.finanssi2.game.engine.GameState;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Objects;
 
 @Data
+@SuppressWarnings("NullAway.Init") // id, version and creator are set when the game is created or loaded
 public class Game {
     String id;
     // Optimistic locking: of two commands applied to the same version, only the first is saved
@@ -19,7 +21,7 @@ public class Game {
     public Game() {}
 
     public Game(GameMode mode) {
-        this.mode = java.util.Objects.requireNonNull(mode);
+        this.mode = Objects.requireNonNull(mode);
     }
 
     long createdAt;
