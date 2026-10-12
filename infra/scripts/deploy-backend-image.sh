@@ -101,6 +101,8 @@ fi
 for _ in $(seq 1 120); do
     if curl --fail --silent http://127.0.0.1:8080/api/health/live >/dev/null; then
         echo "Backend is healthy on $IMAGE_REF"
+        # Keep the 12 GiB root disk from filling with superseded releases; the running image is never pruned.
+        docker image prune -af --filter until=168h >/dev/null || true
         exit 0
     fi
     sleep 5
