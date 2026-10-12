@@ -16,8 +16,8 @@ const frontendHostname = config.get("frontendHostname") ?? "finanssi.bizhop.fi"
 const apiHostname = config.get("apiHostname") ?? "api.finanssi.bizhop.fi"
 const allowedOrigin = config.get("allowedOrigin") ?? `https://${frontendHostname}`
 const debugAllowedEmails = config.get("debugAllowedEmails") ?? ""
-const monthlyBudgetLimitUsd = config.getNumber("monthlyBudgetLimitUsd")
-const budgetAlertEmail = config.get("budgetAlertEmail") ?? ""
+const monthlyBudgetLimitUsd = config.requireNumber("monthlyBudgetLimitUsd")
+const budgetAlertEmail = config.require("budgetAlertEmail")
 const firebaseWeb = config.requireObject<FirebaseWebConfig>("firebaseWeb")
 const createFrontendDistribution = config.getBoolean("createFrontendDistribution") ?? false
 
@@ -38,9 +38,12 @@ const firebaseWebKeys: (keyof FirebaseWebConfig)[] = [
     "messagingSenderId",
     "appId",
 ]
-const missingFirebaseSettings = firebaseWebKeys.filter((key) => !firebaseWeb[key]?.trim())
+const missingFirebaseSettings = firebaseWebKeys.filter((key) => {
+    const value = firebaseWeb[key]?.trim()
+    return !value || value.includes("replace-me")
+})
 if (missingFirebaseSettings.length > 0) {
-    throw new Error(`Missing Firebase web configuration fields: ${missingFirebaseSettings.join(", ")}`)
+    throw new Error(`Missing or placeholder Firebase web configuration fields: ${missingFirebaseSettings.join(", ")}`)
 }
 if (firebaseWeb.authDomain !== `${firebaseWeb.projectId}.firebaseapp.com`) {
     throw new Error("firebaseWeb.authDomain must use the project's default Firebase auth domain")
@@ -79,10 +82,10 @@ const debugEmails = debugAllowedEmails.split(",").map((email) => email.trim()).f
 if (debugEmails.some((email) => !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email))) {
     throw new Error("debugAllowedEmails must contain comma-separated email addresses")
 }
-if (!monthlyBudgetLimitUsd || monthlyBudgetLimitUsd <= 0) {
+if (monthlyBudgetLimitUsd <= 0) {
     throw new Error("monthlyBudgetLimitUsd must be set to the operator's chosen alert amount")
 }
-if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(budgetAlertEmail)) {
+if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(budgetAlertEmail) || budgetAlertEmail.endsWith("@example.com")) {
     throw new Error("budgetAlertEmail must be set to an address that should receive AWS cost alerts")
 }
 
