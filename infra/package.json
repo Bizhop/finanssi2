@@ -9,7 +9,8 @@
     "fmt": "deno fmt",
     "fmt:check": "deno fmt --check",
     "lint": "deno lint",
-    "preview": "pulumi preview"
+    "preview": "pulumi preview",
+    "shellcheck": "shellcheck -x scripts/*.sh userdata/bootstrap.sh userdata/host/*"
   },
   "dependencies": {
     "@pulumi/aws": "7.50.0",

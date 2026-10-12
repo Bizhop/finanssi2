@@ -1,5 +1,7 @@
 #!/bin/bash
 set -euo pipefail
+# shellcheck source=../host.env
+# shellcheck source-path=SCRIPTDIR
 source /etc/finanssi2/host.env
 IMAGE_REF=$(cat /etc/finanssi2/image-ref)
 aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REPOSITORY_URL"

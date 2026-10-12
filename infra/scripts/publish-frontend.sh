@@ -3,6 +3,7 @@ set -euo pipefail
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=lib.sh
+# shellcheck source-path=SCRIPTDIR
 source "$script_dir/lib.sh"
 
 require_commands aws deno git jq pulumi

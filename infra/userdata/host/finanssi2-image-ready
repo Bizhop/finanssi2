@@ -2,6 +2,8 @@
 set -eu
 test -s /etc/finanssi2/image-ref
 IMAGE_REF=$(cat /etc/finanssi2/image-ref)
+# shellcheck source=../host.env
+# shellcheck source-path=SCRIPTDIR
 source /etc/finanssi2/host.env
 case "$IMAGE_REF" in
     "$ECR_REPOSITORY_URL"@sha256:*)
