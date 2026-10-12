@@ -1,5 +1,8 @@
 package fi.bizhop.finanssi2.web;
 
+import fi.bizhop.finanssi2.error.ErrorCode;
+import fi.bizhop.finanssi2.error.ApiException;
+import java.util.Map;
 import fi.bizhop.finanssi2.db.ChatMessage;
 import fi.bizhop.finanssi2.service.ChatService;
 import fi.bizhop.finanssi2.web.model.ChatMessageInput;
@@ -13,7 +16,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Objects;
@@ -61,21 +63,23 @@ public class ChatController {
         try {
             ChatService.validateMessage(message);
         } catch (IllegalArgumentException invalid) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, invalid.getMessage());
+            throw new ApiException(HttpStatus.BAD_REQUEST, ErrorCode.CHAT_MESSAGE_INVALID,
+                    Objects.requireNonNullElse(invalid.getMessage(), "Invalid message"));
         }
         return Objects.requireNonNull(message); // validated as present above
     }
 
     private static void validatePage(String before, int size) {
         if (size < 1 || size > MAX_PAGE_SIZE) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "size must be between 1 and " + MAX_PAGE_SIZE);
+            throw new ApiException(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_PAGE_SIZE, "size must be between 1 and " + MAX_PAGE_SIZE,
+                    Map.of("max", MAX_PAGE_SIZE));
         }
         if (before != null && !before.matches("[0-9]{1,19}")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "before must be a message id");
+            throw new ApiException(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_BEFORE, "before must be a message id");
         }
         if (before != null) try { Long.parseLong(before); }
         catch (NumberFormatException invalid) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "before must be a message id");
+            throw new ApiException(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_BEFORE, "before must be a message id");
         }
     }
 }

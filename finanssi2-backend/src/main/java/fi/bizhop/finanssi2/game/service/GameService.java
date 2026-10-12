@@ -1,5 +1,7 @@
 package fi.bizhop.finanssi2.game.service;
 
+import fi.bizhop.finanssi2.error.ErrorCode;
+import java.util.Map;
 import fi.bizhop.finanssi2.game.data.Card;
 import fi.bizhop.finanssi2.game.data.Deck;
 import fi.bizhop.finanssi2.game.data.GameData;
@@ -69,8 +71,8 @@ public class GameService {
 
     public Game createDebug(User user, int playerCount, GameSettings settings) {
         debugAccess.require(user);
-        if (playerCount < 2 || playerCount > MAX_PLAYERS) throw new RuleViolation("playerCount must be 2–6");
-        if (settings.loanLimit() == null) throw new RuleViolation("loanLimit is required");
+        if (playerCount < 2 || playerCount > MAX_PLAYERS) throw new RuleViolation(ErrorCode.WRONG_PLAYER_COUNT, "playerCount must be 2–6", Map.of("min", 2, "max", MAX_PLAYERS));
+        if (settings.loanLimit() == null) throw new RuleViolation(ErrorCode.LOAN_LIMIT_REQUIRED, "loanLimit is required");
         var game = new Game(GameMode.DEBUG);
         game.setId(UUID.randomUUID().toString());
         game.setCreator(user.userId());
@@ -108,7 +110,7 @@ public class GameService {
 
     static void requireNormal(Game game) {
         if (game.getMode() != GameMode.NORMAL) {
-            throw new NotAllowedException("Use debug controls for this game");
+            throw new NotAllowedException(ErrorCode.DEBUG_CONTROLS_REQUIRED, "Use debug controls for this game");
         }
     }
 
@@ -136,10 +138,10 @@ public class GameService {
         requireNormal(game);
         requireLobby(game);
         if (game.getState().player(user.userId()).isPresent()) {
-            throw new RuleViolation("Already in the game");
+            throw new RuleViolation(ErrorCode.ALREADY_IN_GAME, "Already in the game");
         }
         if (game.getState().getPlayers().size() >= MAX_PLAYERS) {
-            throw new RuleViolation("The game is full");
+            throw new RuleViolation(ErrorCode.GAME_FULL, "The game is full");
         }
         return commit(game, List.of(addPlayer(game, user)), true).game();
     }
@@ -149,7 +151,7 @@ public class GameService {
         var game = get(id);
         requireNormal(game);
         requireLobby(game);
-        var player = game.getState().player(user.userId()).orElseThrow(() -> new RuleViolation("Not in the game"));
+        var player = game.getState().player(user.userId()).orElseThrow(() -> new RuleViolation(ErrorCode.NOT_IN_GAME, "Not in the game"));
         var players = game.getState().getPlayers();
         if (players.size() == 1) {
             gameRepository.delete(game);
@@ -194,12 +196,12 @@ public class GameService {
         debugAccess.requireOwner(game, user);
         requireVersion(game, expectedVersion);
         if (actor == null || !actor.equals(game.getState().actor())) {
-            throw new RuleViolation("The acting player changed; reload and submit a fresh action");
+            throw new RuleViolation(ErrorCode.ACTING_PLAYER_CHANGED, "The acting player changed; reload and submit a fresh action");
         }
-        if (command == null) throw new RuleViolation("command is required");
+        if (command == null) throw new RuleViolation(ErrorCode.COMMAND_REQUIRED, "command is required");
         var values = dice == null ? List.<Integer>of() : dice;
         if (values.size() > 32 || values.stream().anyMatch(value -> value == null || value < 1 || value > 6)) {
-            throw new RuleViolation("dice must contain at most 32 values from 1 to 6");
+            throw new RuleViolation(ErrorCode.INVALID_DICE, "dice must contain at most 32 values from 1 to 6");
         }
         var rolls = new ArrayDeque<>(values);
         var fallback = diceSource.forGame(id);
@@ -211,27 +213,27 @@ public class GameService {
         debugAccess.requireOwner(game, user);
         requireVersion(game, expectedVersion);
         if (game.getStatus() != GameStatus.RUNNING || !game.getState().getPendingDecisions().isEmpty()) {
-            throw new RuleViolation("Cards can only be selected in a running game without pending decisions");
+            throw new RuleViolation(ErrorCode.CARD_SELECTION_UNAVAILABLE, "Cards can only be selected in a running game without pending decisions");
         }
         var deck = switch (deckName == null ? "" : deckName) {
             case "FINANCE_NEWS" -> Deck.FINANCE_NEWS;
             case "STOCK_TIP" -> Deck.STOCK_TIP;
-            default -> throw new RuleViolation("Unknown deck; use FINANCE_NEWS or STOCK_TIP");
+            default -> throw new RuleViolation(ErrorCode.UNKNOWN_DECK, "Unknown deck; use FINANCE_NEWS or STOCK_TIP");
         };
         var known = gameData.cards(deck).stream().map(Card::id).toList();
-        if (!known.contains(card)) throw new RuleViolation("Unknown card for this deck");
+        if (!known.contains(card)) throw new RuleViolation(ErrorCode.UNKNOWN_CARD, "Unknown card for this deck");
         var state = game.getState();
         var drawDeck = switch (deck) {
             case FINANCE_NEWS -> state.getFinanceNewsDeck();
             case STOCK_TIP -> state.getStockTipDeck();
         };
-        if (!drawDeck.contains(card)) throw new RuleViolation("The selected Stock Tip is held by a player");
+        if (!drawDeck.contains(card)) throw new RuleViolation(ErrorCode.STOCK_TIP_HELD, "The selected Stock Tip is held by a player");
         var held = deck == Deck.STOCK_TIP
                 ? state.getPlayers().stream().flatMap(player -> player.getHeldStockTips().stream()).toList()
                 : List.<String>of();
         var all = Stream.concat(drawDeck.stream(), held.stream()).toList();
         if (all.size() != known.size() || !new HashSet<>(all).equals(new HashSet<>(known))) {
-            throw new RuleViolation("The deck has inconsistent card membership");
+            throw new RuleViolation(ErrorCode.DECK_INCONSISTENT, "The deck has inconsistent card membership");
         }
         var reordered = new ArrayList<>(drawDeck);
         reordered.remove(card);
@@ -245,13 +247,13 @@ public class GameService {
 
     static void requireVersion(Game game, Long expectedVersion) {
         if (expectedVersion == null || !expectedVersion.equals(game.getVersion())) {
-            throw new RuleViolation("The game changed; reload and submit a fresh action");
+            throw new RuleViolation(ErrorCode.GAME_CHANGED, "The game changed; reload and submit a fresh action");
         }
     }
 
     private List<GameLogEntry> execute(Game game, User user, String actor, GameCommand command,
                                       Dice dice) {
-        if (game.getStatus() != GameStatus.RUNNING) throw new RuleViolation("The game is not running");
+        if (game.getStatus() != GameStatus.RUNNING) throw new RuleViolation(ErrorCode.GAME_NOT_RUNNING, "The game is not running");
         List<GameEvent> events;
         if (command instanceof GameCommand.EndGame) {
             requireCreator(game, user, "Only the creator can end the game");
@@ -292,13 +294,13 @@ public class GameService {
 
     static void requireCreator(Game game, User user, String reason) {
         if (!game.getCreator().equals(user.userId())) {
-            throw new NotAllowedException(reason);
+            throw new NotAllowedException(ErrorCode.NOT_CREATOR, reason);
         }
     }
 
     static void requireLobby(Game game) {
         if (game.getStatus() != GameStatus.LOBBY) {
-            throw new RuleViolation("The game has already started");
+            throw new RuleViolation(ErrorCode.GAME_ALREADY_STARTED, "The game has already started");
         }
     }
 

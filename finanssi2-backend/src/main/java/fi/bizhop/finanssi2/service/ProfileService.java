@@ -1,5 +1,8 @@
 package fi.bizhop.finanssi2.service;
 
+import fi.bizhop.finanssi2.error.ErrorCode;
+import fi.bizhop.finanssi2.error.ApiException;
+import java.util.Map;
 import fi.bizhop.finanssi2.db.ApplicationUser;
 import fi.bizhop.finanssi2.db.ApplicationUserRepository;
 import fi.bizhop.finanssi2.game.service.DebugAccess;
@@ -9,7 +12,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -41,7 +43,8 @@ public class ProfileService {
     public Me updateDisplayName(User user, String requestedName, long version) {
         var displayName = requestedName == null ? "" : requestedName.trim();
         if (displayName.isEmpty() || displayName.length() > MAX_DISPLAY_NAME_LENGTH)
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "displayName must contain 1–" + MAX_DISPLAY_NAME_LENGTH + " characters");
+            throw new ApiException(HttpStatus.BAD_REQUEST, ErrorCode.DISPLAY_NAME_INVALID, "displayName must contain 1–" + MAX_DISPLAY_NAME_LENGTH + " characters",
+                    Map.of("max", MAX_DISPLAY_NAME_LENGTH));
         var profile = load(user);
         requireVersion(profile, version);
         profile.updateDisplayName(displayName);
@@ -67,18 +70,18 @@ public class ProfileService {
 
     private ApplicationUser load(User user) {
         return users.findById(UUID.fromString(user.userId()))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account profile not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, ErrorCode.PROFILE_NOT_FOUND, "Account profile not found"));
     }
 
     private static void requireVersion(ApplicationUser profile, long expected) {
-        if (profile.getVersion() != expected) throw new ResponseStatusException(HttpStatus.CONFLICT, VERSION_CONFLICT);
+        if (profile.getVersion() != expected) throw new ApiException(HttpStatus.CONFLICT, ErrorCode.PROFILE_VERSION_CONFLICT, VERSION_CONFLICT);
     }
 
     private Me flushed(User user, ApplicationUser profile) {
         try {
             users.flush();
         } catch (ObjectOptimisticLockingFailureException stale) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, VERSION_CONFLICT, stale);
+            throw new ApiException(HttpStatus.CONFLICT, ErrorCode.PROFILE_VERSION_CONFLICT, VERSION_CONFLICT, Map.of(), stale);
         }
         return view(user, profile);
     }

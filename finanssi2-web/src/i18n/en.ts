@@ -1,3 +1,4 @@
+import { enErrors } from "./en.errors.ts"
 import { enBoard } from "./en.board.ts"
 import { enDecision } from "./en.decision.ts"
 import { enRoom } from "./en.room.ts"
@@ -144,4 +145,5 @@ export const en: Record<MessageKey, string> = {
     ...enRoom,
     ...enDecision,
     ...enBoard,
+    ...enErrors,
 }

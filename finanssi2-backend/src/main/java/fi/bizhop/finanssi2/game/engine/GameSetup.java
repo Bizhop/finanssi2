@@ -1,5 +1,7 @@
 package fi.bizhop.finanssi2.game.engine;
 
+import fi.bizhop.finanssi2.error.ErrorCode;
+import java.util.Map;
 import fi.bizhop.finanssi2.game.data.Card;
 import fi.bizhop.finanssi2.game.data.Deck;
 import fi.bizhop.finanssi2.game.data.GameData;
@@ -34,7 +36,8 @@ public class GameSetup {
     public List<GameEvent> start(GameState state, Dice dice, RandomGenerator random) {
         var players = state.getPlayers();
         if (players.size() < MIN_PLAYERS || players.size() > MAX_PLAYERS) {
-            throw new RuleViolation("A game needs " + MIN_PLAYERS + "–" + MAX_PLAYERS + " players");
+            throw new RuleViolation(ErrorCode.WRONG_PLAYER_COUNT, "A game needs " + MIN_PLAYERS + "–" + MAX_PLAYERS + " players",
+                    Map.of("min", MIN_PLAYERS, "max", MAX_PLAYERS));
         }
         var events = new ArrayList<GameEvent>();
 

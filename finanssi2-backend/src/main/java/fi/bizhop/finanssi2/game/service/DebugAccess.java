@@ -1,5 +1,6 @@
 package fi.bizhop.finanssi2.game.service;
 
+import fi.bizhop.finanssi2.error.ErrorCode;
 import fi.bizhop.finanssi2.config.Finanssi2Properties;
 import fi.bizhop.finanssi2.game.db.Game;
 import fi.bizhop.finanssi2.game.db.GameMode;
@@ -26,7 +27,7 @@ public class DebugAccess {
     }
 
     public void require(User user) {
-        if (!allowed(user)) throw new NotAllowedException("Debug access is not enabled for this account");
+        if (!allowed(user)) throw new NotAllowedException(ErrorCode.DEBUG_ACCESS_DISABLED, "Debug access is not enabled for this account");
     }
 
     public void requireOwner(Game game, User user) {
@@ -36,7 +37,7 @@ public class DebugAccess {
     public void requireOwner(GameMode mode, String creator, User user) {
         require(user);
         if (mode != GameMode.DEBUG || !creator.equals(user.userId())) {
-            throw new NotAllowedException("Only the debug game owner can access this game");
+            throw new NotAllowedException(ErrorCode.DEBUG_OWNER_ONLY, "Only the debug game owner can access this game");
         }
     }
 

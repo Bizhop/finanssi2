@@ -1,5 +1,6 @@
 package fi.bizhop.finanssi2.game.engine;
 
+import fi.bizhop.finanssi2.error.ErrorCode;
 import fi.bizhop.finanssi2.game.data.GameData;
 import fi.bizhop.finanssi2.game.data.GameDataConfig;
 import fi.bizhop.finanssi2.game.engine.GameEvent.GameStarted;
@@ -105,7 +106,9 @@ class GameSetupTest {
     void testPlayerCount() {
         var setup = new GameSetup(gameData);
         var alone = lobby("a");
-        assertThrows(RuleViolation.class, () -> setup.start(alone, new ScriptedDice(), new Random(1)));
+        var tooFew = assertThrows(RuleViolation.class, () -> setup.start(alone, new ScriptedDice(), new Random(1)));
+        assertEquals(ErrorCode.WRONG_PLAYER_COUNT, tooFew.code());
+        assertEquals(java.util.Map.of("min", 2, "max", 6), tooFew.params());
         assertTrue(alone.getTurnOrder().isEmpty());
         assertEquals(0, alone.getPlayers().getFirst().getCash());
 

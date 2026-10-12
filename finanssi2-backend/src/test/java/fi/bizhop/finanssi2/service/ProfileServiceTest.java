@@ -8,7 +8,8 @@ import fi.bizhop.finanssi2.security.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
-import org.springframework.web.server.ResponseStatusException;
+import fi.bizhop.finanssi2.error.ApiException;
+import fi.bizhop.finanssi2.error.ErrorCode;
 
 import java.util.Optional;
 import java.util.Set;
@@ -38,7 +39,7 @@ class ProfileServiceTest {
     }
 
     private HttpStatus statusOf(Runnable action) {
-        return HttpStatus.valueOf(assertThrows(ResponseStatusException.class, action::run).getStatusCode().value());
+        return HttpStatus.valueOf(assertThrows(ApiException.class, action::run).status().value());
     }
 
     @Test
@@ -89,10 +90,11 @@ class ProfileServiceTest {
     void aConcurrentEditSurfacesAsAVersionConflict() {
         doThrow(new ObjectOptimisticLockingFailureException(ApplicationUser.class, id)).when(users).flush();
 
-        var failure = assertThrows(ResponseStatusException.class, () -> service.removeAvatar(user, 3));
+        var failure = assertThrows(ApiException.class, () -> service.removeAvatar(user, 3));
 
-        assertEquals(HttpStatus.CONFLICT.value(), failure.getStatusCode().value());
-        assertEquals("PROFILE_VERSION_CONFLICT", failure.getReason());
+        assertEquals(HttpStatus.CONFLICT.value(), failure.status().value());
+        assertEquals("PROFILE_VERSION_CONFLICT", failure.getMessage());
+        assertEquals(ErrorCode.PROFILE_VERSION_CONFLICT, failure.code());
         assertNull(profile.getCustomAvatar());
     }
 }

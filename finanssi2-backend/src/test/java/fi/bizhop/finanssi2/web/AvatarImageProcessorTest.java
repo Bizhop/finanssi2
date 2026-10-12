@@ -2,7 +2,7 @@ package fi.bizhop.finanssi2.web;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.web.server.ResponseStatusException;
+import fi.bizhop.finanssi2.error.ApiException;
 import javax.imageio.ImageIO;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
@@ -41,13 +41,13 @@ class AvatarImageProcessorTest {
 
     @Test
     void malformedUnsupportedOversizedAndHugeImagesAreRejected() throws Exception {
-        assertThrows(ResponseStatusException.class, () -> processor.process(new MockMultipartFile("file", "bad.png", "image/png", new byte[] {1, 2, 3})));
-        assertThrows(ResponseStatusException.class, () -> processor.process(new MockMultipartFile("file", "vector.svg", "image/svg+xml", "<svg/>".getBytes())));
+        assertThrows(ApiException.class, () -> processor.process(new MockMultipartFile("file", "bad.png", "image/png", new byte[] {1, 2, 3})));
+        assertThrows(ApiException.class, () -> processor.process(new MockMultipartFile("file", "vector.svg", "image/svg+xml", "<svg/>".getBytes())));
         var tooLarge = new byte[2 * 1024 * 1024 + 1];
-        assertEquals(413, assertThrows(ResponseStatusException.class, () -> processor.process(new MockMultipartFile("file", "big.png", "image/png", tooLarge)))
-                .getStatusCode().value());
+        assertEquals(413, assertThrows(ApiException.class, () -> processor.process(new MockMultipartFile("file", "big.png", "image/png", tooLarge)))
+                .status().value());
         var huge = image(4097, 1, BufferedImage.TYPE_INT_RGB, Color.BLACK, "png");
-        assertThrows(ResponseStatusException.class, () -> processor.process(new MockMultipartFile("file", "huge.png", "image/png", huge)));
+        assertThrows(ApiException.class, () -> processor.process(new MockMultipartFile("file", "huge.png", "image/png", huge)));
     }
 
     private static byte[] image(int width, int height, int type, Color color, String format) throws Exception {

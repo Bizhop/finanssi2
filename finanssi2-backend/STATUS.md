@@ -101,7 +101,8 @@ outbound debug access rechecks, and database cascade deletion. Two-account webso
 Done on branch `improvements/backend` from [the improvement plan](../plan/backend-improvements.md):
 
 - **Errors.** Every failure is a `ProblemDetail` through one `ApiErrors` advice (Spring's own exceptions, `ResponseStatusException`,
-  rule violations, missing elements → 404, bad arguments → 400); the token filter writes the same shape with a `code`. Nothing is
+  rule violations, missing elements → 404, bad arguments → 400); every error carries a stable `code` (`ErrorCode`) and, where its wording needs values, `params`; thrown through
+  `ApiException`, `RuleViolation`, `NotAllowedException` and the other `CodedError`s. The token filter writes the same shape. Nothing is
   left to the default error body, so the frontend's `detail` is always present.
 - **JSON.** The persistence mappers are private to the game repositories and Jackson 3 only (Hibernate's JSON format mapper is set to
   `Jackson3JsonFormatMapper`); the application's own mapper renders API responses, with a test that views carry no deck order or

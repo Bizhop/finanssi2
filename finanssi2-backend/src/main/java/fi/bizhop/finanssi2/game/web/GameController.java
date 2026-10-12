@@ -1,5 +1,7 @@
 package fi.bizhop.finanssi2.game.web;
 
+import fi.bizhop.finanssi2.error.ErrorCode;
+import fi.bizhop.finanssi2.error.ApiException;
 import fi.bizhop.finanssi2.game.db.Game;
 import fi.bizhop.finanssi2.game.db.GameLogEntry;
 import fi.bizhop.finanssi2.game.engine.GameCommand;
@@ -16,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -54,7 +55,7 @@ public class GameController {
     @GetMapping(value = "/api/games/{id}/events", produces = "application/json")
     List<GameLogEntry> events(@PathVariable String id, @RequestParam(defaultValue = "0") int after, @RequestAttribute("user") User user) {
         if (after < 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "after must not be negative");
+            throw new ApiException(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_AFTER, "after must not be negative");
         }
         return gameService.events(id, after, user);
     }
@@ -74,7 +75,7 @@ public class GameController {
     Game changeSettings(@PathVariable String id, @RequestBody GameSettings settings,
                                       @RequestAttribute("user") User user) {
         if (settings.loanLimit() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "loanLimit is required");
+            throw new ApiException(HttpStatus.BAD_REQUEST, ErrorCode.LOAN_LIMIT_REQUIRED, "loanLimit is required");
         }
         return gameService.changeSettings(id, user, settings);
     }

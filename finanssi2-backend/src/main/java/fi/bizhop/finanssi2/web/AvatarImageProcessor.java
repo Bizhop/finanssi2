@@ -1,9 +1,10 @@
 package fi.bizhop.finanssi2.web;
 
+import fi.bizhop.finanssi2.error.ErrorCode;
+import fi.bizhop.finanssi2.error.ApiException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageWriteParam;
@@ -26,36 +27,36 @@ public class AvatarImageProcessor {
     static final int MAX_JPEG_BYTES = 64 * 1024;
 
     public String process(MultipartFile file) {
-        if (file == null || file.isEmpty()) throw invalid("Choose a JPEG or PNG image");
-        if (file.getSize() > MAX_INPUT_BYTES) throw new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE, "Avatar input must be at most 2 MiB");
+        if (file == null || file.isEmpty()) throw invalid(ErrorCode.AVATAR_REQUIRED, "Choose a JPEG or PNG image");
+        if (file.getSize() > MAX_INPUT_BYTES) throw new ApiException(HttpStatus.CONTENT_TOO_LARGE, ErrorCode.AVATAR_TOO_LARGE, "Avatar input must be at most 2 MiB");
         try {
             var bytes = file.getBytes();
-            if (bytes.length > MAX_INPUT_BYTES) throw new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE, "Avatar input must be at most 2 MiB");
+            if (bytes.length > MAX_INPUT_BYTES) throw new ApiException(HttpStatus.CONTENT_TOO_LARGE, ErrorCode.AVATAR_TOO_LARGE, "Avatar input must be at most 2 MiB");
             var image = decode(bytes);
             var jpeg = encodeJpeg(centerCrop(image));
-            if (jpeg.length > MAX_JPEG_BYTES) throw invalid("Image could not be compressed below 64 KiB");
+            if (jpeg.length > MAX_JPEG_BYTES) throw invalid(ErrorCode.AVATAR_CANNOT_COMPRESS, "Image could not be compressed below 64 KiB");
             return "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(jpeg);
         } catch (IOException error) {
-            throw invalid("Invalid image file");
+            throw invalid(ErrorCode.AVATAR_UNREADABLE, "Invalid image file");
         }
     }
 
     private static BufferedImage decode(byte[] bytes) throws IOException {
         try (var input = new MemoryCacheImageInputStream(new ByteArrayInputStream(bytes))) {
             var readers = ImageIO.getImageReaders(input);
-            if (!readers.hasNext()) throw invalid("Only JPEG and PNG images are supported");
+            if (!readers.hasNext()) throw invalid(ErrorCode.AVATAR_FORMAT, "Only JPEG and PNG images are supported");
             var reader = readers.next();
             try {
                 var format = reader.getFormatName().toUpperCase(Locale.ROOT);
                 if (!format.equals("JPEG") && !format.equals("JPG") && !format.equals("PNG"))
-                    throw invalid("Only JPEG and PNG images are supported");
+                    throw invalid(ErrorCode.AVATAR_FORMAT, "Only JPEG and PNG images are supported");
                 reader.setInput(input, true, true);
                 var width = reader.getWidth(0);
                 var height = reader.getHeight(0);
                 if (width < 1 || height < 1 || width > MAX_DIMENSION || height > MAX_DIMENSION)
-                    throw invalid("Image dimensions must not exceed 4096 × 4096");
+                    throw invalid(ErrorCode.AVATAR_DIMENSIONS, "Image dimensions must not exceed 4096 × 4096");
                 var image = reader.read(0);
-                if (image == null) throw invalid("Invalid image file");
+                if (image == null) throw invalid(ErrorCode.AVATAR_UNREADABLE, "Invalid image file");
                 return image;
             } finally {
                 reader.dispose();
@@ -100,10 +101,10 @@ public class AvatarImageProcessor {
             var encoded = bytes.toByteArray();
             if (encoded.length <= MAX_JPEG_BYTES) return encoded;
         }
-        throw invalid("Image could not be compressed below 64 KiB");
+        throw invalid(ErrorCode.AVATAR_CANNOT_COMPRESS, "Image could not be compressed below 64 KiB");
     }
 
-    private static ResponseStatusException invalid(String message) {
-        return new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
+    private static ApiException invalid(ErrorCode code, String message) {
+        return new ApiException(HttpStatus.BAD_REQUEST, code, message);
     }
 }

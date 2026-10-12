@@ -1,3 +1,4 @@
+import { fiErrors } from "./fi.errors.ts"
 import { fiBoard } from "./fi.board.ts"
 import { fiDecision } from "./fi.decision.ts"
 import { fiRoom } from "./fi.room.ts"
@@ -146,6 +147,7 @@ export const fi = {
     ...fiRoom,
     ...fiDecision,
     ...fiBoard,
+    ...fiErrors,
 } as const
 
 export type MessageKey = keyof typeof fi

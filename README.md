@@ -96,8 +96,10 @@ avatars are processed and stored in PostgreSQL, and game and chat entries refere
 `GET /api/me` supplies the profile and debug capability used by the frontend. Backend upload limits and image validation are configured
 for JPEG/PNG input up to 2 MiB; processed images are bounded JPEGs.
 
-API errors are RFC 9457 `ProblemDetail` bodies: `detail` is the message to show, and the sign-in errors also carry a `code`
-(`EMAIL_VERIFICATION_REQUIRED`, `ACCOUNT_LINKING_CONFLICT`). `GET /api/games/{id}` returns the commands the user may send
+API errors are RFC 9457 `ProblemDetail` bodies: every one has a stable `code` (the `ErrorCode` enum, e.g. `NOT_ENOUGH_CASH`)
+and, where the wording needs values, `params` (e.g. `{"square": 21}`). The frontend words the error by code in the UI language; `detail` is an
+English fallback for codes it does not know. Add a constant to `ErrorCode` with a wording in both frontend catalogs (`apiError.<CODE>`); a
+frontend test compares the enum with the catalogs. `GET /api/games/{id}` returns the commands the user may send
 (`allowedCommands`) and, in `options`, the concrete choices behind them with their current prices, Finance News modifiers included
 (properties and shares to buy, mortgage, redemption and buy-back amounts, building prices, shareholders' meeting fees, bonds).
 
@@ -140,7 +142,7 @@ Other frontend tasks (run from `finanssi2-web`, defined in `deno.json` like npm 
 
 The UI is available in Finnish (default) and English; the switch is on the account page and the choice lasts until the page is reloaded. Messages live in `finanssi2-web/src/i18n/`
 (`fi*.ts` is the source of truth, `en*.ts` must have the same keys and placeholders, which `deno task test` checks). Card, board and share text
-from the game assets stays Finnish in both languages, and backend error text (`detail`) stays English until the backend sends stable error codes.
+from the game assets stays Finnish in both languages, and backend errors are worded by their `code` in the selected language.
 
 ## Private debug games
 

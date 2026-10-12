@@ -1,5 +1,6 @@
 package fi.bizhop.finanssi2.game.service;
 
+import fi.bizhop.finanssi2.error.ErrorCode;
 import fi.bizhop.finanssi2.game.data.GameData;
 import fi.bizhop.finanssi2.game.data.GameDataConfig;
 import fi.bizhop.finanssi2.config.Finanssi2Properties;
@@ -153,14 +154,14 @@ class GameServiceTest {
     @Test
     void testJoinTwice() {
         lobby("a", "b");
-        assertThrows(RuleViolation.class, () -> service().join(GAME_ID, user("b")));
+        assertEquals(ErrorCode.ALREADY_IN_GAME, assertThrows(RuleViolation.class, () -> service().join(GAME_ID, user("b"))).code());
         verify(gameRepository, never()).save(any());
     }
 
     @Test
     void testJoinFullGame() {
         lobby("a", "b", "c", "d", "e", "f");
-        assertThrows(RuleViolation.class, () -> service().join(GAME_ID, user("g")));
+        assertEquals(ErrorCode.GAME_FULL, assertThrows(RuleViolation.class, () -> service().join(GAME_ID, user("g"))).code());
         verify(gameRepository, never()).save(any());
     }
 
