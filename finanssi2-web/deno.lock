@@ -12,7 +12,7 @@
     "npm:@types/react-dom@^19.3.0": "19.3.0_@types+react@19.3.0",
     "npm:@types/react@^19.3.0": "19.3.0",
     "npm:@vitejs/plugin-react@^6.1.2": "6.1.2_vite@8.3.4_@types+node@26.6.5",
-    "npm:firebase@^12.19.0": "12.19.0",
+    "npm:firebase@13": "13.0.0",
     "npm:react-dom@^19.3.0": "19.3.0_react@19.3.0",
     "npm:react-hook-form@^7.89.0": "7.89.0_@types+react@19.3.0_react@19.3.0",
     "npm:react-router@^8.4.0": "8.4.0_react@19.3.0_react-dom@19.3.0",
@@ -191,8 +191,8 @@
     "@emotion/weak-memoize@0.4.0": {
       "integrity": "sha512-snKqtPW01tN0ui7yu9rGv69aJXr/a/Ywvl11sUjNtEcRc+ng/mQriFL0wLXMef74iHa/EkftbDzU9F8iFbH+zg=="
     },
-    "@firebase/ai@2.16.0_@firebase+app@0.16.2_@firebase+app-types@0.9.6": {
-      "integrity": "sha512-WRVxl58B61Orwf7st7949ZIW2L4huV80Gpaum1z8v2eH+m2xaxWtC8mOjQyVAOirr6O/yf89cBjlPvoyBpBfTg==",
+    "@firebase/ai@3.0.0_@firebase+app@0.16.3_@firebase+app-types@0.9.6": {
+      "integrity": "sha512-66jJAi6JUmyXna89xaDONmfvupO1wNc3f2BegPwUImagbbpKdVeycE3kMqbU4jiDLL14N5PHzadovvxpaqD2hw==",
       "dependencies": [
         "@firebase/app",
         "@firebase/app-check-interop-types",
@@ -203,7 +203,7 @@
         "tslib"
       ]
     },
-    "@firebase/analytics-compat@0.2.31_@firebase+app@0.16.2_@firebase+app-compat@0.5.18": {
+    "@firebase/analytics-compat@0.2.31_@firebase+app@0.16.3_@firebase+app-compat@0.5.19": {
       "integrity": "sha512-msTlG9REujk5rjtOHNLngiuPmvaWGQte8ugL4/F6ZCMb+92Ue7SgjSEpNxINkM8ZtTrbGS83j5SZkt0r+M1Tjw==",
       "dependencies": [
         "@firebase/analytics",
@@ -218,7 +218,7 @@
     "@firebase/analytics-types@0.8.5": {
       "integrity": "sha512-kdnooE7Bis2jEnsqcerRwn/UQpH5D3uvHpku7OdUM9TJN3omlu6iYtbyAQ6XkAJRgJtO0aNf9OOkW8J6D59oCA=="
     },
-    "@firebase/analytics@0.10.25_@firebase+app@0.16.2": {
+    "@firebase/analytics@0.10.25_@firebase+app@0.16.3": {
       "integrity": "sha512-oDagV3PHeNXBdxemksZCdj+GmUT19eCnTOcLdQePIIovFXlm3zWy3Gjeaokt9Nqx24kc4ljK8lU0XGcGmmKZ1A==",
       "dependencies": [
         "@firebase/app",
@@ -229,7 +229,7 @@
         "tslib"
       ]
     },
-    "@firebase/app-check-compat@0.4.7_@firebase+app@0.16.2_@firebase+app-compat@0.5.18": {
+    "@firebase/app-check-compat@0.4.7_@firebase+app@0.16.3_@firebase+app-compat@0.5.19": {
       "integrity": "sha512-fBb/xSMyIKv1nDmccfzz3IAGBzx/cQOxmZai66rJzifb1hMMkztf824Xx7LhpTUe7HNUbXwY90IvJ66fi8q6yg==",
       "dependencies": [
         "@firebase/app",
@@ -248,7 +248,7 @@
     "@firebase/app-check-types@0.5.5": {
       "integrity": "sha512-+DF4gzFrlwGFyky38o4T/YN/r51l70yCtJ2HTkwmRj8FCMwPjm4hLH4fQbj6BUvzkiFqliBkitFsRpf1/YZkWA=="
     },
-    "@firebase/app-check@0.13.1_@firebase+app@0.16.2": {
+    "@firebase/app-check@0.13.1_@firebase+app@0.16.3": {
       "integrity": "sha512-l8y3dmnhodXks/APAwx4tWqRl3tk8b9874KF1FJyKg1DIU+kMD0l52iz7S9/MW+eK8k6cjJg0G0iJ5KQAsQpow==",
       "dependencies": [
         "@firebase/app",
@@ -258,8 +258,8 @@
         "tslib"
       ]
     },
-    "@firebase/app-compat@0.5.18": {
-      "integrity": "sha512-77H57WuGEsgrv59HdtuhHG+eQdP8di6myz7O93yW6yTZlR/tLSmsCxCq5vHp6AWWDwSV0EVtKUvizXQiQZVBWA==",
+    "@firebase/app-compat@0.5.19": {
+      "integrity": "sha512-pdT+THcv3h43LcawVJ+MUTzofL7umBaCvCgdbr01fnTXrbQU2RSHb0Po/YsF7w+tgjCycg84zCgZbd51NmoIaA==",
       "dependencies": [
         "@firebase/app",
         "@firebase/component",
@@ -274,8 +274,8 @@
         "@firebase/logger"
       ]
     },
-    "@firebase/app@0.16.2": {
-      "integrity": "sha512-fyCLPahl3r0Zb7Wzm+JLWcOOH3SaDgAyJzJ8EWIDiv51aNiv+2Pjbpa6myEuP7iXxjmJqrcbVm0GUF7h229T1Q==",
+    "@firebase/app@0.16.3": {
+      "integrity": "sha512-L2mYqVV2ilnek+W4JG7yasA97TsXCwx+f7/abweX5uSp3dkPa5Luiglt3s9YWfh1fBR3SWH/AkRgAwUpDGyCjg==",
       "dependencies": [
         "@firebase/component",
         "@firebase/logger",
@@ -284,8 +284,8 @@
         "tslib"
       ]
     },
-    "@firebase/auth-compat@0.6.11_@firebase+app@0.16.2_@firebase+app-compat@0.5.18_@firebase+app-types@0.9.6": {
-      "integrity": "sha512-L+xp3DTJQrBV08Vt0UhcL/ofUOSjXom7JOJfbT6oas4o7gCrQnTYFKs8wfiuKLmHoo8BxMr5LdgjAs7o6aAsqQ==",
+    "@firebase/auth-compat@0.6.12_@firebase+app@0.16.3_@firebase+app-compat@0.5.19_@firebase+app-types@0.9.6": {
+      "integrity": "sha512-Vspo2zx1RR6LB7zuM7TduD1clMLT/x3Wr97u2jf9s2JrhYArJAFKeEu8bRWF1DoX54z6W9N77SdPRbPAiLKPpg==",
       "dependencies": [
         "@firebase/app",
         "@firebase/app-compat",
@@ -306,8 +306,8 @@
         "@firebase/util"
       ]
     },
-    "@firebase/auth@1.13.6_@firebase+app@0.16.2": {
-      "integrity": "sha512-MKRLvF72HJ/irNn2fJR0Gv5FOZNtqv1IBeJHRwK8l8pZ/wi9vuUw8ecyCMvQDDNxfS6uW0MWACL5KC4Y8Pp+fA==",
+    "@firebase/auth@1.13.7_@firebase+app@0.16.3": {
+      "integrity": "sha512-00wn8cMrh1ZyEPF6RO5G081Xq1b57FN0QxChiAda0hy/D3Q5TrMk30qhWszRWCgXPRipw6yM6qtqUew3u3qEjA==",
       "dependencies": [
         "@firebase/app",
         "@firebase/component",
@@ -323,7 +323,7 @@
         "tslib"
       ]
     },
-    "@firebase/data-connect@0.7.4_@firebase+app@0.16.2": {
+    "@firebase/data-connect@0.7.4_@firebase+app@0.16.3": {
       "integrity": "sha512-su1aGWlzhxb+xtggCUSsufJn1FDa06SBDK71y+fpQ+g2zMhMExik6FUv/odkKzOF/xfWVjabCbWBcjJY3MceDA==",
       "dependencies": [
         "@firebase/app",
@@ -334,7 +334,7 @@
         "tslib"
       ]
     },
-    "@firebase/database-compat@2.1.7_@firebase+app@0.16.2_@firebase+app-compat@0.5.18": {
+    "@firebase/database-compat@2.1.7_@firebase+app@0.16.3_@firebase+app-compat@0.5.19": {
       "integrity": "sha512-lBq9sJm8MnJINKJnkAKSOj2MbC66xGoSVCcGkPtstl+lkoKEBtD46qHLbuDgW/WbLPoKVm17RIN8BxHj+Z2F2w==",
       "dependencies": [
         "@firebase/app",
@@ -370,8 +370,8 @@
         "tslib"
       ]
     },
-    "@firebase/firestore-compat@0.4.14_@firebase+app@0.16.2_@firebase+app-compat@0.5.18_@firebase+app-types@0.9.6": {
-      "integrity": "sha512-HJ2HBNgNPrRsWIJ4E+Kc0u0h1U7HlF7If8AtYjie9HZXlMUmwYSJaXBj9VFm6gkSj5dlKZNcOQ0Ou25CVVG6rA==",
+    "@firebase/firestore-compat@0.4.15_@firebase+app@0.16.3_@firebase+app-compat@0.5.19_@firebase+app-types@0.9.6": {
+      "integrity": "sha512-/hWibRTNFsWkZZi1dbDS1hiJIMezYUMPrRjMmBXevel5b368XWY+NvfOaSxgy3+fDb6I+uZ7SKGFyL06gW3vTA==",
       "dependencies": [
         "@firebase/app",
         "@firebase/app-compat",
@@ -389,8 +389,8 @@
         "@firebase/util"
       ]
     },
-    "@firebase/firestore@4.17.2_@firebase+app@0.16.2": {
-      "integrity": "sha512-SiyQEK1dYPOjItFVA+kZGdvOoRAtMebDBvUaSxJPNZMkKcRwYYK2kzWo5UXTZZj523uMxJnkr+KKVySEMme3kQ==",
+    "@firebase/firestore@4.18.0_@firebase+app@0.16.3": {
+      "integrity": "sha512-28aKMUeM+L4fuxx5hurvQK31KLh/KRutaP1544avVWuR4mNTAC0FQoHg8gbkN5NoJj3yN9/ZFGSFSVPR8/x/BQ==",
       "dependencies": [
         "@firebase/app",
         "@firebase/component",
@@ -403,7 +403,7 @@
         "tslib"
       ]
     },
-    "@firebase/functions-compat@0.5.0_@firebase+app@0.16.2_@firebase+app-compat@0.5.18": {
+    "@firebase/functions-compat@0.5.0_@firebase+app@0.16.3_@firebase+app-compat@0.5.19": {
       "integrity": "sha512-T3BDIToESZUHt7438wyKYMkRjKg3m1xAIux5fVpNvTRQlDOFLukWniQWBDhJ2znpU9kxMTR6+e31TVo8P15PZw==",
       "dependencies": [
         "@firebase/app",
@@ -418,7 +418,7 @@
     "@firebase/functions-types@0.6.5": {
       "integrity": "sha512-Zc0pURjthHXzSj54ZivCkzKDSV1r/wIpnmHdhq82q2yFFPVoncG/ZJjnVMiANvQfeww/QnElhzODpfwUucVwdA=="
     },
-    "@firebase/functions@0.14.0_@firebase+app@0.16.2": {
+    "@firebase/functions@0.14.0_@firebase+app@0.16.3": {
       "integrity": "sha512-DhuYFr0eMhp+s/PNEk6SiMsYkc00+XVOUeKbrl8MOzQNZI3SKQpqoDR1d+keNDAutwmHRWTUAdXBoVPD+xxVUw==",
       "dependencies": [
         "@firebase/app",
@@ -430,7 +430,7 @@
         "tslib"
       ]
     },
-    "@firebase/installations-compat@0.2.24_@firebase+app@0.16.2_@firebase+app-compat@0.5.18_@firebase+app-types@0.9.6": {
+    "@firebase/installations-compat@0.2.24_@firebase+app@0.16.3_@firebase+app-compat@0.5.19_@firebase+app-types@0.9.6": {
       "integrity": "sha512-8M5nlcWwYt881x83COP2odq5vgf+NgwJh+RMd4LRSv8JI1pxwDfgrDJOERrjTgfC9J5Z0vnQX4b1pdN914e0Zw==",
       "dependencies": [
         "@firebase/app",
@@ -448,7 +448,7 @@
         "@firebase/app-types"
       ]
     },
-    "@firebase/installations@0.6.24_@firebase+app@0.16.2": {
+    "@firebase/installations@0.6.24_@firebase+app@0.16.3": {
       "integrity": "sha512-Ui52ey8wHoWqkBbXRKJEKYWylI0JZogZmoLS+o8Anh1bxWtK27ZYjLla1UJAAdC5DCKLJ2qAp0VpJOjg8VOX1g==",
       "dependencies": [
         "@firebase/app",
@@ -464,7 +464,7 @@
         "tslib"
       ]
     },
-    "@firebase/messaging-compat@0.2.30_@firebase+app@0.16.2_@firebase+app-compat@0.5.18": {
+    "@firebase/messaging-compat@0.2.30_@firebase+app@0.16.3_@firebase+app-compat@0.5.19": {
       "integrity": "sha512-m1DPT2ET5x0qYqXLoHwKMAyf1mgZZOhuoE6H6/H4OPsp8zSxMIDEFPaW7MaffPJsCA5J7kHzo+BHVNXK4ZoV+w==",
       "dependencies": [
         "@firebase/app",
@@ -478,7 +478,7 @@
     "@firebase/messaging-interop-types@0.2.6": {
       "integrity": "sha512-MVzvkKe2V4H2dHu5oOxRfeKQcfTwWmCgnzsC4V1q3ixun5iiL8riCZ2qI35rDhCL4glPGiu0jHxDbpVNuTKfow=="
     },
-    "@firebase/messaging@0.13.3_@firebase+app@0.16.2": {
+    "@firebase/messaging@0.13.3_@firebase+app@0.16.3": {
       "integrity": "sha512-nRXPAp+z0kA3KziJtRY9kktHECvRwaaONzHvislFgllhCwJMscW7icWNQA5IjyP8Uc2+GS/4px8Uz6rx6ftTag==",
       "dependencies": [
         "@firebase/app",
@@ -490,7 +490,7 @@
         "tslib"
       ]
     },
-    "@firebase/performance-compat@0.2.27_@firebase+app@0.16.2_@firebase+app-compat@0.5.18": {
+    "@firebase/performance-compat@0.2.27_@firebase+app@0.16.3_@firebase+app-compat@0.5.19": {
       "integrity": "sha512-O/ozTf/EbChN94Pk7bd1eUC0PAC36726AwsaiJyC0bZzSBWfLGSWASGPH5pebUWXQPJtGxIJYRkkbX5l0Qa+Hw==",
       "dependencies": [
         "@firebase/app",
@@ -506,7 +506,7 @@
     "@firebase/performance-types@0.2.5": {
       "integrity": "sha512-PRzOgB+/M+6AKlEkY8a9xy5Ff5SfZPIh4iShXhn2WAcL/euSbK7bdLqWysHduunNJhGFsXa22Ag3ixqL6rQtYg=="
     },
-    "@firebase/performance@0.7.14_@firebase+app@0.16.2": {
+    "@firebase/performance@0.7.14_@firebase+app@0.16.3": {
       "integrity": "sha512-9PH1XEZVHErxGdbXluvGz4Uyjw4W955H8v7Mv9rHIybRrg5F2Ac2tvf5+mSf5EtnxWNmxrD2WLnvMFaZP4sMrQ==",
       "dependencies": [
         "@firebase/app",
@@ -518,8 +518,8 @@
         "web-vitals"
       ]
     },
-    "@firebase/remote-config-compat@0.2.29_@firebase+app@0.16.2_@firebase+app-compat@0.5.18": {
-      "integrity": "sha512-mY7JtTISK6F4g4T0x3kVepr5cp0NXL7f5yjIUXXGaTrg4qUlFBWRbENaHaqZ78dwmNcLm24h/yPsOVRlDXEXhA==",
+    "@firebase/remote-config-compat@0.2.30_@firebase+app@0.16.3_@firebase+app-compat@0.5.19": {
+      "integrity": "sha512-Q4sQKhQ8TPEMOcCUvUBfGeAP1DfcG7FGBfA9yFUn/XRr4vSToY0DTmK28Nh7lgLQYzs6D5Ng6knSoXH+aGn1Tg==",
       "dependencies": [
         "@firebase/app",
         "@firebase/app-compat",
@@ -534,8 +534,8 @@
     "@firebase/remote-config-types@0.5.2": {
       "integrity": "sha512-i8k1omVfoAnaT1ZPv2FFjxMZrATYsO/GnFgHEj5+7fAJLzi8wLnGGv1WK06oEAD6ltrWXSO1HzeNyajn/NjMWw=="
     },
-    "@firebase/remote-config@0.9.2_@firebase+app@0.16.2": {
-      "integrity": "sha512-Rii93DkXjM+RE/ytHdYa7EIiQLJbdBr+W8EEiqd/vbLCOC+1FdkDuRiumJBp6t3yewHGbdqbpjB3fk3z0cZ+8g==",
+    "@firebase/remote-config@0.9.3_@firebase+app@0.16.3": {
+      "integrity": "sha512-9DbuFNAFeUbVJQZmwLZfdoLRNFWV43V4UqaRpDkaSIdTmVWhzctPeISGkWe4sKTsqpoyldRumquS0gqWZg05fQ==",
       "dependencies": [
         "@firebase/app",
         "@firebase/component",
@@ -545,8 +545,8 @@
         "tslib"
       ]
     },
-    "@firebase/storage-compat@0.4.5_@firebase+app@0.16.2_@firebase+app-compat@0.5.18_@firebase+app-types@0.9.6": {
-      "integrity": "sha512-vO0tFPxXbKDKdlTu8tYT08S9t9ezUTJYEdLCULpWxWq2aq6zojwN1QmAB+1a50AI/g47GlWUJn1XPncm/PDZsw==",
+    "@firebase/storage-compat@0.4.6_@firebase+app@0.16.3_@firebase+app-compat@0.5.19_@firebase+app-types@0.9.6": {
+      "integrity": "sha512-te0IsqX1bM+OZCJF7jNSKXcMqCA2yYmpshRHjX4axy0lI/P9ZP9GLjEZMVL8wrjUWF4e3cZxMZTbck3Zd5E1hA==",
       "dependencies": [
         "@firebase/app",
         "@firebase/app-compat",
@@ -564,8 +564,8 @@
         "@firebase/util"
       ]
     },
-    "@firebase/storage@0.14.5_@firebase+app@0.16.2": {
-      "integrity": "sha512-r2tozN/BlEewLi70tJNUQPzWwbex9GM7NgXZsamHKQrjKEfcR0i4jGgHBKAKA4hbwiPE9eNMb3hcxWnDpeJZwg==",
+    "@firebase/storage@0.14.6_@firebase+app@0.16.3": {
+      "integrity": "sha512-9WjohxpjbfcySjCp8kIbd1ZhtmCQFQLqPtDQ+wmZ5PVXimTDjDsSx/RZjwwK89MjCTXB9fCdmvZkJxplZn4W1A==",
       "dependencies": [
         "@firebase/app",
         "@firebase/component",
@@ -583,15 +583,15 @@
     "@firebase/webchannel-wrapper@1.0.7": {
       "integrity": "sha512-phBFwieDLvkZGYN9CE9ZFNEIoBVksprzsnCzQejCmCHtgwCXReeuRpoEGN9C4EbhONztv8NRV1tau6Rb9pONwQ=="
     },
-    "@grpc/grpc-js@1.9.15": {
-      "integrity": "sha512-nqE7Hc0AzI+euzUwDAy0aY5hCp10r734gMGRdU+qOPX0XSceI2ULrcXB5U2xSc5VkWwalCj4M7GzCAygZl2KoQ==",
+    "@grpc/grpc-js@1.9.16": {
+      "integrity": "sha512-wE4Ut/olIzfKqp631XrG+wbF0v1vWFN4YL9FyXC2LJiG33DsV7PLzURjrCvY/6je2ntdRkeLpPDluzSRGaVltQ==",
       "dependencies": [
         "@grpc/proto-loader",
         "@types/node"
       ]
     },
-    "@grpc/proto-loader@0.7.13": {
-      "integrity": "sha512-AiXO/bfe9bmxBjxxtYxFAXGZvMaN5s8kO+jBHAJCON8rJoB5YS/D6X7ZNc6XQkuHNmyl4CYaMI1fJ/Gn27RGGw==",
+    "@grpc/proto-loader@0.7.15": {
+      "integrity": "sha512-tMXdRCfYVixjuFK+Hk0Q1s38gV9zDiDJfWL3h1rv4Qc39oILCu1TRTDt7+fGUI8K4G1Fj125Hx/ru3azECWTyQ==",
       "dependencies": [
         "lodash.camelcase",
         "long",
@@ -797,24 +797,20 @@
     "@protobufjs/base64@1.1.2": {
       "integrity": "sha512-AZkcAA5vnN/v4PDqKyMR5lx7hZttPDgClv83E//FMNhR2TMcLUhfRUBHCmSl0oi9zMgDDqRUJkSxO3wm85+XLg=="
     },
-    "@protobufjs/codegen@2.0.4": {
-      "integrity": "sha512-YyFaikqM5sH0ziFZCN3xDC7zeGaB/d0IUb9CATugHWbd1FRFwWwt4ld4OYMPWu5a3Xe01mGAULCdqhMlPl29Jg=="
+    "@protobufjs/codegen@2.0.5": {
+      "integrity": "sha512-zgXFLzW3Ap33e6d0Wlj4MGIm6Ce8O89n/apUaGNB/jx+hw+ruWEp7EwGUshdLKVRCxZW12fp9r40E1mQrf/34g=="
     },
-    "@protobufjs/eventemitter@1.1.0": {
-      "integrity": "sha512-j9ednRT81vYJ9OfVuXG6ERSTdEL1xVsNgqpkxMsbIabzSo3goCjDIveeGv5d03om39ML71RdmrGNjG5SReBP/Q=="
+    "@protobufjs/eventemitter@1.1.1": {
+      "integrity": "sha512-vW1GmwMZNnL+gMRaovlh9yZX74kc+TTU3FObkkurpMaRtBfLP3ldjS9KQWlwZgraRE0+dheEEoAxdzcJQ8eXZg=="
     },
-    "@protobufjs/fetch@1.1.0": {
-      "integrity": "sha512-lljVXpqXebpsijW71PZaCYeIcE5on1w5DlQy5WH6GLbFryLUrBD4932W/E2BSpfRJWseIL4v/KPgBFxDOIdKpQ==",
+    "@protobufjs/fetch@1.1.1": {
+      "integrity": "sha512-GpptLrs57adMSuHi3VNj0mAF8dwh36LMaYF6XyJ6JMWlVsc+t42tm1HSEDmOs3A8fC9yyeisgLhsTVQokOZ0zw==",
       "dependencies": [
-        "@protobufjs/aspromise",
-        "@protobufjs/inquire"
+        "@protobufjs/aspromise"
       ]
     },
     "@protobufjs/float@1.0.2": {
       "integrity": "sha512-Ddb+kVXlXst9d+R9PfTIxh1EdNkgoRe5tOX6t01f1lYWOvJnSPDBlG241QLzcyPdoNTsblLUdujGSE4RzrTZGQ=="
-    },
-    "@protobufjs/inquire@1.1.0": {
-      "integrity": "sha512-kdSefcPdruJiFMVSbn801t4vFK7KB/5gd2fYvrxhuJYg8ILrmn9SKSX2tZdV6V+ksulWqS7aXjBcRXl3wHoD9Q=="
     },
     "@protobufjs/path@1.1.2": {
       "integrity": "sha512-6JOcJ5Tm08dOHAbdR3GrvP+yUUfkjG5ePsHYczMFLq3ZmMkAD98cDgcT2iA1lJ9NVwFd4tH/iSSoe44YWkltEA=="
@@ -822,8 +818,8 @@
     "@protobufjs/pool@1.1.0": {
       "integrity": "sha512-0kELaGSIDBKvcgS4zkjz1PeddatrjYcmMWOlAuAPwAeccUrPHdUqo/J6LiymHHEiJT5NrF1UVwxY14f+fy4WQw=="
     },
-    "@protobufjs/utf8@1.1.0": {
-      "integrity": "sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw=="
+    "@protobufjs/utf8@1.1.2": {
+      "integrity": "sha512-b1UQwcEZ4yCnMCD8DAL1VlbvBJE9/IX4FTIp7BG1xYpf29SLazLSrqUkj4w7Y5y7cCVP6E5tcqqcI0xemPkHug=="
     },
     "@remix-run/route-pattern@0.22.1": {
       "integrity": "sha512-czdGJWh09Lapvcqt7Vb09KlrU2PhRJ8xQaI+AItTuD9aDJ5MAgxnS38lnys6Ll+6RJEqPiaUqTwIQhVLwFvv+w=="
@@ -1057,8 +1053,8 @@
     "find-root@1.1.0": {
       "integrity": "sha512-NKfW6bec6GfKc0SGx1e07QZY9PE99u0Bft/0rzSD5k3sO/vwkVUpDUKVm5Gpp5Ue3YfShPFTX2070tDs5kB9Ng=="
     },
-    "firebase@12.19.0": {
-      "integrity": "sha512-kwXCLcI0ly2lkwygkbuRx6SsX3DSO96355YrWh9SWZ5ncsxK/y5cirn3sY6nZVSiBVE++2nL6Hchzu1EB8uohQ==",
+    "firebase@13.0.0": {
+      "integrity": "sha512-4cChZajVtuOijT/t7Vw1GZRTuohCxw+aoc8DAwhF+CSbS+zhqHE+i5PzEVttIySw7oKerBDRZRyDt4FynrWecg==",
       "dependencies": [
         "@firebase/ai",
         "@firebase/analytics",
@@ -1116,8 +1112,8 @@
         "react-is@16.13.1"
       ]
     },
-    "http-parser-js@0.5.8": {
-      "integrity": "sha512-SGeBX54F94Wgu5RH3X5jsDtf4eHyRogWX1XGT3b4HuW3tQPM4AaBzoUji/4AAJNXCEOWZ5O0DgZmJw1947gD5Q=="
+    "http-parser-js@0.5.10": {
+      "integrity": "sha512-Pysuw9XpUq5dVc/2SMHpuTY01RFl8fttgcyunjL7eEMhGM3cI4eOmiCycJDVCo/7O7ClfQD3SaI6ftDzqOXYMA=="
     },
     "idb@7.1.1": {
       "integrity": "sha512-gchesWBzyvGHRO9W8tzUWFDycow5gwjvFKfyV9FF32Y7F50yZMp7mP+T2mJIWFx49zicqyC4uefHM17o6xKIVQ=="
@@ -1231,8 +1227,8 @@
     "lodash.camelcase@4.3.0": {
       "integrity": "sha512-TwuEnCnxbc3rAvhf/LbG7tJUDzhqXyFnv3dtzLOPgCG/hODL7WFnsbwktkD7yUV0RrreP/l1PALq/YSg6VvjlA=="
     },
-    "long@5.2.3": {
-      "integrity": "sha512-lcHwpNoggQTObv5apGNCTdJrO69eHOZMi4BNC+rTLER8iHAqGrUVeLh/irVIM7zTw2bOXA8T6uNPeujwOLg/2Q=="
+    "long@5.3.2": {
+      "integrity": "sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA=="
     },
     "loose-envify@1.4.0": {
       "integrity": "sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==",
@@ -1294,8 +1290,8 @@
         "react-is@16.13.1"
       ]
     },
-    "protobufjs@7.4.0": {
-      "integrity": "sha512-mRUWCc3KUU4w1jU8sGxICXH/gNS94DvI1gxqDvBzhj1JpcsimQkYiOJfwsPUykUI5ZaspFbSgmBLER8IrQ3tqw==",
+    "protobufjs@7.6.6": {
+      "integrity": "sha512-dYDWdjSl5RNb7SgPxGQcRU+GtvP7s2fpkrY0r432PcOIaZ0/rBcxEZnQN67iJhFuQiVw754JDoPruPCNdGsbjg==",
       "dependencies": [
         "@protobufjs/aspromise",
         "@protobufjs/base64",
@@ -1303,7 +1299,6 @@
         "@protobufjs/eventemitter",
         "@protobufjs/fetch",
         "@protobufjs/float",
-        "@protobufjs/inquire",
         "@protobufjs/path",
         "@protobufjs/pool",
         "@protobufjs/utf8",
@@ -1478,8 +1473,8 @@
     "web-vitals@4.2.4": {
       "integrity": "sha512-r4DIlprAGwJ7YM11VZp4R884m0Vmgr6EAKe3P+kO0PPj3Unqyvv59rczf6UiGcb9Z8QxZVcqKNwv/g0WNdWwsw=="
     },
-    "websocket-driver@0.7.4": {
-      "integrity": "sha512-b17KeDIQVjvb0ssuSDF2cYXSg2iztliJ4B9WdsuB6J952qCPKmnVq4DyW5motImXHDC1cBT/1UezrJVsKw5zjg==",
+    "websocket-driver@0.7.5": {
+      "integrity": "sha512-ZL2+3c7kMBdIRCMz6l8jQMHyGVxj+UL+xVk74Ombiciboca8rHa15L86B19E5oh1pL9Ii/uj54gtsIrZGMo6zA==",
       "dependencies": [
         "http-parser-js",
         "safe-buffer",
@@ -1506,8 +1501,8 @@
     "yargs-parser@21.1.1": {
       "integrity": "sha512-tVpsJW7DdjecAiFpbIB1e3qxIQsE6NoPc5/eTdrbbIC4h0LVsWhnoa3g+m2HclBIujHzsxZ4VJVA+GUuc2/LBw=="
     },
-    "yargs@17.7.2": {
-      "integrity": "sha512-7dSzzRQ++CKnNI/krKnYRV7JKKPUXMEh61soaHKg9mrWEhzFWhFnxPxGl+69cD1Ou63C13NUPCnmIcrvqCuM6w==",
+    "yargs@17.7.3": {
+      "integrity": "sha512-GZtjxm/J/4TSxuL3FNYjCmLktBTnIw/rVmKSIyKeYAZpmJB2ig9VauCC5xsa82GNKVKDAqpOn3KVzNt0zmrU0g==",
       "dependencies": [
         "cliui",
         "escalade",
@@ -1535,7 +1530,7 @@
       "npm:@types/react-dom@^19.3.0",
       "npm:@types/react@^19.3.0",
       "npm:@vitejs/plugin-react@^6.1.2",
-      "npm:firebase@^12.19.0",
+      "npm:firebase@13",
       "npm:react-dom@^19.3.0",
       "npm:react-hook-form@^7.89.0",
       "npm:react-router@^8.4.0",

@@ -22,7 +22,7 @@
         "@types/react": "npm:@types/react@^19.3.0",
         "@types/react-dom": "npm:@types/react-dom@^19.3.0",
         "@vitejs/plugin-react": "npm:@vitejs/plugin-react@^6.1.2",
-        "firebase": "npm:firebase@^12.19.0",
+        "firebase": "npm:firebase@^13.0.0",
         "react": "npm:react@^19.3.0",
         "react-dom": "npm:react-dom@^19.3.0",
         "react-hook-form": "npm:react-hook-form@^7.89.0",
