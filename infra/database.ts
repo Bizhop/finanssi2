@@ -79,14 +79,18 @@ export function createDatabase(
     }, { provider })
     new aws.secretsmanager.SecretVersion(`${prefix}-database-admin-version`, {
         secretId: adminSecret.id,
-        secretString: pulumi.secret(pulumi.all([cluster.endpoint, adminPassword.result]).apply(([host, password]) => JSON.stringify({
-            username: "finanssi_admin",
-            password,
-            engine: "aurora-postgresql",
-            host,
-            port: 5432,
-            dbname: "finanssi",
-        }))),
+        secretString: pulumi.secret(
+            pulumi.all([cluster.endpoint, adminPassword.result]).apply(([host, password]) =>
+                JSON.stringify({
+                    username: "finanssi_admin",
+                    password,
+                    engine: "aurora-postgresql",
+                    host,
+                    port: 5432,
+                    dbname: "finanssi",
+                })
+            ),
+        ),
     }, { provider, dependsOn: [instance] })
 
     const applicationSecret = new aws.secretsmanager.Secret(`${prefix}-database-application-secret`, {
@@ -97,14 +101,18 @@ export function createDatabase(
     }, { provider })
     new aws.secretsmanager.SecretVersion(`${prefix}-database-application-version`, {
         secretId: applicationSecret.id,
-        secretString: pulumi.secret(pulumi.all([cluster.endpoint, applicationPassword.result]).apply(([host, password]) => JSON.stringify({
-            username: "finanssi_app",
-            password,
-            engine: "aurora-postgresql",
-            host,
-            port: 5432,
-            dbname: "finanssi",
-        }))),
+        secretString: pulumi.secret(
+            pulumi.all([cluster.endpoint, applicationPassword.result]).apply(([host, password]) =>
+                JSON.stringify({
+                    username: "finanssi_app",
+                    password,
+                    engine: "aurora-postgresql",
+                    host,
+                    port: 5432,
+                    dbname: "finanssi",
+                })
+            ),
+        ),
     }, { provider, dependsOn: [instance] })
 
     return { cluster, instance, adminSecret, applicationSecret }

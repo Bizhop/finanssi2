@@ -361,37 +361,39 @@ export function createBackend(
             settings.database.applicationSecret.arn,
             hostLogGroup.arn,
             applicationLogGroup.arn,
-        ]).apply(([repoArn, firebaseArn, dbAdminArn, dbAppArn, hostLogArn, applicationLogArn]) => JSON.stringify({
-            Version: "2012-10-17",
-            Statement: [
-                {
-                    Effect: "Allow",
-                    Action: "ecr:GetAuthorizationToken",
-                    Resource: "*",
-                },
-                {
-                    Effect: "Allow",
-                    Action: ["ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"],
-                    Resource: repoArn,
-                },
-                {
-                    Effect: "Allow",
-                    Action: ["secretsmanager:DescribeSecret", "secretsmanager:GetSecretValue"],
-                    Resource: [firebaseArn, dbAdminArn, dbAppArn],
-                },
-                {
-                    Effect: "Allow",
-                    Action: "cloudwatch:PutMetricData",
-                    Resource: "*",
-                    Condition: { StringEquals: { "cloudwatch:namespace": "Finanssi2/EC2" } },
-                },
-                {
-                    Effect: "Allow",
-                    Action: ["logs:CreateLogStream", "logs:PutLogEvents", "logs:DescribeLogStreams"],
-                    Resource: [`${hostLogArn}:*`, `${applicationLogArn}:*`],
-                },
-            ],
-        })),
+        ]).apply(([repoArn, firebaseArn, dbAdminArn, dbAppArn, hostLogArn, applicationLogArn]) =>
+            JSON.stringify({
+                Version: "2012-10-17",
+                Statement: [
+                    {
+                        Effect: "Allow",
+                        Action: "ecr:GetAuthorizationToken",
+                        Resource: "*",
+                    },
+                    {
+                        Effect: "Allow",
+                        Action: ["ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"],
+                        Resource: repoArn,
+                    },
+                    {
+                        Effect: "Allow",
+                        Action: ["secretsmanager:DescribeSecret", "secretsmanager:GetSecretValue"],
+                        Resource: [firebaseArn, dbAdminArn, dbAppArn],
+                    },
+                    {
+                        Effect: "Allow",
+                        Action: "cloudwatch:PutMetricData",
+                        Resource: "*",
+                        Condition: { StringEquals: { "cloudwatch:namespace": "Finanssi2/EC2" } },
+                    },
+                    {
+                        Effect: "Allow",
+                        Action: ["logs:CreateLogStream", "logs:PutLogEvents", "logs:DescribeLogStreams"],
+                        Resource: [`${hostLogArn}:*`, `${applicationLogArn}:*`],
+                    },
+                ],
+            })
+        ),
     }, { provider })
     const instanceProfile = new aws.iam.InstanceProfile(`${prefix}-backend-profile`, {
         role: instanceRole.name,
@@ -407,17 +409,21 @@ export function createBackend(
         settings.firebaseSecret.arn,
         settings.database.adminSecret.arn,
         settings.database.applicationSecret.arn,
-    ]).apply(([repoUrl, firebaseSecretArn, databaseAdminSecretArn, databaseApplicationSecretArn]) => startupScript({
-        region: settings.region,
-        apiHostname: settings.apiHostname,
-        allowedOrigin: settings.allowedOrigin,
-        debugEmails: settings.debugEmails,
-        repoUrl,
-        firebaseSecretArn,
-        databaseAdminSecretArn,
-        databaseApplicationSecretArn,
-        cloudWatchAgentUrl: `https://amazoncloudwatch-agent.s3.amazonaws.com/amazon_linux/${settings.architecture === "arm64" ? "arm64" : "amd64"}/latest/amazon-cloudwatch-agent.rpm`,
-    }))
+    ]).apply(([repoUrl, firebaseSecretArn, databaseAdminSecretArn, databaseApplicationSecretArn]) =>
+        startupScript({
+            region: settings.region,
+            apiHostname: settings.apiHostname,
+            allowedOrigin: settings.allowedOrigin,
+            debugEmails: settings.debugEmails,
+            repoUrl,
+            firebaseSecretArn,
+            databaseAdminSecretArn,
+            databaseApplicationSecretArn,
+            cloudWatchAgentUrl: `https://amazoncloudwatch-agent.s3.amazonaws.com/amazon_linux/${
+                settings.architecture === "arm64" ? "arm64" : "amd64"
+            }/latest/amazon-cloudwatch-agent.rpm`,
+        })
+    )
 
     const networkInterface = new aws.ec2.NetworkInterface(`${prefix}-backend-eni`, {
         subnetId: settings.networking.publicSubnetIds[0],

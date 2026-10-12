@@ -114,17 +114,19 @@ export function createFrontend(
 
         const bucketPolicy = new aws.s3.BucketPolicy(`${prefix}-frontend-cdn-policy`, {
             bucket: bucket.id,
-            policy: pulumi.all([bucket.arn, distribution.arn]).apply(([bucketArn, distributionArn]) => JSON.stringify({
-                Version: "2012-10-17",
-                Statement: [{
-                    Sid: "AllowCloudFrontReadOnly",
-                    Effect: "Allow",
-                    Principal: { Service: "cloudfront.amazonaws.com" },
-                    Action: "s3:GetObject",
-                    Resource: `${bucketArn}/*`,
-                    Condition: { StringEquals: { "AWS:SourceArn": distributionArn } },
-                }],
-            })),
+            policy: pulumi.all([bucket.arn, distribution.arn]).apply(([bucketArn, distributionArn]) =>
+                JSON.stringify({
+                    Version: "2012-10-17",
+                    Statement: [{
+                        Sid: "AllowCloudFrontReadOnly",
+                        Effect: "Allow",
+                        Principal: { Service: "cloudfront.amazonaws.com" },
+                        Action: "s3:GetObject",
+                        Resource: `${bucketArn}/*`,
+                        Condition: { StringEquals: { "AWS:SourceArn": distributionArn } },
+                    }],
+                })
+            ),
         }, { provider, dependsOn: [distribution] })
         void bucketPolicy
     }
