@@ -33,15 +33,6 @@ export function createFrontend(
         bucket: bucket.id,
         rules: [{ applyServerSideEncryptionByDefault: { sseAlgorithm: "AES256" } }],
     }, { provider })
-    new aws.s3.BucketLifecycleConfiguration(`${prefix}-frontend-asset-retention`, {
-        bucket: bucket.id,
-        rules: [{
-            id: "expire-old-hashed-assets",
-            status: "Enabled",
-            filter: { prefix: "assets/" },
-            expiration: { days: 90 },
-        }],
-    }, { provider })
 
     const originAccessControl = new aws.cloudfront.OriginAccessControl(`${prefix}-frontend-oac`, {
         name: `${prefix}-frontend-oac`,
