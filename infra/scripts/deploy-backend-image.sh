@@ -16,6 +16,7 @@ image_ref=$1
 load_stack_outputs "$infra_dir" "$stack"
 repository_url=$(stack_output backendRepositoryUrl)
 instance_id=$(stack_output backendInstanceId)
+image_ref_parameter=$(stack_output backendImageRefParameter)
 region=$(stack_region "$infra_dir" "$stack")
 
 validate_repository_url "$repository_url"
@@ -23,6 +24,7 @@ validate_repository_url "$repository_url"
 digest=${image_ref#*@}
 [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]] || fail "image must use a valid immutable SHA-256 digest"
 [[ "$instance_id" =~ ^i-[a-f0-9]+$ ]] || fail "unexpected EC2 instance ID from stack output"
+[[ "$image_ref_parameter" =~ ^/[A-Za-z0-9_./-]+$ ]] || fail "unexpected image reference parameter name from stack output"
 
 aws sts get-caller-identity --output text >/dev/null
 ping_status=$(aws ssm describe-instance-information \
@@ -135,6 +137,8 @@ while ((SECONDS < deadline)); do
     case "$status" in
         Success)
             jq -r '.StandardOutputContent' <<<"$result"
+            # Recorded only after the health check passed, so a replaced host starts the last good image.
+            aws ssm put-parameter --region "$region" --name "$image_ref_parameter" --type String --value "$image_ref" --overwrite >/dev/null
             exit 0
             ;;
         Failed | Cancelled | TimedOut | DeliveryTimedOut | ExecutionTimedOut | Undeliverable | Terminated)

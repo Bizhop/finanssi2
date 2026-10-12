@@ -107,6 +107,15 @@ cat > /etc/finanssi2/host.env <<'ENV'
 ENV
 chmod 0600 /etc/finanssi2/host.env
 
+# A replaced host starts the last deployed image by itself: the deploy script records the image in SSM. Absent before the first deploy.
+# shellcheck source=host.env
+# shellcheck source-path=SCRIPTDIR
+source /etc/finanssi2/host.env
+if image_ref=$(aws ssm get-parameter --region "$AWS_REGION" --name "$IMAGE_REF_PARAMETER" --query Parameter.Value --output text 2>/dev/null) && [[ -n "$image_ref" ]]; then
+    printf '%s\n' "$image_ref" > /etc/finanssi2/image-ref
+    chmod 0644 /etc/finanssi2/image-ref
+fi
+
 cat > /usr/local/sbin/finanssi2-image-ready <<'CHECK'
 # @include host/finanssi2-image-ready
 CHECK

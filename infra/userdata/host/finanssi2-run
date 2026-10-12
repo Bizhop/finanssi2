@@ -4,6 +4,10 @@ set -euo pipefail
 # shellcheck source-path=SCRIPTDIR
 source /etc/finanssi2/host.env
 IMAGE_REF=$(cat /etc/finanssi2/image-ref)
+# Runtime settings live in SSM, so changing them is a service restart rather than a host replacement.
+SETTINGS=$(aws ssm get-parameter --region "$AWS_REGION" --name "$RUNTIME_SETTINGS_PARAMETER" --query Parameter.Value --output text)
+ALLOWED_ORIGIN=$(jq -er '.allowedOrigin' <<<"$SETTINGS")
+DEBUG_ALLOWED_EMAILS=$(jq -er '.debugAllowedEmails' <<<"$SETTINGS")
 aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REPOSITORY_URL"
 docker pull "$IMAGE_REF"
 exec docker run --rm --name finanssi2 \

@@ -10,6 +10,7 @@ export interface Backend {
     repository: aws.ecr.Repository
     hostLogGroup: aws.cloudwatch.LogGroup
     applicationLogGroup: aws.cloudwatch.LogGroup
+    imageRefParameterName: string
 }
 
 export function createBackend(
@@ -35,6 +36,15 @@ export function createBackend(
         encryptionConfigurations: [{ encryptionType: "AES256" }],
     }, { provider })
     const logGroupPrefix = `/finanssi2/${pulumi.getStack()}`
+    // The image reference is written by deploy-backend-image.sh (not managed here); the runtime settings are managed here.
+    const imageRefParameterName = `/finanssi2/${pulumi.getStack()}/image-ref`
+    const runtimeSettings = new aws.ssm.Parameter(`${prefix}-runtime-settings`, {
+        name: `/finanssi2/${pulumi.getStack()}/runtime-settings`,
+        type: "String",
+        description: "Backend runtime settings read by finanssi2-run at service start",
+        value: JSON.stringify({ allowedOrigin: settings.allowedOrigin, debugAllowedEmails: settings.debugEmails }),
+    }, { provider })
+    const accountId = aws.getCallerIdentityOutput({}, { provider }).accountId
     const hostLogGroup = new aws.cloudwatch.LogGroup(`${prefix}-host-logs`, {
         name: `${logGroupPrefix}/host`,
         retentionInDays: 30,
@@ -85,6 +95,14 @@ export function createBackend(
                 },
                 {
                     Effect: "Allow",
+                    Action: "ssm:GetParameter",
+                    Resource: [
+                        runtimeSettings.arn,
+                        pulumi.interpolate`arn:aws:ssm:${settings.region}:${accountId}:parameter${imageRefParameterName}`,
+                    ],
+                },
+                {
+                    Effect: "Allow",
                     Action: "cloudwatch:PutMetricData",
                     Resource: "*",
                     Condition: { StringEquals: { "cloudwatch:namespace": "Finanssi2/EC2" } },
@@ -110,12 +128,13 @@ export function createBackend(
         settings.firebaseSecret.arn,
         settings.database.adminSecret.arn,
         settings.database.applicationSecret.arn,
-    ]).apply(([repoUrl, firebaseSecretArn, databaseAdminSecretArn, databaseApplicationSecretArn]) =>
+        runtimeSettings.name,
+    ]).apply(([repoUrl, firebaseSecretArn, databaseAdminSecretArn, databaseApplicationSecretArn, runtimeSettingsName]) =>
         renderUserData({
             region: settings.region,
             apiHostname: settings.apiHostname,
-            allowedOrigin: settings.allowedOrigin,
-            debugEmails: settings.debugEmails,
+            imageRefParameter: imageRefParameterName,
+            runtimeSettingsParameter: runtimeSettingsName,
             repoUrl,
             firebaseSecretArn,
             databaseAdminSecretArn,
@@ -162,5 +181,5 @@ export function createBackend(
         ignoreChanges: ["ami"],
     })
 
-    return { instance, elasticIp, repository, hostLogGroup, applicationLogGroup }
+    return { instance, elasticIp, repository, hostLogGroup, applicationLogGroup, imageRefParameterName }
 }

@@ -4,8 +4,8 @@ import * as path from "node:path"
 export interface UserDataValues {
     region: string
     apiHostname: string
-    allowedOrigin: string
-    debugEmails: string
+    imageRefParameter: string
+    runtimeSettingsParameter: string
     repoUrl: string
     firebaseSecretArn: string
     databaseAdminSecretArn: string
@@ -33,8 +33,8 @@ export function renderUserData(values: UserDataValues): string {
         .replaceAll("__FIREBASE_ADMIN_SECRET_ARN__", values.firebaseSecretArn)
         .replaceAll("__DATABASE_ADMIN_SECRET_ARN__", values.databaseAdminSecretArn)
         .replaceAll("__DATABASE_APPLICATION_SECRET_ARN__", values.databaseApplicationSecretArn)
-        .replaceAll("__ALLOWED_ORIGIN__", values.allowedOrigin)
-        .replaceAll("__DEBUG_ALLOWED_EMAILS__", values.debugEmails)
+        .replaceAll("__IMAGE_REF_PARAMETER__", values.imageRefParameter)
+        .replaceAll("__RUNTIME_SETTINGS_PARAMETER__", values.runtimeSettingsParameter)
         .replaceAll("__INSTANCE_ID_DIMENSION__", "${aws:InstanceId}")
         .replaceAll("__HOST_LOG_GROUP__", values.hostLogGroup)
         .replaceAll("__APPLICATION_LOG_GROUP__", values.applicationLogGroup)

@@ -151,6 +151,7 @@ export const databaseApplicationSecretArn = database.applicationSecret.arn
 export const firebaseAdminSecretArn = firebaseAdminSecret.arn
 export const backendInstanceId = backend.instance.id
 export const backendElasticIp = backend.elasticIp.publicIp
+export const backendImageRefParameter = backend.imageRefParameterName
 export const backendRepositoryUrl = backend.repository.repositoryUrl
 export const backendApiUrl = `https://${apiHostname}`
 export const frontendBucketName = frontend.bucket.bucket
