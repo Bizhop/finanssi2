@@ -20,7 +20,6 @@ import fi.bizhop.finanssi2.game.engine.RuleViolation;
 import fi.bizhop.finanssi2.security.User;
 import fi.bizhop.finanssi2.service.MessagingService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayDeque;
@@ -32,6 +31,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static fi.bizhop.finanssi2.game.data.GameConstants.MAX_PLAYERS;
+import java.util.UUID;
 
 /**
  * Saves state and new events in one PostgreSQL transaction, then broadcasts the committed change. Optimistic locking rejects
@@ -59,7 +59,7 @@ public class GameService {
     /** Creates a game in the lobby with its creator as the first player */
     public Game create(User user) {
         var game = new Game();
-        game.setId(java.util.UUID.randomUUID().toString());
+        game.setId(UUID.randomUUID().toString());
         game.setCreator(user.userId());
         game.setCreatedAt(System.currentTimeMillis());
         return commit(game, List.of(addPlayer(game, user)), true).game();
@@ -70,7 +70,7 @@ public class GameService {
         if (playerCount < 2 || playerCount > MAX_PLAYERS) throw new RuleViolation("playerCount must be 2–6");
         if (settings.loanLimit() == null) throw new RuleViolation("loanLimit is required");
         var game = new Game(GameMode.DEBUG);
-        game.setId(java.util.UUID.randomUUID().toString());
+        game.setId(UUID.randomUUID().toString());
         game.setCreator(user.userId());
         game.setCreatedAt(System.currentTimeMillis());
         game.getState().setSettings(settings);
@@ -87,7 +87,7 @@ public class GameService {
     public void deleteDebug(String id, User user) {
         var game = get(id);
         debugAccess.requireOwner(game, user);
-        // Versioned removal makes a concurrent save fail rather than recreate the document.
+        // Versioned removal makes a concurrent save fail rather than recreate the game.
         gameRepository.delete(game);
         messagingService.send(gameTopic(id), new GameDeleted(id, true));
     }
@@ -112,7 +112,7 @@ public class GameService {
 
     /** Games in the lobby and games the user is in, newest first */
     public List<Game> list(User user) {
-        return gameRepository.findByStatusOrPlayer(GameStatus.LOBBY, user.userId(), Sort.by(Sort.Direction.DESC, "createdAt"))
+        return gameRepository.findByStatusOrPlayer(GameStatus.LOBBY, user.userId())
                 .stream().filter(game -> game.getMode() == GameMode.NORMAL
                         || (game.getCreator().equals(user.userId()) && debugAccess.allowed(user))).toList();
     }

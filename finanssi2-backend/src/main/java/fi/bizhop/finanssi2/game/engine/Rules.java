@@ -9,6 +9,8 @@ import fi.bizhop.finanssi2.game.data.TitleDeed;
 import java.util.List;
 
 import static fi.bizhop.finanssi2.game.data.GameConstants.BANK_ENTRANCE_REWARD_PER_PIP;
+import static fi.bizhop.finanssi2.game.data.GameConstants.BANK_FIRST_SQUARE;
+import static fi.bizhop.finanssi2.game.data.GameConstants.INDUSTRIAL_SQUARES;
 import static fi.bizhop.finanssi2.game.data.GameConstants.BOND_PRICE;
 import static fi.bizhop.finanssi2.game.data.GameConstants.GRAND_DRAW_PRIZES;
 import static fi.bizhop.finanssi2.game.data.GameConstants.LOAN_COUNT;
@@ -21,8 +23,6 @@ import static fi.bizhop.finanssi2.game.data.GameConstants.SMALL_DRAW_PRIZES;
  * house rules only change this class.
  */
 public class Rules {
-    static final int BANK_FIRST_SQUARE = 34;
-
     final GameData gameData;
 
     public Rules(GameData gameData) {
@@ -178,13 +178,13 @@ public class Rules {
         if (parts[0].equals("S")) return gameData.share(parts[1]).value() / 2;
         var property = state.property(Integer.parseInt(parts[1]));
         var deed = gameData.titleDeed(property.getSquare());
-        return (deed.price() + (property.isBuilt() ? deed.building().price() : 0)) / 2;
+        return deed.value(property.isBuilt()) / 2;
     }
 
     private int halfPrice(int value) {
         return ((value + 999) / 1_000) * 500;
     }
-    private boolean isIndustrial(int square) { return List.of(26, 27, 29, 30, 32, 33).contains(square); }
+    private boolean isIndustrial(int square) { return INDUSTRIAL_SQUARES.contains(square); }
     private boolean isBuiltProperty(GameState state, int square) { return state.getProperties().stream().anyMatch(p -> p.getSquare() == square && p.isBuilt()); }
     private boolean ownsProperty(GameState state, String playerId, int square) { return state.getProperties().stream().anyMatch(p -> p.getSquare() == square && playerId.equals(p.getOwner())); }
 }

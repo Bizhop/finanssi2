@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/** Everything on the table. The engine changes it in place; the service saves it as part of the game document. */
+/** Everything on the table. The engine changes it in place; the service saves it as part of the game. */
 @Data
 public class GameState {
     // In join order
@@ -69,6 +69,13 @@ public class GameState {
         this.finished = true;
         this.winner = winner;
         this.finalStandings = List.copyOf(standings);
+    }
+
+    /** Everyone in turn order starting with the given player, those who are out included; callers check {@code isOut} when they act */
+    public List<PlayerState> playersFrom(String playerId) {
+        var start = turnOrder.indexOf(playerId);
+        return java.util.stream.IntStream.range(0, turnOrder.size())
+                .mapToObj(i -> player(turnOrder.get((start + i) % turnOrder.size())).orElseThrow()).toList();
     }
 
     public Optional<PlayerState> player(String playerId) {

@@ -36,6 +36,13 @@ public final class GameConstants {
     public static final int BROKERAGE_FEE_STEP = 10_000;
     public static final int BROKERAGE_FEE_TO_BANK = 30_000;
 
+    public static final int BANK_FIRST_SQUARE = 34;
+    public static final int LOAN_REPAYMENT_SQUARE = 43;
+    /** The Rakennusprojekti Oy squares, where building is allowed */
+    public static final List<Integer> PROJECT_SQUARES = List.of(17, 40);
+    /** What bailing out of jail costs (Stock Tip PV-30) and what a returned bail pays back */
+    public static final int BAIL = 30_000;
+
     public static final int WINNING_CASH = 1_000_000;
     public static final int WINNING_COMPLETE_GROUPS = 2;
 

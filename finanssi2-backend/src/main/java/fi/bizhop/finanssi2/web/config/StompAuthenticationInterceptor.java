@@ -18,6 +18,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 import java.util.concurrent.ConcurrentHashMap;
+import fi.bizhop.finanssi2.game.db.GameMode;
+import java.util.Map;
 
 
 /**
@@ -31,7 +33,7 @@ public class StompAuthenticationInterceptor implements ChannelInterceptor {
     final AuthenticatedUserService authenticatedUserService;
     final GameRepository gameRepository;
     final DebugAccess debugAccess;
-    java.util.Map<String, FirebaseAuthenticationToken> sessions = new ConcurrentHashMap<>();
+    Map<String, FirebaseAuthenticationToken> sessions = new ConcurrentHashMap<>();
 
     @Autowired
     StompAuthenticationInterceptor(FirebaseTokenVerifier tokenVerifier, AuthenticatedUserService authenticatedUserService,
@@ -91,7 +93,7 @@ public class StompAuthenticationInterceptor implements ChannelInterceptor {
                     try {
                         var game = gameRepository.findById(id).orElseThrow();
                         debugAccess.requireRead(game, auth.user());
-                        if (chat && game.getMode() == fi.bizhop.finanssi2.game.db.GameMode.DEBUG) {
+                        if (chat && game.getMode() == GameMode.DEBUG) {
                             debugAccess.requireOwner(game, auth.user());
                         }
                     } catch (RuntimeException e) {

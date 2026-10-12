@@ -263,7 +263,7 @@ class GameControllerTest {
     void testList() {
         var game = lobby("a");
         game.setStatus(GameStatus.LOBBY);
-        when(gameRepository.findByStatusOrPlayer(any(), any(), any())).thenReturn(List.of(game));
+        when(gameRepository.findByStatusOrPlayer(any(), any())).thenReturn(List.of(game));
         var response = get("", "b");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());

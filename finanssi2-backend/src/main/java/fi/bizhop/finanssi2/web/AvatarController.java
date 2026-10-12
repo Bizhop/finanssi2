@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+import fi.bizhop.finanssi2.db.ApplicationUser;
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -28,21 +30,21 @@ public class AvatarController {
     @Transactional
     public CapabilitiesController.Me upload(@RequestAttribute("user") User user,
             @RequestParam long version, @RequestPart("file") MultipartFile file) {
-        var profile = users.findById(java.util.UUID.fromString(user.userId())).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account profile not found"));
+        var profile = users.findById(UUID.fromString(user.userId())).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account profile not found"));
         requireVersion(profile.getVersion(), version);
         profile.setCustomAvatar(imageProcessor.process(file));
         flushOrConflict();
-        return view(user, profile);
+        return CapabilitiesController.Me.of(user, profile, debugAccess.allowed(user));
     }
 
     @DeleteMapping("/api/me/avatar")
     @Transactional
     public CapabilitiesController.Me remove(@RequestAttribute("user") User user, @RequestParam long version) {
-        var profile = users.findById(java.util.UUID.fromString(user.userId())).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account profile not found"));
+        var profile = users.findById(UUID.fromString(user.userId())).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account profile not found"));
         requireVersion(profile.getVersion(), version);
         profile.removeCustomAvatar();
         flushOrConflict();
-        return view(user, profile);
+        return CapabilitiesController.Me.of(user, profile, debugAccess.allowed(user));
     }
 
     private static void requireVersion(long actual, long expected) {
@@ -54,11 +56,5 @@ public class AvatarController {
         catch (ObjectOptimisticLockingFailureException stale) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "PROFILE_VERSION_CONFLICT", stale);
         }
-    }
-
-    private CapabilitiesController.Me view(User user, fi.bizhop.finanssi2.db.ApplicationUser profile) {
-        return new CapabilitiesController.Me(user.userId(), profile.getEmail(), profile.getDisplayName(), profile.avatarUrl(),
-                profile.getCustomAvatar() != null ? "custom" : profile.getProviderPhotoUrl() != null ? "provider" : null,
-                profile.getVersion(), new CapabilitiesController.Capabilities(debugAccess.allowed(user)));
     }
 }

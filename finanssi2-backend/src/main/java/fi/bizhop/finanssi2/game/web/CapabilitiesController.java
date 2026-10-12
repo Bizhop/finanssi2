@@ -11,15 +11,23 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RestController;
+import fi.bizhop.finanssi2.db.ApplicationUser;
 import fi.bizhop.finanssi2.db.ApplicationUserRepository;
-import org.springframework.web.bind.annotation.GetMapping;
+import java.util.UUID;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 @RestController
 @RequiredArgsConstructor
 public class CapabilitiesController {
     final DebugAccess debugAccess;
     final ApplicationUserRepository users;
-    public record Me(String id, String email, String displayName, String avatar, String avatarSource, long version, Capabilities capabilities) {}
+    public record Me(String id, String email, String displayName, String avatar, String avatarSource, long version, Capabilities capabilities) {
+        public static Me of(User user, ApplicationUser profile, boolean debugMode) {
+            var source = profile.getCustomAvatar() != null ? "custom" : profile.getProviderPhotoUrl() != null ? "provider" : null;
+            return new Me(user.userId(), profile.getEmail(), profile.getDisplayName(), profile.avatarUrl(), source, profile.getVersion(),
+                    new Capabilities(debugMode));
+        }
+    }
     public record Capabilities(boolean debugMode) {}
 
     @GetMapping("/api/me/capabilities")
@@ -29,11 +37,8 @@ public class CapabilitiesController {
 
     @GetMapping("/api/me")
     public Me me(@RequestAttribute("user") User user) {
-        var profile = users.findById(java.util.UUID.fromString(user.userId())).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account profile not found"));
-        var avatar = profile.avatarUrl();
-        var source = profile.getCustomAvatar() != null ? "custom" : profile.getProviderPhotoUrl() != null ? "provider" : null;
-        return new Me(user.userId(), profile.getEmail(), profile.getDisplayName(), avatar, source, profile.getVersion(),
-                new Capabilities(debugAccess.allowed(user)));
+        var profile = users.findById(UUID.fromString(user.userId())).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account profile not found"));
+        return Me.of(user, profile, debugAccess.allowed(user));
     }
 
     public record ProfileUpdate(String displayName, long version) {}
@@ -44,16 +49,14 @@ public class CapabilitiesController {
         var displayName = update.displayName() == null ? "" : update.displayName().trim();
         if (displayName.isEmpty() || displayName.length() > 50)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "displayName must contain 1–50 characters");
-        var profile = users.findById(java.util.UUID.fromString(user.userId())).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account profile not found"));
+        var profile = users.findById(UUID.fromString(user.userId())).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account profile not found"));
         if (profile.getVersion() != update.version())
             throw new ResponseStatusException(HttpStatus.CONFLICT, "PROFILE_VERSION_CONFLICT");
         profile.updateDisplayName(displayName);
         try { users.flush(); }
-        catch (org.springframework.orm.ObjectOptimisticLockingFailureException stale) {
+        catch (ObjectOptimisticLockingFailureException stale) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "PROFILE_VERSION_CONFLICT", stale);
         }
-        return new Me(user.userId(), profile.getEmail(), profile.getDisplayName(), profile.avatarUrl(),
-                profile.getCustomAvatar() != null ? "custom" : profile.getProviderPhotoUrl() != null ? "provider" : null,
-                profile.getVersion(), new Capabilities(debugAccess.allowed(user)));
+        return Me.of(user, profile, debugAccess.allowed(user));
     }
 }

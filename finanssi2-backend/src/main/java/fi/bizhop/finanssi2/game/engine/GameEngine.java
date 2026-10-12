@@ -58,12 +58,27 @@ import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static fi.bizhop.finanssi2.game.data.GameConstants.BAIL;
+import static fi.bizhop.finanssi2.game.data.GameConstants.BANK_FIRST_SQUARE;
 import static fi.bizhop.finanssi2.game.data.GameConstants.BOND_COUNT;
+import static fi.bizhop.finanssi2.game.data.GameConstants.BROKERAGE_FEE_STEP;
+import static fi.bizhop.finanssi2.game.data.GameConstants.BROKERAGE_FEE_TO_BANK;
+import static fi.bizhop.finanssi2.game.data.GameConstants.INDUSTRIAL_SQUARES;
+import static fi.bizhop.finanssi2.game.data.GameConstants.LOAN_REPAYMENT_SQUARE;
+import static fi.bizhop.finanssi2.game.data.GameConstants.MAX_BROKERAGE_FEE;
+import static fi.bizhop.finanssi2.game.data.GameConstants.MIN_BROKERAGE_FEE;
+import static fi.bizhop.finanssi2.game.data.GameConstants.PROJECT_SQUARES;
+import static fi.bizhop.finanssi2.game.data.GameConstants.WINNING_CASH;
+import static fi.bizhop.finanssi2.game.data.GameConstants.WINNING_COMPLETE_GROUPS;
 import static fi.bizhop.finanssi2.game.data.GameConstants.BOND_PRICE;
 import static fi.bizhop.finanssi2.game.data.GameConstants.CAR_PRICE;
 import static fi.bizhop.finanssi2.game.data.GameConstants.CAR_SELL_BACK_PRICE;
 import static fi.bizhop.finanssi2.game.data.GameConstants.LOAN_AMOUNT;
 import static fi.bizhop.finanssi2.game.data.GameConstants.SQUARE_COUNT;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.function.ToIntFunction;
+import java.util.stream.Collectors;
 
 /**
  * Applies player commands to a game state. Each command is first validated without changes and then applied, so a rejected command
@@ -123,7 +138,6 @@ public class GameEngine {
     static final List<GameCommand> SIMPLE_COMMANDS = List.of(new Roll(), new EndTurn(), new BuyCar(), new SellCar(), new TakeLoan(),
             new RepayLoan(), new Pay(), new DeclareBankruptcy(), new GameCommand.Resign());
 
-    static final int REPAY_LOAN_SQUARE = 43;
     static final int BRANCH_OFFICE_SQUARE = 11;
     static final int HEAD_OFFICE_FIRST_SQUARE = 35;
     static final int JAIL_SQUARE = 24;
@@ -262,7 +276,7 @@ public class GameEngine {
             case SellCar ignored -> require(player.isCar(), "You have no car");
             case TakeLoan ignored -> {
                 require(!rules.loansStopped(state), "No new loans while Finance News is active");
-                require(player.getPosition() != REPAY_LOAN_SQUARE, "No new loans on square " + REPAY_LOAN_SQUARE);
+                require(player.getPosition() != LOAN_REPAYMENT_SQUARE, "No new loans on square " + LOAN_REPAYMENT_SQUARE);
                 require(rules.loansAvailable(state, player) > 0, "No loans available");
             }
             case RepayLoan ignored -> {
@@ -358,8 +372,8 @@ public class GameEngine {
                 require(player.getPosition() >= HEAD_OFFICE_FIRST_SQUARE && player.getPosition() <= SQUARE_COUNT,
                         "Shareholders' meetings are held inside the bank");
                 require(rules.shareholdersMeetingsAllowed(state), "Shareholders' meetings are stopped by Finance News");
-                require(meeting.brokerageFee() >= 20_000 && meeting.brokerageFee() <= 120_000
-                                && meeting.brokerageFee() % 10_000 == 0, "Invalid brokerage fee");
+                require(meeting.brokerageFee() >= MIN_BROKERAGE_FEE && meeting.brokerageFee() <= MAX_BROKERAGE_FEE
+                                && meeting.brokerageFee() % BROKERAGE_FEE_STEP == 0, "Invalid brokerage fee");
                 require(ownershipOwnsGroupAsset(state, player.getPlayerId(), meeting.group()), "You own no asset in this group");
                 require(groupHasOtherOwner(state, player.getPlayerId(), meeting.group()), "Other players own no assets in this group");
                 // House rule (the default): a meeting takes over all of the group from the other owners, so nothing may be left in the bank
@@ -382,9 +396,9 @@ public class GameEngine {
         var phase = state.getPhase();
         if (command instanceof Build && phase == TurnPhase.AFTER_ROLL) {
             var player = state.current();
-            if (player.isNoMovementRollThisTurn() && player.getPosition() == 17) return;
+            if (player.isNoMovementRollThisTurn() && player.getPosition() == PROJECT_SQUARES.getFirst()) return;
             if (player.getHeldStockTips().contains("PV-07")
-                    || player.getHeldStockTips().contains("PV-01") && (player.getPosition() == 17 || player.getPosition() == 40)) return;
+                    || player.getHeldStockTips().contains("PV-01") && PROJECT_SQUARES.contains(player.getPosition())) return;
         }
         switch (TIMING.get(command.getClass())) {
             case BEFORE_ROLL -> require(phase == TurnPhase.BEFORE_ROLL, "Only allowed before rolling");
@@ -433,7 +447,7 @@ public class GameEngine {
         if (player.isCar()) {
             funds += CAR_SELL_BACK_PRICE;
         }
-        if (player.getPosition() != REPAY_LOAN_SQUARE && !rules.loansStopped(state)) {
+        if (player.getPosition() != LOAN_REPAYMENT_SQUARE && !rules.loansStopped(state)) {
             funds += rules.loansAvailable(state, player) * LOAN_AMOUNT;
         }
         var ownership = new Ownership(gameData, state);
@@ -451,9 +465,9 @@ public class GameEngine {
     private List<GameEvent> checkGameEnd(GameState state) {
         var active = state.getPlayers().stream().filter(player -> !player.isOut()).toList();
         var ownership = new Ownership(gameData, state);
-        var eligible = active.stream().filter(player -> player.getCash() >= 1_000_000
-                        && gameData.groups().stream().filter(group -> ownership.ownsCompleteGroup(player.getPlayerId(), group.id())).count() >= 2)
-                .map(PlayerState::getPlayerId).collect(java.util.stream.Collectors.toSet());
+        var eligible = active.stream().filter(player -> player.getCash() >= WINNING_CASH
+                        && gameData.groups().stream().filter(group -> ownership.ownsCompleteGroup(player.getPlayerId(), group.id())).count() >= WINNING_COMPLETE_GROUPS)
+                .map(PlayerState::getPlayerId).collect(Collectors.toSet());
         String winner = null;
         if (!eligible.isEmpty()) {
             var order = state.getTurnOrder();
@@ -473,7 +487,7 @@ public class GameEngine {
             var properties = new Ownership(gameData, state).propertiesOf(player.getPlayerId());
             var propertyValue = properties.stream().mapToInt(property -> {
                 var deed = gameData.titleDeed(property.getSquare());
-                return deed.price() + (property.isBuilt() ? deed.building().price() : 0);
+                return deed.value(property.isBuilt());
             }).sum();
             var shareValue = new Ownership(gameData, state).sharesOf(player.getPlayerId()).stream().mapToInt(Share::value).sum();
             var bondValue = (int) state.getBonds().stream().filter(bond -> player.getPlayerId().equals(bond.getOwner())).count() * BOND_PRICE;
@@ -498,7 +512,7 @@ public class GameEngine {
             var bailDice = rollDice(dice, 2);
             var returned = bailDice.getFirst().equals(bailDice.getLast());
             events.add(new GameEvent.BailRoll(player.getPlayerId(), bailDice, returned));
-            if (returned) events.add(payments.fromBank(player, 30_000, MoneyReason.STOCK_TIP));
+            if (returned) events.add(payments.fromBank(player, BAIL, MoneyReason.STOCK_TIP));
             player.setBailRollPending(false);
         }
         var roll = rollDice(dice, rules.movementDice(state, player));
@@ -591,7 +605,7 @@ public class GameEngine {
 
     List<GameEvent> useHeldStockTip(GameState state, PlayerState player, String card, Dice dice) {
         var events = new ArrayList<GameEvent>(consumeHeldTip(state, player, card));
-        events.addAll(moveTo(state, player, 17, dice));
+        events.addAll(moveTo(state, player, PROJECT_SQUARES.getFirst(), dice));
         player.setNoMovementRollThisTurn(true);
         state.setPhase(TurnPhase.AFTER_ROLL);
         return List.copyOf(events);
@@ -628,7 +642,7 @@ public class GameEngine {
                     events.addAll(moveTo(state, left, 10, dice));
                 }
             }
-            case "PV-06" -> events.addAll(chargeStockTipPlayers(state, player, p -> p.isCar() ? 15_000 : 0));
+            case "PV-06" -> events.addAll(chargePlayers(state, player, p -> p.isCar() ? 15_000 : 0, MoneyReason.STOCK_TIP));
             case "PV-10" -> queueChoice(state, player, card, fireOptions(ownership.builtPropertiesOf(player.getPlayerId())), events);
             case "PV-11" -> {
                 var amount = (int) (ownership.plantCount(player.getPlayerId()) * 40_000 + ownership.otherBuildingCount(player.getPlayerId()) * 20_000);
@@ -642,7 +656,7 @@ public class GameEngine {
             case "PV-16" -> events.addAll(bondOneWins(state, player));
             case "PV-17" -> queueChoice(state, player, card, gameData.titleDeeds().stream().map(d -> Integer.toString(d.square())).toList(), events);
             case "PV-18" -> events.addAll(player.getPosition() == 20
-                    ? moveToWithoutLanding(state, player, 34) : moveTo(state, player, 20, dice, true, false));
+                    ? moveToWithoutLanding(state, player, BANK_FIRST_SQUARE) : moveTo(state, player, 20, dice, true, false));
             case "PV-19" -> { events.addAll(moveTo(state, player, 8, dice)); events.addAll(financeNews(state, player, gameData.square(player.getPosition()), dice)); }
             case "PV-20" -> { events.addAll(moveTo(state, player, 34, dice)); events.addAll(financeNews(state, player, gameData.square(player.getPosition()), dice)); }
             case "PV-21" -> events.addAll(neighbourDividend(state, player));
@@ -651,9 +665,9 @@ public class GameEngine {
             case "PV-24" -> freeBond(state, player, events);
             case "PV-26" -> queueChoice(state, player, card, List.of("PAY", "PASS"), events);
             case "PV-27", "PV-28" -> events.addAll(player.getLoans() > 0
-                    ? moveTo(state, player, 43, dice) : moveTo(state, player, 34, dice));
+                    ? moveTo(state, player, LOAN_REPAYMENT_SQUARE, dice) : moveTo(state, player, BANK_FIRST_SQUARE, dice));
             case "PV-30" -> {
-                if (player.getCash() < 30_000) events.addAll(goToJailFromTip(state, player, dice));
+                if (player.getCash() < BAIL) events.addAll(goToJailFromTip(state, player, dice));
                 else queueChoice(state, player, card, List.of("JAIL", "BAIL"), events);
             }
             case "PV-31" -> {
@@ -705,7 +719,7 @@ public class GameEngine {
         switch (decision.card()) {
             case "PV-10" -> {
                 var squares = option.split(",");
-                var burned = java.util.Arrays.stream(squares).map(Integer::parseInt).toList();
+                var burned = Arrays.stream(squares).map(Integer::parseInt).toList();
                 for (var square : burned) state.property(square).setBuilt(false);
                 events.add(new GameEvent.BuildingsBurned(player.getPlayerId(), burned));
                 if (squares.length > 0) {
@@ -736,13 +750,13 @@ public class GameEngine {
             case "PV-26" -> {
                 if (option.equals("PAY") && player.getCash() >= 25_000) {
                     events.add(payments.toBank(player, 25_000, MoneyReason.STOCK_TIP));
-                    events.addAll(moveTo(state, player, 34, dice));
+                    events.addAll(moveTo(state, player, BANK_FIRST_SQUARE, dice));
                 }
             }
             case "PV-30" -> {
-                if (option.equals("JAIL") || player.getCash() < 30_000) events.addAll(goToJailFromTip(state, player, dice));
+                if (option.equals("JAIL") || player.getCash() < BAIL) events.addAll(goToJailFromTip(state, player, dice));
                 else {
-                    events.add(payments.toBank(player, 30_000, MoneyReason.STOCK_TIP));
+                    events.add(payments.toBank(player, BAIL, MoneyReason.STOCK_TIP));
                     player.setBailRollPending(true);
                 }
             }
@@ -751,7 +765,7 @@ public class GameEngine {
                 var property = state.property(square);
                 if (!player.getPlayerId().equals(property.getOwner())) break;
                 var deed = gameData.titleDeed(square);
-                var price = deed.price() + (property.isBuilt() ? deed.building().price() : 0);
+                var price = deed.value(property.isBuilt());
                 if (property.isMortgaged()) price -= rules.redemptionPrice(state, deed, property);
                 property.setOwner(null);
                 property.setBuilt(false);
@@ -912,11 +926,8 @@ public class GameEngine {
     }
 
     private void startCompulsoryAuction(GameState state, PlayerState seller, String asset, List<GameEvent> events) {
-        var turnOrder = state.getTurnOrder();
-        var sellerIndex = turnOrder.indexOf(seller.getPlayerId());
-        var order = IntStream.range(1, turnOrder.size())
-                .mapToObj(i -> turnOrder.get((sellerIndex + i) % turnOrder.size()))
-                .filter(playerId -> !state.player(playerId).orElseThrow().isOut()).toList();
+        var order = state.playersFrom(seller.getPlayerId()).stream().skip(1).filter(player -> !player.isOut())
+                .map(PlayerState::getPlayerId).toList();
         if (order.isEmpty()) return;
         var minimum = rules.compulsorySaleMinimumBid(state, asset);
         state.getPendingDecisions().add(new PendingDecision.AssetAuction(seller.getPlayerId(), asset, minimum, order, 0, List.of()));
@@ -934,7 +945,7 @@ public class GameEngine {
             return List.of();
         }
         var winner = bids.stream().filter(bid -> bid.amount() > 0)
-                .sorted(java.util.Comparator.comparingInt(PendingDecision.Bid::amount).reversed()
+                .sorted(Comparator.comparingInt(PendingDecision.Bid::amount).reversed()
                         .thenComparingInt(bid -> auction.order().indexOf(bid.player())))
                 .findFirst();
         if (winner.isEmpty()) return List.of(new GameEvent.AssetAuctionCompleted(auction.seller(), auction.asset(), 0, null, bids));
@@ -983,20 +994,6 @@ public class GameEngine {
         return charges.isEmpty() ? List.of() : payments.charge(state, player, null, charges);
     }
 
-    private List<GameEvent> chargeStockTipPlayers(GameState state, PlayerState drawer,
-                                                   java.util.function.ToIntFunction<PlayerState> amount) {
-        var events = new ArrayList<GameEvent>();
-        var order = state.getTurnOrder();
-        var start = order.indexOf(drawer.getPlayerId());
-        for (int i = 0; i < order.size(); i++) {
-            var target = state.player(order.get((start + i) % order.size())).orElseThrow();
-            if (target.isOut()) continue;
-            var due = amount.applyAsInt(target);
-            if (due > 0) events.addAll(payments.charge(state, target, null, List.of(new Charge(due, MoneyReason.STOCK_TIP))));
-        }
-        return List.copyOf(events);
-    }
-
     private List<GameEvent> bondOneWins(GameState state, PlayerState drawer) {
         var bond = state.bond(1);
         var owner = bond.getOwner();
@@ -1028,15 +1025,15 @@ public class GameEngine {
         var events = new ArrayList<GameEvent>();
         events.add(new GameEvent.FinanceNewsDrawn(player.getPlayerId(), id, replaced));
         if (id.equals("FL-02") || id.equals("FL-03")) events.addAll(grandBondDraw(state, player, dice));
-        if (id.equals("FL-01")) events.addAll(chargePlayers(state, player, p -> p.isCar() ? 5_000 : 0));
-        if (id.equals("FL-07")) events.addAll(chargePlayers(state, player, p -> roundUp500(p.getCash(), 2)));
+        if (id.equals("FL-01")) events.addAll(chargePlayers(state, player, p -> p.isCar() ? 5_000 : 0, MoneyReason.FINANCE_NEWS));
+        if (id.equals("FL-07")) events.addAll(chargePlayers(state, player, p -> roundUp500(p.getCash(), 2), MoneyReason.FINANCE_NEWS));
         if (id.equals("FL-13")) events.addAll(chargePlayers(state, player, p -> roundUp500(
-                Math.min(p.getCash(), 100_000) / 10 + Math.max(0, p.getCash() - 100_000) / 4, 1)));
+                Math.min(p.getCash(), 100_000) / 10 + Math.max(0, p.getCash() - 100_000) / 4, 1), MoneyReason.FINANCE_NEWS));
         if (id.equals("FL-04")) state.getPendingDecisions().add(new PendingDecision.NewsDirection(player.getPlayerId(), id));
         if (id.equals("FL-10")) {
             for (var playerId : List.copyOf(state.getTurnOrder())) {
                 var standing = state.player(playerId).orElseThrow();
-                if (!standing.isOut() && standing.getPosition() == 34) events.addAll(moveTo(state, standing, 1, dice));
+                if (!standing.isOut() && standing.getPosition() == BANK_FIRST_SQUARE) events.addAll(moveTo(state, standing, 1, dice));
             }
         }
         if (id.equals("FL-19")) events.addAll(energyTax(state, player, dice));
@@ -1064,10 +1061,7 @@ public class GameEngine {
         drawer.setPosition(to);
         events.add(new PieceMoved(drawer.getPlayerId(), from, to));
         events.addAll(land(state, drawer, dice, false));
-        var order = state.getTurnOrder();
-        var index = order.indexOf(drawer.getPlayerId());
-        for (int i = 1; i < order.size(); i++) {
-            var other = state.player(order.get((index + i) % order.size())).orElseThrow();
+        for (var other : state.playersFrom(drawer.getPlayerId()).stream().skip(1).toList()) {
             if (!other.isOut() && other.getMissedTurns() == 0) events.addAll(moveOneStep(state, other, true, dice));
         }
         return List.copyOf(events);
@@ -1085,15 +1079,12 @@ public class GameEngine {
 
     private List<GameEvent> energyTax(GameState state, PlayerState drawer, Dice dice) {
         var events = new ArrayList<GameEvent>();
-        var order = state.getTurnOrder();
-        var index = order.indexOf(drawer.getPlayerId());
-        for (int i = 0; i < order.size(); i++) {
-            var target = state.player(order.get((index + i) % order.size())).orElseThrow();
+        for (var target : state.playersFrom(drawer.getPlayerId())) {
             if (target.isOut()) continue;
             var built = state.getProperties().stream().filter(p -> target.getPlayerId().equals(p.getOwner()) && p.isBuilt()).toList();
             if (built.isEmpty()) continue;
-            var passedBankEntrance = target.getPosition() < 34;
-            var amount = built.stream().mapToInt(p -> List.of(26, 27, 29, 30, 32, 33).contains(p.getSquare()) ? 30_000 : 20_000).sum();
+            var passedBankEntrance = target.getPosition() < BANK_FIRST_SQUARE;
+            var amount = built.stream().mapToInt(p -> INDUSTRIAL_SQUARES.contains(p.getSquare()) ? 30_000 : 20_000).sum();
             events.addAll(moveTo(state, target, 1, dice));
             if (passedBankEntrance) {
                 var roll = rollDice(dice, 2);
@@ -1105,18 +1096,15 @@ public class GameEngine {
         return List.copyOf(events);
     }
 
-    private List<GameEvent> chargePlayers(GameState state, PlayerState drawer, java.util.function.ToIntFunction<PlayerState> amount) {
+    /** Charges every player still in the game in turn order from the drawer, skipping those who owe nothing */
+    private List<GameEvent> chargePlayers(GameState state, PlayerState drawer, ToIntFunction<PlayerState> amount, MoneyReason reason) {
         var result = new ArrayList<GameEvent>();
-        var order = state.getTurnOrder();
-        var start = order.indexOf(drawer.getPlayerId());
-        for (int i = 0; i < order.size(); i++) {
-            var target = state.player(order.get((start + i) % order.size())).orElseThrow();
+        for (var target : state.playersFrom(drawer.getPlayerId())) {
             if (target.isOut()) continue;
             var due = amount.applyAsInt(target);
-            if (due > 0) result.addAll(payments.charge(state, target, null,
-                    List.of(new Charge(due, MoneyReason.FINANCE_NEWS))));
+            if (due > 0) result.addAll(payments.charge(state, target, null, List.of(new Charge(due, reason))));
         }
-        return result;
+        return List.copyOf(result);
     }
 
     private static int roundUp500(int amount, int divisor) {
@@ -1212,10 +1200,7 @@ public class GameEngine {
         var ownership = new Ownership(gameData, state);
         var groups = ownership.groupsWithPropertiesOf(player.getPlayerId());
         var events = new ArrayList<GameEvent>();
-        var order = state.getTurnOrder();
-        var index = order.indexOf(player.getPlayerId());
-        for (int i = 1; i < order.size(); i++) {
-            var shareholder = state.player(order.get((index + i) % order.size())).orElseThrow();
+        for (var shareholder : state.playersFrom(player.getPlayerId()).stream().skip(1).toList()) {
             if (shareholder.isOut()) {
                 continue;
             }
@@ -1246,10 +1231,7 @@ public class GameEngine {
     List<GameEvent> bondPurchaseAndDividend(GameState state, PlayerState player, Square square, Dice dice) {
         var events = new ArrayList<GameEvent>();
         if ("FL-16".equals(state.getActiveFinanceNews())) {
-            var order = state.getTurnOrder();
-            var index = order.indexOf(player.getPlayerId());
-            for (int i = 0; i < order.size(); i++) {
-                var recipient = state.player(order.get((index + i) % order.size())).orElseThrow();
+            for (var recipient : state.playersFrom(player.getPlayerId())) {
                 if (!recipient.isOut()) events.addAll(bankDividend(state, recipient, square, dice));
             }
         } else {
@@ -1308,11 +1290,10 @@ public class GameEngine {
 
     /** The next player in turn order who is still in the game */
     static String nextPlayer(GameState state) {
-        var order = state.getTurnOrder();
-        var index = order.indexOf(state.getCurrentPlayer());
-        return IntStream.rangeClosed(1, order.size())
-                .mapToObj(i -> order.get((index + i) % order.size()))
-                .filter(candidate -> !state.player(candidate).orElseThrow().isOut())
+        var others = state.playersFrom(state.getCurrentPlayer()).stream().skip(1);
+        return Stream.concat(others, Stream.of(state.current()))
+                .filter(candidate -> !candidate.isOut())
+                .map(PlayerState::getPlayerId)
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("No players left"));
     }
@@ -1401,7 +1382,7 @@ public class GameEngine {
             var property = state.property(square);
             if (property.getOwner() != null && !caller.equals(property.getOwner())) {
                 var deed = gameData.titleDeed(square);
-                total += deed.price() + (property.isBuilt() ? deed.building().price() : 0);
+                total += deed.value(property.isBuilt());
             }
         }
         for (var share : gameData.sharesOf(group)) {
@@ -1413,11 +1394,11 @@ public class GameEngine {
 
     List<GameEvent> callShareholdersMeeting(GameState state, PlayerState caller, String group, int brokerageFee, Dice dice) {
         var diceResult = new ArrayList<Integer>();
-        var success = brokerageFee == 120_000;
+        var success = brokerageFee == MAX_BROKERAGE_FEE;
         if (!success) {
             diceResult.add(dice.roll());
             diceResult.add(dice.roll());
-            success = diceResult.stream().mapToInt(Integer::intValue).sum() <= brokerageFee / 10_000;
+            success = diceResult.stream().mapToInt(Integer::intValue).sum() <= brokerageFee / BROKERAGE_FEE_STEP;
         }
         var takeoverSum = shareholdersMeetingTakeoverSum(state, group, caller.getPlayerId());
         var events = new ArrayList<GameEvent>();
@@ -1438,16 +1419,16 @@ public class GameEngine {
             var owner = state.share(share.id()).getOwner();
             if (owner != null && !caller.getPlayerId().equals(owner)) sellerIds.add(owner);
         }
-        var baseBankFee = Math.min(30_000, brokerageFee);
+        var baseBankFee = Math.min(BROKERAGE_FEE_TO_BANK, brokerageFee);
         var shareOfFee = (brokerageFee - baseBankFee) / (double) sellerIds.size();
-        var brokeragePayouts = sellerIds.stream().collect(java.util.stream.Collectors.toMap(playerId -> playerId,
+        var brokeragePayouts = sellerIds.stream().collect(Collectors.toMap(playerId -> playerId,
                 playerId -> (int) (Math.floor((shareOfFee + 250) / 500) * 500), (a, b) -> a, LinkedHashMap::new));
         for (var square : gameData.group(group).properties()) {
             var property = state.property(square);
             if (property.getOwner() == null || caller.getPlayerId().equals(property.getOwner())) continue;
             var seller = state.player(property.getOwner()).orElseThrow();
             var deed = gameData.titleDeed(square);
-            var price = deed.price() + (property.isBuilt() ? deed.building().price() : 0);
+            var price = deed.value(property.isBuilt());
             events.add(payments.transfer(caller, seller, price, MoneyReason.SHAREHOLDERS_MEETING));
             var previousOwner = property.getOwner();
             property.setOwner(caller.getPlayerId());
@@ -1563,7 +1544,7 @@ public class GameEngine {
         var events = new ArrayList<GameEvent>();
 
         // Liquidate everything the bank will buy or lend on, and use every remaining loan before paying the creditor.
-        if (!rules.loansStopped(state) && player.getPosition() != REPAY_LOAN_SQUARE) {
+        if (!rules.loansStopped(state) && player.getPosition() != LOAN_REPAYMENT_SQUARE) {
             var loans = rules.loansAvailable(state, player);
             for (int i = 0; i < loans; i++) {
                 player.setLoans(player.getLoans() + 1);

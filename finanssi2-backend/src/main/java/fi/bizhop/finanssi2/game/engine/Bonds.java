@@ -43,7 +43,7 @@ public class Bonds {
         if (!available(state)) {
             return List.of();
         }
-        var order = playersFrom(state, player.getPlayerId())
+        var order = state.playersFrom(player.getPlayerId()).stream()
                 .filter(candidate -> !candidate.isOut() && candidate.getCash() > 0)
                 .map(PlayerState::getPlayerId)
                 .toList();
@@ -79,20 +79,12 @@ public class Bonds {
         };
     }
 
-    /** Players in turn order, starting with the given player */
-    static Stream<PlayerState> playersFrom(GameState state, String playerId) {
-        var order = state.getTurnOrder();
-        var start = order.indexOf(playerId);
-        return IntStream.range(0, order.size())
-                .mapToObj(i -> state.player(order.get((start + i) % order.size())).orElseThrow());
-    }
-
     /** Queues the grand drawing: the drawing player first, then everyone else in turn order. */
     List<GameEvent> grandBondDraw(GameState state, PlayerState drawer, Dice dice) {
         if (!available(state)) {
             return drawBonds(state, rules.grandBondPrizes(state), dice);
         }
-        var offers = playersFrom(state, drawer.getPlayerId())
+        var offers = state.playersFrom(drawer.getPlayerId()).stream()
                 .filter(candidate -> !candidate.isOut() && candidate.getCash() >= rules.bondPrice(state))
                 .map(candidate -> new PendingDecision.BondOffer(candidate.getPlayerId(), BondContinuation.CONTINUE_GRAND_DRAW))
                 .toList();

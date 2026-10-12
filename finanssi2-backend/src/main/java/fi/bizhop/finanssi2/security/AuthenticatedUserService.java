@@ -20,7 +20,7 @@ public class AuthenticatedUserService {
     public User resolve(com.google.firebase.auth.FirebaseToken token) {
         var email = token.getEmail();
         if (!token.isEmailVerified() || email == null || email.isBlank()) throw new UnverifiedEmailException();
-        var normalized = email.trim().toLowerCase(Locale.ROOT);
+        var normalized = Emails.normalize(email);
         try {
             return transactions.execute(status -> resolveInTransaction(token, normalized));
         } catch (DataIntegrityViolationException competingInsert) {

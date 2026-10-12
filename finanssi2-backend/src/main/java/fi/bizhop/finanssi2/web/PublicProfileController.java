@@ -16,6 +16,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import org.springframework.http.MediaType;
 
 @RestController
 @RequiredArgsConstructor
@@ -38,7 +39,7 @@ public class PublicProfileController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Avatar not found");
         var encoded = profile.getCustomAvatar().substring(profile.getCustomAvatar().indexOf(',') + 1);
         var bytes = Base64.getDecoder().decode(encoded);
-        return ResponseEntity.ok().contentType(org.springframework.http.MediaType.IMAGE_JPEG)
+        return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG)
                 .cacheControl(CacheControl.maxAge(365, TimeUnit.DAYS).cachePublic().immutable())
                 .eTag("\"avatar-" + profile.getVersion() + "\"").body(bytes);
     }

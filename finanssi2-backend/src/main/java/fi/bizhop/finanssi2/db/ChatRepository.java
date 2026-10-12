@@ -7,8 +7,10 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
+import fi.bizhop.finanssi2.game.db.GameEntity;
 
 @Repository
 public class ChatRepository {
@@ -41,7 +43,7 @@ public class ChatRepository {
         row.message = message.message();
         row.timestamp = message.timestamp();
         row.sender = entityManager.getReference(ApplicationUser.class, senderId);
-        if (gameId != null) row.game = entityManager.getReference(fi.bizhop.finanssi2.game.db.GameEntity.class, gameId);
+        if (gameId != null) row.game = entityManager.getReference(GameEntity.class, gameId);
         entityManager.persist(row);
         entityManager.flush();
         return model(row);
@@ -62,7 +64,7 @@ public class ChatRepository {
     }
 
     private static ChatMessage model(ChatMessageEntity row) {
-        return new ChatMessage(String.format(java.util.Locale.ROOT, "%019d", row.id), row.sender.getId().toString(),
+        return new ChatMessage(String.format(Locale.ROOT, "%019d", row.id), row.sender.getId().toString(),
                 row.message, row.timestamp);
     }
 }

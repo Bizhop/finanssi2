@@ -15,6 +15,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.util.Map;
+import jakarta.servlet.http.HttpServletResponse;
 
 public class FirebaseTokenFilter extends AbstractPreAuthenticatedProcessingFilter {
     static final String GOOGLE_EMAIL_VERIFICATION_PATH = "/api/me/verify-linked-google-email";
@@ -53,11 +54,11 @@ public class FirebaseTokenFilter extends AbstractPreAuthenticatedProcessingFilte
                     chain.doFilter(request, response);
                     return;
                 }
-                writeError((jakarta.servlet.http.HttpServletResponse) response, 403, "EMAIL_VERIFICATION_REQUIRED",
+                writeError((HttpServletResponse) response, 403, "EMAIL_VERIFICATION_REQUIRED",
                         "A verified email address is required");
                 return;
             } catch (AuthenticatedUserService.AccountLinkConflictException e) {
-                writeError((jakarta.servlet.http.HttpServletResponse) response, 409, "ACCOUNT_LINKING_CONFLICT",
+                writeError((HttpServletResponse) response, 409, "ACCOUNT_LINKING_CONFLICT",
                         "This email address belongs to an account that uses a different sign-in method");
                 return;
             }
@@ -66,7 +67,7 @@ public class FirebaseTokenFilter extends AbstractPreAuthenticatedProcessingFilte
     }
 
     /** A ProblemDetail body like the rest of the API, plus a machine-readable {@code code} */
-    private static void writeError(jakarta.servlet.http.HttpServletResponse response, int status, String code, String detail) throws IOException {
+    private static void writeError(HttpServletResponse response, int status, String code, String detail) throws IOException {
         response.setStatus(status);
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");

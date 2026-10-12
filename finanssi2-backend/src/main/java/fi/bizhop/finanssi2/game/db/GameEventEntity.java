@@ -11,6 +11,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import java.util.UUID;
 
 @Entity
 @Table(name = "game_events", indexes = @Index(name = "game_events_game_seq_idx", columnList = "game_id, seq", unique = true))
@@ -21,7 +22,7 @@ public class GameEventEntity {
     @JoinColumn(name = "game_id", nullable = false, referencedColumnName = "id")
     GameEntity game;
     @Column(name = "game_id", insertable = false, updatable = false)
-    java.util.UUID gameId;
+    UUID gameId;
     @Column(nullable = false)
     int seq;
     @Column(nullable = false)

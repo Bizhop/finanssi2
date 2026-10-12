@@ -16,6 +16,7 @@ import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import fi.bizhop.finanssi2.game.db.GameMode;
 
 @Service
 @RequiredArgsConstructor
@@ -60,7 +61,7 @@ public class ChatService {
         validateMessage(message);
         var game = gameRepository.findByIdForUpdate(gameId).orElseThrow(() -> new GameNotFoundException(gameId));
         debugAccess.requireRead(game, author);
-        if (game.getMode() == fi.bizhop.finanssi2.game.db.GameMode.NORMAL
+        if (game.getMode() == GameMode.NORMAL
                 && game.getState().player(author.userId()).isEmpty()) {
             throw new NotAllowedException("Join the game before sending messages");
         }

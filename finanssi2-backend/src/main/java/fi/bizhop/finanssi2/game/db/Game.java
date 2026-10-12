@@ -4,6 +4,7 @@ import fi.bizhop.finanssi2.game.engine.GameState;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Objects;
 
 @Data
 public class Game {
@@ -19,7 +20,7 @@ public class Game {
     public Game() {}
 
     public Game(GameMode mode) {
-        this.mode = java.util.Objects.requireNonNull(mode);
+        this.mode = Objects.requireNonNull(mode);
     }
 
     long createdAt;
