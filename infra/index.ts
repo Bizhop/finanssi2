@@ -135,6 +135,7 @@ const frontend = createFrontend(prefix, provider, usEast1Provider, {
 })
 createMonitoring(prefix, provider, usEast1Provider, {
     instance: backend.instance,
+    databaseCluster: database.cluster,
     hostLogGroup: backend.hostLogGroup,
     monthlyBudgetUsd: monthlyBudgetLimitUsd,
     alertEmail: budgetAlertEmail,
