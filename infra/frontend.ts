@@ -4,7 +4,7 @@ import * as pulumi from "@pulumi/pulumi"
 export interface Frontend {
     bucket: aws.s3.Bucket
     certificate: aws.acm.Certificate
-    distribution?: aws.cloudfront.Distribution
+    distribution?: aws.cloudfront.Distribution | undefined
 }
 
 export function createFrontend(

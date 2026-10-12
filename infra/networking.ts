@@ -5,8 +5,8 @@ export interface Networking {
     vpc: aws.ec2.Vpc
     backendSecurityGroup: aws.ec2.SecurityGroup
     databaseSecurityGroup: aws.ec2.SecurityGroup
-    publicSubnetIds: pulumi.Output<string>[]
-    privateSubnetIds: pulumi.Output<string>[]
+    publicSubnetIds: [pulumi.Output<string>, pulumi.Output<string>]
+    privateSubnetIds: [pulumi.Output<string>, pulumi.Output<string>]
 }
 
 export function createNetworking(prefix: string, provider: aws.Provider): Networking {
