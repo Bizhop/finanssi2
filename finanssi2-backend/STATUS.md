@@ -1,9 +1,9 @@
 # Backend status
 
-Updated 2026-10-09 after production backend deployment. The SSM deployment command completed successfully and the backend service
-reported that the app started. Public API behavior, TLS hostname verification and Aurora pause/resume still need live acceptance.
-The frontend distribution hostname output is currently `null`; see [infrastructure setup](../infra/README.md) for the staged frontend
-handoff. Firebase tokens
+Updated 2026-10-12: production is live at `https://finanssi.bizhop.fi` (frontend) and `https://api.finanssi.bizhop.fi` (backend); the
+liveness endpoint answers over HTTPS and Google sign-in works. The first request after idle is slow while Aurora resumes. Live
+multiplayer testing with friends is next; Aurora pause/resume timing, backend memory under gameplay and reboot behavior are still to be
+measured. See [infrastructure setup](../infra/README.md). Firebase tokens
 must carry a verified email before profile provisioning or REST/STOMP access. See the root README for local configuration. Phase 5
 automated checks pass; live Firebase account linking and browser acceptance remain outstanding.
 

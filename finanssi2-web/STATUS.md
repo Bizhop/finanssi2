@@ -1,8 +1,9 @@
 # Frontend status
 
-Updated 2026-10-09: the production backend is deployed and its service reports that the app started. The Pulumi
-`frontendDistributionHostname` output is currently `null`, so there is no production frontend URL to open yet. The distribution remains
-staged pending certificate/DNS setup and enabling `createFrontendDistribution`; see [infrastructure setup](../infra/README.md).
+Updated 2026-10-12: the production frontend is live at `https://finanssi.bizhop.fi` (CloudFront + S3) against
+`https://api.finanssi.bizhop.fi`. `./infra/scripts/publish-frontend.sh` builds and publishes it; see [infrastructure setup](../infra/README.md).
+`deno task build` works with Deno 2.9.7. With that version `deno task typecheck` fails on `vite.dev-pages.config.ts` and `deno lint` reports four
+`window.*` problems (e.g. `CurrentUserContext.tsx`); the build and tests are unaffected. The Deno version is not yet pinned for releases.
 
 Updated 2026-10-08 after centralized Firebase auth, verified email/password flows, application profile bootstrap/editing and custom avatar controls. Automated
 frontend checks passed during phase 4; backend phase 5 checks also pass. Real Firebase verification/linking, reset and browser upload acceptance still require a
@@ -111,7 +112,7 @@ Private single-player debug mode is implemented. Live Google-authenticated accep
       landing previews, donor tokens and both Fire cases are also checked. Typecheck, lint, formatting and all eight frontend tests pass.
 - [ ] Complete the deferred visual redesign and broader responsive review. Linked decision fixtures now cover all six pending-decision types and every Stock Tip
       choice format, including insufficient cash, bankruptcy and out-of-turn decisions. Mock command responses cannot validate gameplay transitions.
-- [ ] Configure production Firebase/environment values and re-enable the production build task.
+- [x] Configure production Firebase/environment values and re-enable the production build task.
 
 Local setup and Deno tasks are in the [root README](../README.md). Start the preview server with `deno task dev:pages` from this folder. Automated checks
 passed; live play and responsive visual review are still unverified.
