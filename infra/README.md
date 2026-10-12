@@ -18,12 +18,14 @@ Install exact locked package versions and type-check the project:
 
 ```bash
 npm ci
-npm run build
+npm run typecheck
+npm run lint
+npm run fmt:check   # `npm run fmt` fixes formatting; needs deno
 ```
 
 Create a local production stack config from `Pulumi.prod.yaml.example`, replace the public Firebase web placeholders, then initialize
-the stack and store the Firebase Admin service-account JSON with Pulumi's `--secret` option. The example is ignored by Git along
-with real `Pulumi.*.yaml` files. Never place Firebase Admin JSON in the stack YAML as plaintext or in `firebaseWeb`.
+the stack and store the Firebase Admin service-account JSON with Pulumi's `--secret` option. The example is tracked; real
+`Pulumi.*.yaml` files are ignored by Git. Never place Firebase Admin JSON in the stack YAML as plaintext or in `firebaseWeb`.
 
 The stack uses `aws:region` with a default of `eu-north-1`. Set `monthlyBudgetLimitUsd` to the alert amount you choose and
 `budgetAlertEmail` to the recipient address. Confirm the SNS subscription email after deployment. Check that the configured Aurora PostgreSQL engine version is currently

@@ -1,8 +1,14 @@
 {
   "name": "finanssi2-infra",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "build": "tsc --noEmit",
+    "typecheck": "tsc",
+    "fmt": "deno fmt",
+    "fmt:check": "deno fmt --check",
+    "lint": "deno lint",
     "preview": "pulumi preview"
   },
   "dependencies": {
