@@ -1,6 +1,10 @@
 import { assertEquals } from "@std/assert"
 import type { Game, GameBoardData } from "../../api/gameApi.ts"
 import { decisionLabels, newsDestination, nextAuctionBid, validAuctionBid } from "./gameDecisions.ts"
+import { initI18n } from "../../i18n/index.ts"
+
+// The assertions are in English
+initI18n("en")
 
 const game = {
     state: {

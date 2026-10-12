@@ -1,5 +1,6 @@
 import { type ReactNode, useId, useState } from "react"
 import { Box, Paper, Stack, Tab, Tabs } from "@mui/material"
+import { useTranslation } from "react-i18next"
 
 export type GameWindowTab = {
     label: string
@@ -14,6 +15,7 @@ type GameWindowProps = {
 export const GameWindow = ({ tabs, fill = false }: GameWindowProps) => {
     const [activeTab, setActiveTab] = useState(0)
     const id = useId()
+    const { t } = useTranslation()
     return (
         <Paper
             variant="outlined"
@@ -26,7 +28,7 @@ export const GameWindow = ({ tabs, fill = false }: GameWindowProps) => {
                 flex: fill ? 1 : "0 0 auto",
             }}
         >
-            <Tabs value={activeTab} onChange={(_, value: number) => setActiveTab(value)} variant="fullWidth" aria-label="Game activity">
+            <Tabs value={activeTab} onChange={(_, value: number) => setActiveTab(value)} variant="fullWidth" aria-label={t("board.window.activity")}>
                 {tabs.map((tab, index) => <Tab key={tab.label} label={tab.label} id={`${id}-tab-${index}`} aria-controls={`${id}-panel-${index}`} />)}
             </Tabs>
             <Box sx={{ flex: 1, minHeight: 0, position: "relative", p: 1 }}>

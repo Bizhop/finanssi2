@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Box, Stack, Typography } from "@mui/material"
 import PaymentsOutlined from "@mui/icons-material/PaymentsOutlined"
 import LocalFireDepartmentOutlined from "@mui/icons-material/LocalFireDepartmentOutlined"
@@ -8,6 +9,7 @@ import Check from "@mui/icons-material/Check"
 import SwapHoriz from "@mui/icons-material/SwapHoriz"
 
 import { formatEuro } from "../../../ui/format.ts"
+import { BAIL_AMOUNT } from "../../labels/gameDecisions.ts"
 import { ASSET_PICK_TIPS, STOCK_TIP, TRAVEL_FEE } from "../../rules/stockTipCards.ts"
 import { GameBoard } from "../GameBoard.tsx"
 import { AssetChoice, Choice, CommandChoice, type DecisionEnv, type PendingOf, PersonTag } from "./shared.tsx"
@@ -26,6 +28,7 @@ export const StockTipChoiceBody = ({ pending, env }: { pending: PendingOf<"Stock
 
 /** PV-17: pick a property on the board to move to */
 const MoveToProperty = ({ options, env }: { options: string[]; env: DecisionEnv }) => {
+    const { t } = useTranslation()
     const { game, board, busy, allowed, labels } = env
     const [destination, setDestination] = useState<number | null>(null)
     return (
@@ -43,12 +46,12 @@ const MoveToProperty = ({ options, env }: { options: string[]; env: DecisionEnv 
                     <AssetChoice env={env} id={`P:${destination}`} />
                     <CommandChoice
                         env={env}
-                        label={`Move to ${labels.property(String(destination))}`}
+                        label={t("decision.tip.moveTo", { property: labels.property(String(destination)) })}
                         icon={<ArrowForward />}
                         command={{ type: "ChooseStockTipOption", option: String(destination) }}
                         disabled={!allowed.includes("ChooseStockTipOption")}
                     >
-                        Move to {labels.property(String(destination))}
+                        {t("decision.tip.moveTo", { property: labels.property(String(destination)) })}
                     </CommandChoice>
                 </Stack>
             )}
@@ -58,6 +61,7 @@ const MoveToProperty = ({ options, env }: { options: string[]; env: DecisionEnv 
 
 /** PV-10: choose two buildings to burn, or confirm the only pair there is */
 const Fire = ({ options, env }: { options: string[]; env: DecisionEnv }) => {
+    const { t } = useTranslation()
     const { labels, allowed } = env
     const [burned, setBurned] = useState<number[]>([])
     const singleFire = options.length === 1
@@ -75,7 +79,7 @@ const Fire = ({ options, env }: { options: string[]; env: DecisionEnv }) => {
                         <AssetChoice
                             env={env}
                             id={`P:${square}`}
-                            label={`Select ${labels.property(String(square))} to burn`}
+                            label={t("decision.tip.selectToBurn", { property: labels.property(String(square)) })}
                             onSelect={singleFire ? undefined : () => toggle(square)}
                             disabled={!singleFire && !burned.includes(square) && burned.length >= 2}
                             selected={singleFire || burned.includes(square)}
@@ -85,12 +89,12 @@ const Fire = ({ options, env }: { options: string[]; env: DecisionEnv }) => {
             </Stack>
             <CommandChoice
                 env={env}
-                label={singleFire ? "Confirm fire and roll for insurance" : "Burn selected buildings and roll for insurance"}
+                label={singleFire ? t("decision.tip.fireConfirmLabel") : t("decision.tip.fireBurnLabel")}
                 icon={singleFire ? <Check /> : <LocalFireDepartmentOutlined />}
                 command={{ type: "ChooseStockTipOption", option: fireOption }}
                 disabled={!fireOption || !allowed.includes("ChooseStockTipOption")}
             >
-                {singleFire ? "Continue" : `Burn buildings (${burned.length}/2)`}
+                {singleFire ? t("decision.tip.continue") : t("decision.tip.burn", { selected: burned.length })}
             </CommandChoice>
         </>
     )
@@ -98,6 +102,7 @@ const Fire = ({ options, env }: { options: string[]; env: DecisionEnv }) => {
 
 /** Every other tip: free bond, asset picks, share swaps and the plain options (pay, bail, jail, stay) */
 const PlainOption = ({ card, option, env }: { card: string; option: string; env: DecisionEnv }) => {
+    const { t } = useTranslation()
     const { allowed, busy, cash, labels, send } = env
     const label = labels.option(card, option)
     const disabled = !allowed.includes("ChooseStockTipOption")
@@ -121,7 +126,7 @@ const PlainOption = ({ card, option, env }: { card: string; option: string; env:
         return (
             <Box>
                 <AssetChoice env={env} id={id} label={label} onSelect={choose} disabled={disabled}>
-                    {card === STOCK_TIP.SELL_AT_NOMINAL && <Typography variant="caption">{label.match(/€[\d,]+/)?.[0]}</Typography>}
+                    {card === STOCK_TIP.SELL_AT_NOMINAL && <Typography variant="caption">{formatEuro(labels.nominalSalePrice(option) ?? 0)}</Typography>}
                 </AssetChoice>
             </Box>
         )
@@ -136,7 +141,7 @@ const PlainOption = ({ card, option, env }: { card: string; option: string; env:
                     <SwapHoriz fontSize="small" />
                     <AssetChoice env={env} id={`S:${theirs}`} />
                 </Stack>
-                <Choice label={label} icon={<SwapHoriz />} disabled={busy || disabled} onClick={choose}>Swap</Choice>
+                <Choice label={label} icon={<SwapHoriz />} disabled={busy || disabled} onClick={choose}>{t("decision.tip.swap")}</Choice>
             </Stack>
         )
     }
@@ -144,12 +149,12 @@ const PlainOption = ({ card, option, env }: { card: string; option: string; env:
     const text = option === "PAY"
         ? formatEuro(TRAVEL_FEE)
         : option === "BAIL"
-        ? "€30,000 bail"
+        ? t("decision.tip.bail", { amount: formatEuro(BAIL_AMOUNT) })
         : option === "JAIL"
-        ? "Jail"
+        ? t("decision.tip.jail")
         : card === STOCK_TIP.SHARE_SWAP
-        ? "Keep shares"
-        : "Stay"
+        ? t("decision.tip.keepShares")
+        : t("decision.tip.stay")
     return (
         <Choice label={label} icon={icon} disabled={busy || disabled || (card === STOCK_TIP.TRAVEL && option === "PAY" && cash < TRAVEL_FEE)} onClick={choose}>
             {text}

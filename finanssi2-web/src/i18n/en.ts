@@ -1,3 +1,6 @@
+import { enBoard } from "./en.board.ts"
+import { enDecision } from "./en.decision.ts"
+import { enRoom } from "./en.room.ts"
 import type { MessageKey } from "./fi.ts"
 
 export const en: Record<MessageKey, string> = {
@@ -136,4 +139,7 @@ export const en: Record<MessageKey, string> = {
     "chat.loadFailed": "Could not load chat history.",
     "chat.accessChanged": "Chat access changed. Return to the games list and reopen this game.",
     "chat.sendFailed": "Message could not be sent. Your draft is still here.",
+    ...enRoom,
+    ...enDecision,
+    ...enBoard,
 }

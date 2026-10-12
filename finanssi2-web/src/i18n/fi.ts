@@ -1,3 +1,7 @@
+import { fiBoard } from "./fi.board.ts"
+import { fiDecision } from "./fi.decision.ts"
+import { fiRoom } from "./fi.room.ts"
+
 // Finnish is the source of truth: the game's assets are Finnish, and the keys of this catalog are the keys `t()` accepts. en.ts must have
 // exactly the same keys (the test checks). Messages are whole sentences with {{placeholders}}; plurals use the _one/_other key suffixes.
 export const fi = {
@@ -137,6 +141,9 @@ export const fi = {
     "chat.loadFailed": "Keskusteluhistorian lataus epäonnistui.",
     "chat.accessChanged": "Keskustelun käyttöoikeus muuttui. Palaa pelilistaan ja avaa peli uudelleen.",
     "chat.sendFailed": "Viestiä ei voitu lähettää. Luonnos on yhä tallessa.",
+    ...fiRoom,
+    ...fiDecision,
+    ...fiBoard,
 } as const
 
 export type MessageKey = keyof typeof fi

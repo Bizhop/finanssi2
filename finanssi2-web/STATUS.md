@@ -62,6 +62,13 @@ messages, reconnect controls, and spectator mode. Frontend checks pass; responsi
   destination. Fire previews include three buildings to choose two from, plus a forced-pair confirmation case. Bond transfers show the donor's token and colour.
 - `deno task build` is enabled and requires the production Firebase web settings and HTTPS API URL in `.env.production`; this has not yet been run in an environment with Deno and the production values.
 
+## Language
+
+The UI is available in Finnish (default) and English through i18next. The switch is in the header and on the front page; the choice is stored in
+`localStorage` and sets `<html lang>`. Money, numbers and dates follow the language (`src/ui/format.ts`). Card, board and share text stays Finnish. Backend
+error text is English until the backend adds stable error codes (`GameApiError` already keeps `code`). `deno task smoke` visits every preview in both
+languages.
+
 ## Private debug games
 
 - Capabilities load after sign-in, clear on account changes and refresh on reconnect. STOMP reconnects on account changes. Eligible users can create 2–6-seat

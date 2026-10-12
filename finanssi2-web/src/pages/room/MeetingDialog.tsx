@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from "@mui/material"
 
 import { twoDiceAtMost } from "../../game/rules/gameRules.ts"
@@ -19,36 +20,37 @@ export const MeetingDialog = ({ groupName, takeover, fees, cash, busy, onClose, 
     onClose: () => void
     onCall: (brokerageFee: number) => void
 }) => {
+    const { t } = useTranslation()
     const [fee, setFee] = useState(fees[0] ?? 0)
     return (
         <Dialog open={groupName !== null} onClose={onClose} maxWidth="xs" fullWidth>
-            <DialogTitle>Shareholders' meeting: {groupName}</DialogTitle>
+            <DialogTitle>{t("room.meeting.title", { group: groupName })}</DialogTitle>
             <DialogContent>
                 <Stack spacing={2} sx={{ pt: 1 }}>
                     <Typography variant="body2">
-                        Taking over the other players' properties and shares costs {formatEuro(takeover)}, plus the brokerage fee. You have {formatEuro(cash)}.
+                        {t("room.meeting.body", { takeover: formatEuro(takeover), cash: formatEuro(cash) })}
                     </Typography>
                     <TextField
                         select
                         size="small"
-                        label="Brokerage fee"
+                        label={t("room.meeting.fee")}
                         value={fee}
                         onChange={(event) => setFee(Number(event.target.value))}
                         slotProps={{ select: { native: true } }}
                     >
                         {fees.map((option) => (
                             <option key={option} value={option}>
-                                {formatEuro(option)}: {Math.round(twoDiceAtMost(option / 10000) * 100)}% chance
+                                {t("room.meeting.feeOption", { fee: formatEuro(option), chance: Math.round(twoDiceAtMost(option / 10000) * 100) })}
                             </option>
                         ))}
                     </TextField>
                     <Typography variant="body2" color="text.secondary">
-                        The takeover succeeds on a dice total of {fee / 10000} or less.
+                        {t("room.meeting.limit", { limit: fee / 10000 })}
                     </Typography>
                 </Stack>
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose}>Cancel</Button>
+                <Button onClick={onClose}>{t("common.cancel")}</Button>
                 <Button
                     variant="contained"
                     disabled={busy || !fees.includes(fee)}
@@ -57,7 +59,7 @@ export const MeetingDialog = ({ groupName, takeover, fees, cash, busy, onClose, 
                         onCall(fee)
                     }}
                 >
-                    Call meeting
+                    {t("room.meeting.call")}
                 </Button>
             </DialogActions>
         </Dialog>

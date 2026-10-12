@@ -1,5 +1,5 @@
-// The one place that formats numbers, money and dates, so every screen shows them the same way. The locale is the language of the UI,
-// set once with setFormatLocale; until the UI has a language of its own, that is English.
+// The one place that formats numbers, money, dates and lists, so every screen shows them the same way. The locale follows the language of the UI
+// (see i18n/index.ts); until that is set up, it is English.
 let locale = "en-GB"
 
 export const setFormatLocale = (next: string) => {
@@ -16,3 +16,6 @@ export const formatNumber = (value: number, forLocale = locale) => new Intl.Numb
 /** Date and time of a timestamp in milliseconds */
 export const formatDateTime = (timestamp: number, forLocale = locale) =>
     new Intl.DateTimeFormat(forLocale, { dateStyle: "short", timeStyle: "medium" }).format(new Date(timestamp))
+
+/** "A, B and C" in English, "A, B ja C" in Finnish */
+export const formatList = (items: string[], forLocale = locale) => new Intl.ListFormat(forLocale, { style: "long", type: "conjunction" }).format(items)

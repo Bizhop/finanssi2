@@ -1,4 +1,5 @@
 import { type RefObject, useLayoutEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Box, Chip, Dialog, DialogContent, DialogTitle, Stack, Tooltip, Typography } from "@mui/material"
 import PaymentsOutlined from "@mui/icons-material/PaymentsOutlined"
 import GavelOutlined from "@mui/icons-material/GavelOutlined"
@@ -25,6 +26,7 @@ export const DecisionDialog = ({ pending, allowed, options, send, game, board, b
     anchor: RefObject<HTMLDivElement | null>
     sourceStockTip?: string | null
 }) => {
+    const { t } = useTranslation()
     const [position, setPosition] = useState({ top: 80, left: globalThis.innerWidth / 2 })
     // The Stock Tip or Finance News card the decision comes from, when it has one
     const pickCard = "card" in pending ? pending.card : undefined
@@ -60,27 +62,29 @@ export const DecisionDialog = ({ pending, allowed, options, send, game, board, b
             : null)
     const card = [...board?.stockTips ?? [], ...board?.financeNews ?? []].find((card) => card.id === source)
     const headings: Partial<Record<Pending["type"], string>> = {
-        RaiseFunds: "Settle payment",
-        BondOffer: "Choose a bond",
-        BondAuction: "Bond auction",
-        AssetAuction: "Asset auction",
+        RaiseFunds: t("decision.heading.raiseFunds"),
+        BondOffer: t("decision.heading.bondOffer"),
+        BondAuction: t("decision.heading.bondAuction"),
+        AssetAuction: t("decision.heading.assetAuction"),
     }
-    const heading = card?.chapters.find((chapter) => chapter.type === "header")?.text ?? headings[pending.type] ?? "Your decision"
+    const heading = card?.chapters.find((chapter) => chapter.type === "header")?.text ?? headings[pending.type] ?? t("decision.title")
     const minimum = pending.type === "AssetAuction" ? pending.minimumBid : options.bondPrice
     const singleFire = pending.type === "StockTipChoice" && pending.card === STOCK_TIP.FIRE && pending.options.length === 1
     const env: DecisionEnv = { game, board, allowed, options, send, busy, labels, cash, position: actor?.position ?? 1 }
     const summary = pending.type === "RaiseFunds"
-        ? `${formatEuro(pending.amount)} to ${pending.creditor ? labels.player(pending.creditor) : "the bank"}`
+        ? pending.creditor
+            ? t("decision.summary.payToPlayer", { amount: formatEuro(pending.amount), creditor: labels.player(pending.creditor) })
+            : t("decision.summary.payToBank", { amount: formatEuro(pending.amount) })
         : pending.type === "BondOffer"
-        ? `${formatEuro(options.bondPrice)} per bond`
+        ? t("decision.summary.bondPrice", { price: formatEuro(options.bondPrice) })
         : pending.type === "AssetAuction"
-        ? `Minimum bid ${formatEuro(minimum)} · sealed bids`
+        ? t("decision.summary.assetAuction", { minimum: formatEuro(minimum) })
         : pending.type === "BondAuction"
-        ? "Sealed bids · the winner receives a random available bond"
+        ? t("decision.summary.bondAuction")
         : pickCard === STOCK_TIP.FIRE
-        ? singleFire ? "These buildings must be returned. Continue to roll for insurance." : "Choose two buildings to return."
+        ? singleFire ? t("decision.summary.fireSingle") : t("decision.summary.fireChoose")
         : pickCard === STOCK_TIP.MOVE_TO_PROPERTY
-        ? "Select a highlighted property on the board."
+        ? t("decision.summary.moveToProperty")
         : null
     return (
         <Dialog
@@ -106,7 +110,7 @@ export const DecisionDialog = ({ pending, allowed, options, send, game, board, b
             }}
         >
             <DialogTitle id="decision-title" sx={{ px: 2, pt: 1.5, pb: 0.75 }}>
-                <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.4 }}>Your decision</Typography>
+                <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.4 }}>{t("decision.title")}</Typography>
                 <Typography component="span" sx={{ display: "block", fontSize: 18, fontWeight: 600, lineHeight: 1.3 }}>{heading}</Typography>
             </DialogTitle>
             <DialogContent sx={{ px: 2, pb: 2 }}>
@@ -127,16 +131,16 @@ export const DecisionDialog = ({ pending, allowed, options, send, game, board, b
                         {summary && <Typography variant="body2" color="text.secondary">{summary}</Typography>}
                     </Box>
                     <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
-                        <Tooltip title="Available cash">
+                        <Tooltip title={t("decision.chip.cash")}>
                             <Chip size="small" icon={<PaymentsOutlined />} label={formatEuro(cash)} />
                         </Tooltip>
                         {pending.type === "RaiseFunds" && (
-                            <Tooltip title="Still needed to settle this payment">
+                            <Tooltip title={t("decision.chip.shortfall")}>
                                 <Chip size="small" color="warning" label={`−${formatEuro(Math.max(0, pending.amount - cash))}`} />
                             </Tooltip>
                         )}
                         {(pending.type === "BondAuction" || pending.type === "AssetAuction") && (
-                            <Tooltip title="Minimum nonzero bid">
+                            <Tooltip title={t("decision.chip.minimumBid")}>
                                 <Chip size="small" icon={<GavelOutlined />} label={formatEuro(minimum)} />
                             </Tooltip>
                         )}

@@ -130,11 +130,16 @@ Other frontend tasks (run from `finanssi2-web`, defined in `deno.json` like npm 
 |---|---|
 | `deno task build` | Production build; requires `.env.production` as described above |
 | `deno task typecheck` | Type-check the sources |
-| `deno task test` | Run API transport tests |
+| `deno task test` | Run the unit tests (rules, labels, API transport, i18n catalogs) |
+| `deno task smoke` | Open every dev-page preview in headless Chromium, in Finnish and English (needs a Chromium) |
 | `deno task lint` | Lint the sources (unused imports/variables etc.) |
 | `deno task fmt` | Format the code |
 | `deno task fmt:check` | Check formatting without changing files (for CI) |
 
+
+The UI is available in Finnish (default) and English; the choice is remembered per browser. Messages live in `finanssi2-web/src/i18n/`
+(`fi*.ts` is the source of truth, `en*.ts` must have the same keys and placeholders, which `deno task test` checks). Card, board and share text
+from the game assets stays Finnish in both languages, and backend error text (`detail`) stays English until the backend sends stable error codes.
 
 ## Private debug games
 

@@ -1,4 +1,5 @@
 import { type ReactNode, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Box, ButtonBase, Dialog, DialogContent, DialogTitle, IconButton, Stack, Tooltip, Typography } from "@mui/material"
 import ZoomIn from "@mui/icons-material/ZoomIn"
 import Close from "@mui/icons-material/Close"
@@ -17,14 +18,15 @@ export const DecisionAsset = ({ asset, game, board, label, onSelect, disabled, c
     selected?: boolean
     children?: ReactNode
 }) => {
+    const { t } = useTranslation()
     const [peek, setPeek] = useState(false)
     const labels = decisionLabels(game, board)
     const name = asset.startsWith("B:")
-        ? asset === "B:?" ? "Random bond" : `Bond ${asset.slice(2)}`
+        ? asset === "B:?" ? t("decision.asset.randomBond") : t("decision.asset.bond", { number: asset.slice(2) })
         : asset === "CAR"
-        ? "Car"
+        ? t("decision.asset.car")
         : asset === "LOAN"
-        ? "Bank loan"
+        ? t("decision.asset.loan")
         : labels.asset(asset)
     const face = () => {
         if (asset.startsWith("B:")) return <BondCard number={asset === "B:?" ? "?" : Number(asset.slice(2))} />
@@ -52,7 +54,7 @@ export const DecisionAsset = ({ asset, game, board, label, onSelect, disabled, c
             <Box sx={{ position: "relative", p: 0.5, borderRadius: 1, outline: selected ? "3px solid" : undefined, outlineColor: "primary.main" }}>
                 <Tooltip title={<Box sx={{ fontSize: 13 }}>{face()}</Box>} slotProps={cardPeekSlotProps}>
                     <ButtonBase
-                        aria-label={label ?? `View ${name}`}
+                        aria-label={label ?? t("decision.asset.view", { name })}
                         disabled={disabled}
                         onClick={onSelect ?? (() => setPeek(true))}
                         sx={{
@@ -68,10 +70,10 @@ export const DecisionAsset = ({ asset, game, board, label, onSelect, disabled, c
                         {face()}
                     </ButtonBase>
                 </Tooltip>
-                <Tooltip title={`View ${name}`}>
+                <Tooltip title={t("decision.asset.view", { name })}>
                     <IconButton
                         size="small"
-                        aria-label={`Read ${name} card`}
+                        aria-label={t("decision.asset.read", { name })}
                         onClick={() => setPeek(true)}
                         sx={{ position: "absolute", right: -4, bottom: -4, bgcolor: "background.paper", boxShadow: 1, p: 0.25 }}
                     >
@@ -83,7 +85,7 @@ export const DecisionAsset = ({ asset, game, board, label, onSelect, disabled, c
             <Dialog open={peek} onClose={() => setPeek(false)} maxWidth="xs">
                 <DialogTitle sx={{ fontSize: 15, pr: 6 }}>
                     {name}
-                    <IconButton aria-label="Close card" onClick={() => setPeek(false)} sx={{ position: "absolute", right: 8, top: 8 }}>
+                    <IconButton aria-label={t("decision.asset.close")} onClick={() => setPeek(false)} sx={{ position: "absolute", right: 8, top: 8 }}>
                         <Close />
                     </IconButton>
                 </DialogTitle>

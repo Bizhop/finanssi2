@@ -1,4 +1,5 @@
 import { Button, Stack } from "@mui/material"
+import { useTranslation } from "react-i18next"
 import ArrowBack from "@mui/icons-material/ArrowBack"
 import ArrowForward from "@mui/icons-material/ArrowForward"
 
@@ -8,12 +9,14 @@ import type { DecisionEnv } from "./shared.tsx"
 
 /** Finance News movement: forward or backward, each showing the square it ends on */
 export const NewsDirectionBody = ({ env }: { env: DecisionEnv }) => {
+    const { t } = useTranslation()
     const { allowed, board, busy, position, send } = env
     return (
         <Stack direction="row" spacing={1}>
             {[false, true].map((forward) => {
                 const square = newsDestination(position, forward, board)
-                const label = `Move ${forward ? "forward" : "backward"} to ${board?.squares.find((item) => item.square === square)?.name ?? square} (${square})`
+                const name = board?.squares.find((item) => item.square === square)?.name ?? square
+                const label = t(forward ? "decision.news.forward" : "decision.news.backward", { name, square })
                 return (
                     <Button
                         key={String(forward)}

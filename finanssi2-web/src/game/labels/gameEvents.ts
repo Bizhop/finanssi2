@@ -1,4 +1,6 @@
 import type { GameBoardData } from "../../api/gameApi.ts"
+import { t } from "../../i18n/index.ts"
+import type { MessageKey } from "../../i18n/fi.ts"
 import { formatEuro } from "../../ui/format.ts"
 
 export type GameLogEntry = { id: string; seq: number; time: number; type: string; event: Record<string, unknown> }
@@ -15,36 +17,15 @@ const diceText = (dice: unknown) => {
     return values.length > 1 ? `${values.join(" + ")} = ${values.reduce((sum, value) => sum + value, 0)}` : values.join("")
 }
 
-const reasonLabels: Record<string, string> = {
-    CAR_PURCHASE: "car purchase",
-    CAR_SALE: "car sale",
-    LOAN: "loan",
-    LOAN_REPAYMENT: "loan repayment",
-    LOAN_INTEREST: "loan interest",
-    BANK_ENTRANCE_REWARD: "bank entrance reward",
-    PROPERTY_PURCHASE: "property purchase",
-    SHARE_PURCHASE: "share purchase",
-    RENT: "rent",
-    MORTGAGE: "mortgage",
-    REDEMPTION: "redemption",
-    PROPERTY_SALE: "property sale",
-    SHARE_SALE: "share sale",
-    CONSTRUCTION: "construction",
-    BANK_DIVIDEND: "bank dividend",
-    PLAYER_DIVIDEND: "player dividend",
-    SHARE_CRASH: "share crash",
-    BANKRUPTCY: "bankruptcy",
-    BOND_PURCHASE: "bond purchase",
-    BOND_PRIZE: "bond prize",
-    FINANCE_NEWS: "Finance News",
-    STOCK_TIP: "Stock Tip",
-    ASSET_AUCTION: "asset auction",
-    SHAREHOLDERS_MEETING: "shareholders' meeting",
+/** The label of a money transfer's reason; a reason this client does not know is shown as sent */
+const reasonLabel = (reason: unknown) => {
+    const key = `event.reason.${String(reason)}` as MessageKey
+    return t(key, { defaultValue: String(reason) })
 }
 
 export const squareName = (board: GameBoardData | null, square: unknown) => {
     const name = board?.squares.find((item) => item.square === Number(square))?.name
-    return name ? `${name} (${square})` : `square ${square}`
+    return name ? `${name} (${square})` : t("event.square", { square: String(square) })
 }
 
 /** Share ids look like `OS-<GROUP>-<n>`; fund shares are `OS-RAHASTO-<n>` */
@@ -53,8 +34,8 @@ export const shareName = (board: GameBoardData | null, id: unknown) => {
     const match = /^OS-(.+)-(\d+)$/.exec(share)
     if (!match) return share
     const [, group, number] = match
-    if (group === "RAHASTO") return `fund share ${number}`
-    return `${board?.groups.find((item) => item.id === group)?.name ?? group} share ${number}`
+    if (group === "RAHASTO") return t("event.fundShare", { number })
+    return t("event.groupShare", { group: board?.groups.find((item) => item.id === group)?.name ?? group, number })
 }
 
 /** Asset ids from Stock Tips and auctions: `P:<square>` or `S:<share>` */
@@ -68,153 +49,188 @@ export const assetName = (board: GameBoardData | null, asset: unknown) => {
 export const cardTitle = (board: GameBoardData | null, id: unknown) => {
     const card = [...(board?.financeNews ?? []), ...(board?.stockTips ?? [])].find((item) => item.id === id)
     const header = card?.chapters.find((chapter) => chapter.type === "header")?.text ?? card?.chapters[0]?.text
-    return header ? `“${header}”` : "a card"
+    return header ? `“${header}”` : t("event.aCard")
 }
 
-const list = (values: unknown, format: (value: unknown) => string) => Array.isArray(values) && values.length > 0 ? values.map(format).join(", ") : "none"
+const list = (values: unknown, format: (value: unknown) => string) =>
+    Array.isArray(values) && values.length > 0 ? values.map(format).join(", ") : t("event.none")
 
 /** One readable line for a game log entry */
 export const describeEvent = (entry: GameLogEntry, { playerName, board }: EventContext): string => {
     const e = entry.event
-    const p = (key = "player") => e[key] == null ? "the bank" : playerName(String(e[key]))
+    const p = (key = "player") => e[key] == null ? t("event.bank") : playerName(String(e[key]))
     const bids = (value: unknown) =>
         Array.isArray(value) && value.length > 0
-            ? ` Bids: ${value.map((bid) => `${playerName(String(bid.player))} ${bid.amount ? money(bid.amount) : "pass"}`).join(", ")}.`
+            ? t("event.bids", {
+                bids: value.map((bid) =>
+                    t("event.bid", { player: playerName(String(bid.player)), amount: bid.amount ? money(bid.amount) : t("event.bidPass") })
+                ).join(", "),
+            })
             : ""
+    const shares = (value: unknown) => list(value, (share) => shareName(board, share))
+    const square = (key = "square") => squareName(board, e[key])
+    const share = (key = "share") => shareName(board, e[key])
+    const player = p()
     switch (entry.type) {
         case "DebugDeckChanged":
-            return `Debug: next ${e.deck === "FINANCE_NEWS" ? "Finance News" : "Stock Tip"} set to ${cardTitle(board, e.card)}`
+            return t("event.DebugDeckChanged", {
+                deck: t(e.deck === "FINANCE_NEWS" ? "event.deck.FINANCE_NEWS" : "event.deck.STOCK_TIP"),
+                card: cardTitle(board, e.card),
+            })
         case "PlayerJoined":
-            return `${playerName(String(e.player))} joined`
+            return t("event.PlayerJoined", { player: playerName(String(e.player)) })
         case "PlayerLeft":
-            return `${p()} left`
+            return t("event.PlayerLeft", { player })
         case "StartingRoll":
-            return `${p()} rolled ${diceText(e.dice)} for starting order (round ${e.round})`
+            return t("event.StartingRoll", { player, dice: diceText(e.dice), round: String(e.round) })
         case "GameStarted":
-            return `Game started with ${money(e.startingCash)} each. Turn order: ${list(e.turnOrder, (playerId) => playerName(String(playerId)))}`
+            return t("event.GameStarted", { cash: money(e.startingCash), order: list(e.turnOrder, (playerId) => playerName(String(playerId))) })
         case "SettingsChanged":
-            return "Settings changed"
+            return t("event.SettingsChanged")
         case "TurnStarted":
-            return `${p()}'s turn`
+            return t("event.TurnStarted", { player })
         case "TurnEnded":
-            return `${p()} ended the turn`
+            return t("event.TurnEnded", { player })
         case "TurnSkipped":
-            return `${p()} misses a turn (${e.remaining} more to skip)`
+            return t("event.TurnSkipped", { player, remaining: String(e.remaining) })
         case "DiceRolled":
-            return `${p()} rolled ${diceText(e.dice)}`
+            return t("event.DiceRolled", { player, dice: diceText(e.dice) })
         case "PieceMoved":
-            return `${p()} moved from ${squareName(board, e.from)} to ${squareName(board, e.to)}`
+            return t("event.PieceMoved", { player, from: square("from"), to: square("to") })
         case "LandedOn":
-            return `${p()} landed on ${squareName(board, e.square)}`
+            return t("event.LandedOn", { player, square: square() })
         case "NotImplemented":
             // The backend emits this for squares that only enable actions before the next roll, which is not a missing rule
-            if (e.squareType === "BRANCH_OFFICE") return `${squareName(board, e.square)}: no landing effect; buying is allowed here before the next roll`
-            if (e.squareType === "CONSTRUCTION") return `${squareName(board, e.square)}: no landing effect; building is allowed here before the next roll`
-            return `Not implemented: ${squareName(board, e.square)} (${e.squareType}) has no effect yet`
+            if (e.squareType === "BRANCH_OFFICE") return t("event.NotImplemented.BRANCH_OFFICE", { square: square() })
+            if (e.squareType === "CONSTRUCTION") return t("event.NotImplemented.CONSTRUCTION", { square: square() })
+            return t("event.NotImplemented", { square: square(), type: String(e.squareType) })
         case "FinanceNewsDrawn":
-            return `${p()} drew Finance News ${cardTitle(board, e.card)}${e.replaced ? `, replacing ${cardTitle(board, e.replaced)}` : ""}`
+            return e.replaced
+                ? t("event.FinanceNewsDrawnReplacing", { player, card: cardTitle(board, e.card), replaced: cardTitle(board, e.replaced) })
+                : t("event.FinanceNewsDrawn", { player, card: cardTitle(board, e.card) })
         case "StockTipDrawn":
-            return `${p()} drew Stock Tip ${cardTitle(board, e.card)}${e.held ? " and keeps it" : ""}`
+            return t(e.held ? "event.StockTipDrawnHeld" : "event.StockTipDrawn", { player, card: cardTitle(board, e.card) })
         case "StockTipUsed":
-            return `${p()} used Stock Tip ${cardTitle(board, e.card)}`
+            return t("event.StockTipUsed", { player, card: cardTitle(board, e.card) })
         case "HeldStockTipsReturned":
-            return `${p()} returned held Stock Tips: ${list(e.cards, (card) => cardTitle(board, card))}`
+            return t("event.HeldStockTipsReturned", { player, cards: list(e.cards, (card) => cardTitle(board, card)) })
         case "MoneyTransferred":
-            return `${p("from")} paid ${money(e.amount)} to ${p("to")} (${reasonLabels[String(e.reason)] ?? e.reason})`
+            return t("event.MoneyTransferred", { from: p("from"), to: p("to"), amount: money(e.amount), reason: reasonLabel(e.reason) })
         case "PaymentDue":
-            return `${p()} owes ${money(e.amount)} to ${p("creditor")} and must raise funds`
+            return t("event.PaymentDue", { player, amount: money(e.amount), creditor: p("creditor") })
         case "RentCharged":
-            return `${p()} owes ${money(e.amount)} rent to ${p("owner")} for ${squareName(board, e.square)}${e.doubled ? " (doubled, complete group)" : ""}`
+            return t(e.doubled ? "event.RentChargedDoubled" : "event.RentCharged", { player, amount: money(e.amount), owner: p("owner"), square: square() })
         case "CarBought":
-            return `${p()} bought a car`
+            return t("event.CarBought", { player })
         case "CarSold":
-            return `${p()} sold the car`
+            return t("event.CarSold", { player })
         case "CarLost":
-            return `${p()} lost the car`
+            return t("event.CarLost", { player })
         case "LoanTaken":
-            return `${p()} took a loan (now ${e.loans})`
+            return t("event.LoanTaken", { player, loans: String(e.loans) })
         case "LoanRepaid":
-            return `${p()} repaid a loan (now ${e.loans})`
+            return t("event.LoanRepaid", { player, loans: String(e.loans) })
         case "BankEntranceRoll":
-            return `${p()} rolled ${diceText(e.dice)} for the bank entrance reward`
+            return t("event.BankEntranceRoll", { player, dice: diceText(e.dice) })
         case "PropertyBought":
-            return `${p()} bought ${squareName(board, e.square)}`
+            return t("event.PropertyBought", { player, square: square() })
         case "ShareBought":
-            return `${p()} bought ${shareName(board, e.share)}`
+            return t("event.ShareBought", { player, share: share() })
         case "PropertyMortgaged":
-            return `${p()} mortgaged ${squareName(board, e.square)}`
+            return t("event.PropertyMortgaged", { player, square: square() })
         case "PropertyRedeemed":
-            return `${p()} redeemed ${squareName(board, e.square)}`
+            return t("event.PropertyRedeemed", { player, square: square() })
         case "PropertySoldBack":
-            return `${p()} sold ${squareName(board, e.square)} back to the bank`
+            return t("event.PropertySoldBack", { player, square: square() })
         case "ShareSoldBack":
-            return `${p()} sold ${shareName(board, e.share)} back to the bank`
+            return t("event.ShareSoldBack", { player, share: share() })
         case "PropertyBuilt":
-            return `${p()} built ${e.industrial ? "an industrial plant" : "a building"} on ${squareName(board, e.square)}`
+            return t(e.industrial ? "event.PropertyBuiltIndustrial" : "event.PropertyBuilt", { player, square: square() })
         case "BuildingsBurned":
-            return `${p()} lost buildings to fire: ${list(e.squares, (square) => squareName(board, square))}`
+            return t("event.BuildingsBurned", { player, squares: list(e.squares, (item) => squareName(board, item)) })
         case "JailRoll":
-            return `${p()} rolled ${e.die} in jail and misses ${e.missedTurns} turn${e.missedTurns === 1 ? "" : "s"}`
+            return t("event.JailRoll", { player, die: String(e.die), count: Number(e.missedTurns) })
         case "GoToJailRoll":
-            return `${p()} rolled ${e.die} on the chance of jail${e.jailed ? " and goes to jail" : " and stays free"}`
+            return t(e.jailed ? "event.GoToJailRoll.jailed" : "event.GoToJailRoll.free", { player, die: String(e.die) })
         case "JailExempt":
-            return `${p()} is exempt from the chance of jail`
+            return t("event.JailExempt", { player })
         case "BailRoll":
-            return `${p()} rolled ${diceText(e.dice)} for bail${e.bailReturned ? "; bail returned" : ""}`
+            return t(e.bailReturned ? "event.BailRollReturned" : "event.BailRoll", { player, dice: diceText(e.dice) })
         case "BankDividend":
-            return `${p()} receives ${money(e.amount)} bank dividend on ${squareName(board, e.square)} for ${list(e.shares, (s) => shareName(board, s))}`
+            return t("event.BankDividend", { player, amount: money(e.amount), square: square(), shares: shares(e.shares) })
         case "PlayerDividendCharged":
-            return `${p()} owes ${p("shareholder")} ${money(e.amount)} dividend for ${list(e.shares, (s) => shareName(board, s))}`
+            return t("event.PlayerDividendCharged", { player, shareholder: p("shareholder"), amount: money(e.amount), shares: shares(e.shares) })
         case "StockTipDividendCharged":
-            return `${p()} owes ${p("shareholder")} ${money(e.amount)} dividend for ${list(e.shares, (s) => shareName(board, s))}`
+            return t("event.StockTipDividendCharged", { player, shareholder: p("shareholder"), amount: money(e.amount), shares: shares(e.shares) })
         case "BondBought":
-            return `${p()} bought bond ${e.number}`
+            return t("event.BondBought", { player, number: String(e.number) })
         case "BondGranted":
-            return `${p()} received bond ${e.number}`
+            return t("event.BondGranted", { player, number: String(e.number) })
         case "BondTransferred":
-            return `Bond ${e.number} moved from ${p("from")} to ${p("to")}`
+            return t("event.BondTransferred", { number: String(e.number), from: p("from"), to: p("to") })
         case "BondDrawn":
-            return `Bond ${e.number} drawn for ${money(e.prize)}: ${e.winner ? playerName(String(e.winner)) : "not owned"}`
+            return t("event.BondDrawn", {
+                number: String(e.number),
+                prize: money(e.prize),
+                winner: e.winner ? playerName(String(e.winner)) : t("event.notOwned"),
+            })
         case "BondOneWon":
-            return `Bond 1 won ${money(e.amount)}${e.previousOwner ? ` (owner ${p("previousOwner")})` : ""}`
+            return e.previousOwner
+                ? t("event.BondOneWonOwner", { amount: money(e.amount), owner: p("previousOwner") })
+                : t("event.BondOneWon", { amount: money(e.amount) })
         case "BondAuctionCompleted":
             return e.winner
-                ? `${p("winner")} won bond ${e.number} at auction for ${money(e.amount)}.${bids(e.bids)}`
-                : `No bids for bond ${e.number}.${bids(e.bids)}`
+                ? t("event.BondAuctionCompleted", { winner: p("winner"), number: String(e.number), amount: money(e.amount), bids: bids(e.bids) })
+                : t("event.BondAuctionNoBids", { number: String(e.number), bids: bids(e.bids) })
         case "AssetAuctionStarted":
-            return `${p("seller")} must auction ${assetName(board, e.asset)}, minimum bid ${money(e.minimumBid)}; bidders: ${
-                list(e.bidders, (playerId) => playerName(String(playerId)))
-            }`
+            return t("event.AssetAuctionStarted", {
+                seller: p("seller"),
+                asset: assetName(board, e.asset),
+                minimumBid: money(e.minimumBid),
+                bidders: list(e.bidders, (playerId) => playerName(String(playerId))),
+            })
         case "AssetAuctionCompleted":
             return e.winner
-                ? `${p("winner")} bought ${assetName(board, e.asset)} from ${p("seller")} at auction for ${money(e.amount)}.${bids(e.bids)}`
-                : `No sale of ${assetName(board, e.asset)}.${bids(e.bids)}`
+                ? t("event.AssetAuctionCompleted", {
+                    winner: p("winner"),
+                    asset: assetName(board, e.asset),
+                    seller: p("seller"),
+                    amount: money(e.amount),
+                    bids: bids(e.bids),
+                })
+                : t("event.AssetAuctionNoSale", { asset: assetName(board, e.asset), bids: bids(e.bids) })
         case "AssetTransferred":
-            return `${assetName(board, e.asset)} moved from ${p("from")} to ${p("to")}`
+            return t("event.AssetTransferred", { asset: assetName(board, e.asset), from: p("from"), to: p("to") })
         case "SharesSwapped":
-            return `${p()} swapped ${shareName(board, e.given)} for ${p("receivedFrom")}'s ${shareName(board, e.received)}`
+            return t("event.SharesSwapped", { player, given: share("given"), received: share("received"), receivedFrom: p("receivedFrom") })
         case "ShareIssued":
-            return `${p()} received ${shareName(board, e.share)}`
+            return t("event.ShareIssued", { player, share: share() })
         case "ShareTaken":
-            return `${p()} took ${shareName(board, e.share)} from ${p("from")}`
+            return t("event.ShareTaken", { player, share: share(), from: p("from") })
         case "ShareLost":
-            return `${p()} lost ${shareName(board, e.share)} to the bank`
+            return t("event.ShareLost", { player, share: share() })
         case "ShareholdersMeetingResolved":
-            return `${p()} called a shareholders' meeting for ${board?.groups.find((group) => group.id === e.group)?.name ?? e.group}: fee ${
-                money(e.brokerageFee)
-            }, takeover ${money(e.takeoverSum)}${Array.isArray(e.dice) && e.dice.length ? `, rolled ${diceText(e.dice)}` : ""} — ${
-                e.success ? "succeeded" : "failed"
-            }`
+            return t("event.ShareholdersMeetingResolved", {
+                player,
+                group: board?.groups.find((group) => group.id === e.group)?.name ?? String(e.group),
+                fee: money(e.brokerageFee),
+                takeover: money(e.takeoverSum),
+                rolled: Array.isArray(e.dice) && e.dice.length ? t("event.rolled", { dice: diceText(e.dice) }) : "",
+                result: t(e.success ? "event.succeeded" : "event.failed"),
+            })
         case "PlayerBankrupt":
-            return `${p()} went bankrupt to ${p("creditor")}`
+            return t("event.PlayerBankrupt", { player, creditor: p("creditor") })
         case "PlayerResigned":
-            return `${p()} resigned`
+            return t("event.PlayerResigned", { player })
         case "AssetsReturned":
-            return `${p()}'s assets returned to the bank: properties ${list(e.properties, (s) => squareName(board, s))}; shares ${
-                list(e.shares, (s) => shareName(board, s))
-            }; bonds ${list(e.bonds, String)}`
+            return t("event.AssetsReturned", {
+                player,
+                properties: list(e.properties, (item) => squareName(board, item)),
+                shares: shares(e.shares),
+                bonds: list(e.bonds, String),
+            })
         case "GameEnded":
-            return e.winner ? `Game over: ${p("winner")} wins` : "Game closed without a winner"
+            return e.winner ? t("event.GameEndedWinner", { winner: p("winner") }) : t("event.GameEnded")
         default:
             return entry.type
     }

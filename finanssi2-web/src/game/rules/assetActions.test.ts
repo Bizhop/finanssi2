@@ -1,6 +1,10 @@
 import { assertEquals } from "@std/assert"
 import type { CommandOptions, GameBoardData } from "../../api/gameApi.ts"
 import { buildAction, NO_OPTIONS, propertyActions, shareActions } from "./assetActions.ts"
+import { initI18n } from "../../i18n/index.ts"
+
+// The assertions are in English
+initI18n("en")
 
 type Deed = GameBoardData["titleDeeds"][number]
 const deed: Deed = {

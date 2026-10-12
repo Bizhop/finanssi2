@@ -3,6 +3,7 @@
 import type { ReactNode } from "react"
 
 import type { CommandOptions, Game, GameBoardData } from "../../api/gameApi.ts"
+import { t } from "../../i18n/index.ts"
 import type { Command, ConfirmRequest } from "../../ui/ConfirmDialog.tsx"
 import { formatEuro } from "../../ui/format.ts"
 
@@ -53,11 +54,11 @@ export const buildAction = (options: CommandOptions, deed: TitleDeed): AssetActi
     const offer = options.build.find((item) => item.square === deed.square)
     return offer && deed.building
         ? {
-            label: "Build",
+            label: t("asset.build"),
             request: {
-                title: `Build on ${deed.name}?`,
-                body: `${deed.building.label === "Teollisuus" ? "An industrial plant" : "A building"} costs ${formatEuro(offer.amount)}.`,
-                confirmLabel: "Build",
+                title: t("asset.build.title", { name: deed.name }),
+                body: t(deed.building.label === "Teollisuus" ? "asset.build.industrial" : "asset.build.building", { amount: formatEuro(offer.amount) }),
+                confirmLabel: t("asset.build"),
                 command: { type: "Build", squares: [deed.square] },
             },
         }
@@ -72,31 +73,32 @@ export const propertyActions = (options: CommandOptions, property: Property, dee
     const actions: (AssetAction | undefined | null)[] = [
         buildAction(options, deed),
         mortgage && {
-            label: "Mortgage",
+            label: t("asset.mortgage"),
             request: {
-                title: `Mortgage ${deed.name}?`,
-                body: `The bank lends you ${formatEuro(mortgage.amount)}. Redeeming it later costs ${
-                    redemption != null ? formatEuro(redemption) : "the redemption value"
-                }.`,
-                confirmLabel: "Mortgage",
+                title: t("asset.mortgage.title", { name: deed.name }),
+                body: t("asset.mortgage.body", {
+                    amount: formatEuro(mortgage.amount),
+                    redemption: redemption != null ? formatEuro(redemption) : t("asset.mortgage.redemptionValue"),
+                }),
+                confirmLabel: t("asset.mortgage"),
                 command: { type: "Mortgage", square: deed.square },
             },
         },
         redeem && {
-            label: "Redeem",
+            label: t("asset.redeem"),
             request: {
-                title: `Redeem ${deed.name}?`,
-                body: `Redeeming costs ${formatEuro(redeem.amount)}.`,
-                confirmLabel: "Redeem",
+                title: t("asset.redeem.title", { name: deed.name }),
+                body: t("asset.redeem.body", { amount: formatEuro(redeem.amount) }),
+                confirmLabel: t("asset.redeem"),
                 command: { type: "Redeem", square: deed.square },
             },
         },
         sell && {
-            label: "Sell",
+            label: t("asset.sell"),
             request: {
-                title: `Sell ${deed.name} back to the bank?`,
-                body: `The bank pays ${formatEuro(sell.amount)}${property.built ? ", including the building" : ""}.`,
-                confirmLabel: "Sell",
+                title: t("asset.sellProperty.title", { name: deed.name }),
+                body: t(property.built ? "asset.sellProperty.bodyBuilt" : "asset.sellProperty.body", { amount: formatEuro(sell.amount) }),
+                confirmLabel: t("asset.sell"),
                 command: { type: "SellBackProperty", square: deed.square },
                 danger: true,
             },
@@ -109,11 +111,11 @@ export const shareActions = (options: CommandOptions, share: Share, name: string
     const offer = options.sellBackShare.find((item) => item.share === share.id)
     return offer
         ? [{
-            label: "Sell",
+            label: t("asset.sell"),
             request: {
-                title: `Sell the ${name} share back to the bank?`,
-                body: `The bank pays ${formatEuro(offer.amount)}.`,
-                confirmLabel: "Sell",
+                title: t("asset.sellShare.title", { name }),
+                body: t("asset.sellShare.body", { amount: formatEuro(offer.amount) }),
+                confirmLabel: t("asset.sell"),
                 command: { type: "SellBackShare", share: share.id },
                 danger: true,
             },
@@ -126,27 +128,30 @@ export const PLAYABLE_HELD_STOCK_TIPS = ["PV-25"]
 
 export const stockTipAction = (allowed: string[], id: string, title: string): AssetAction | null =>
     allowed.includes("UseHeldStockTip") && PLAYABLE_HELD_STOCK_TIPS.includes(id)
-        ? { label: "Use", request: { title: `Use “${title}”?`, confirmLabel: "Use", command: { type: "UseHeldStockTip", card: id } } }
+        ? {
+            label: t("asset.use"),
+            request: { title: t("asset.use.title", { title }), confirmLabel: t("asset.use"), command: { type: "UseHeldStockTip", card: id } },
+        }
         : null
 
 export const carAction = (allowed: string[], hasCar: boolean): AssetAction | null =>
     !hasCar && allowed.includes("BuyCar")
         ? {
-            label: "Buy car",
+            label: t("asset.buyCar"),
             request: {
-                title: "Buy a car?",
-                body: `A car costs ${formatEuro(CAR_PRICE)}. With a car you roll two dice on your turn (one inside the bank).`,
-                confirmLabel: "Buy car",
+                title: t("asset.buyCar.title"),
+                body: t("asset.buyCar.body", { price: formatEuro(CAR_PRICE) }),
+                confirmLabel: t("asset.buyCar"),
                 command: { type: "BuyCar" },
             },
         }
         : hasCar && allowed.includes("SellCar")
         ? {
-            label: "Sell car",
+            label: t("asset.sellCar"),
             request: {
-                title: "Sell your car back to the bank?",
-                body: `The bank pays ${formatEuro(CAR_SELL_BACK_PRICE)}.`,
-                confirmLabel: "Sell car",
+                title: t("asset.sellCar.title"),
+                body: t("asset.sellCar.body", { price: formatEuro(CAR_SELL_BACK_PRICE) }),
+                confirmLabel: t("asset.sellCar"),
                 command: { type: "SellCar" },
                 danger: true,
             },
@@ -154,22 +159,23 @@ export const carAction = (allowed: string[], hasCar: boolean): AssetAction | nul
         : null
 
 export const loanActions = (allowed: string[]): AssetAction[] => {
+    const amount = formatEuro(LOAN_AMOUNT)
     const actions: (AssetAction | false)[] = [
         allowed.includes("TakeLoan") && {
-            label: `Take a loan (+${formatEuro(LOAN_AMOUNT)})`,
+            label: t("asset.takeLoan", { amount }),
             request: {
-                title: "Take a bank loan?",
-                body: `The bank lends you ${formatEuro(LOAN_AMOUNT)}. Interest is charged on square 1 and when you repay a loan on square 43.`,
-                confirmLabel: "Take loan",
+                title: t("asset.takeLoan.title"),
+                body: t("asset.takeLoan.body", { amount }),
+                confirmLabel: t("asset.takeLoan.confirm"),
                 command: { type: "TakeLoan" },
             },
         },
         allowed.includes("RepayLoan") && {
-            label: `Repay a loan (−${formatEuro(LOAN_AMOUNT)})`,
+            label: t("asset.repayLoan", { amount }),
             request: {
-                title: "Repay a bank loan?",
-                body: `You pay the bank ${formatEuro(LOAN_AMOUNT)}.`,
-                confirmLabel: "Repay loan",
+                title: t("asset.repayLoan.title"),
+                body: t("asset.repayLoan.body", { amount }),
+                confirmLabel: t("asset.repayLoan.confirm"),
                 command: { type: "RepayLoan" },
             },
         },

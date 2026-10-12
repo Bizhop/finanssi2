@@ -1,4 +1,5 @@
 import { Box, IconButton, Stack, Tooltip } from "@mui/material"
+import { useTranslation } from "react-i18next"
 import PaymentsOutlined from "@mui/icons-material/PaymentsOutlined"
 import AccountBalanceOutlined from "@mui/icons-material/AccountBalanceOutlined"
 import BlockOutlined from "@mui/icons-material/BlockOutlined"
@@ -9,6 +10,7 @@ import { AssetChoice, CommandChoice, type DecisionEnv, sellLabel } from "./share
 
 /** A payment the player cannot yet cover: the loans, car, mortgages and sales that raise cash, then pay or go bankrupt */
 export const RaiseFundsBody = ({ env }: { env: DecisionEnv }) => {
+    const { t } = useTranslation()
     const { allowed, board, busy, game, labels, options, send } = env
     // What can be raised, and for how much, comes from the backend's options
     const properties = game.state.properties.filter((property) =>
@@ -19,8 +21,13 @@ export const RaiseFundsBody = ({ env }: { env: DecisionEnv }) => {
             <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", alignItems: "flex-start" }}>
                 {allowed.includes("TakeLoan") && (
                     <AssetChoice env={env} id="LOAN">
-                        <Tooltip title="Take a bank loan for 50,000€">
-                            <IconButton size="small" aria-label="Take a €50,000 bank loan" disabled={busy} onClick={() => void send({ type: "TakeLoan" })}>
+                        <Tooltip title={t("decision.raise.loan", { amount: formatEuro(50000) })}>
+                            <IconButton
+                                size="small"
+                                aria-label={t("decision.raise.loan", { amount: formatEuro(50000) })}
+                                disabled={busy}
+                                onClick={() => void send({ type: "TakeLoan" })}
+                            >
                                 <AccountBalanceOutlined fontSize="small" />
                             </IconButton>
                         </Tooltip>
@@ -29,7 +36,7 @@ export const RaiseFundsBody = ({ env }: { env: DecisionEnv }) => {
                 {allowed.includes("SellCar") && (
                     <AssetChoice env={env} id="CAR">
                         <Tooltip title={sellLabel(25000)}>
-                            <IconButton size="small" aria-label="Sell car" disabled={busy} onClick={() => void send({ type: "SellCar" })}>
+                            <IconButton size="small" aria-label={t("decision.raise.sellCar")} disabled={busy} onClick={() => void send({ type: "SellCar" })}>
                                 <PaymentsOutlined fontSize="small" />
                             </IconButton>
                         </Tooltip>
@@ -44,10 +51,10 @@ export const RaiseFundsBody = ({ env }: { env: DecisionEnv }) => {
                             <AssetChoice env={env} id={`P:${property.square}`}>
                                 <Stack direction="row">
                                     {mortgage && (
-                                        <Tooltip title={`Mortgage for ${formatEuro(mortgage.amount)}`}>
+                                        <Tooltip title={t("decision.raise.mortgageFor", { amount: formatEuro(mortgage.amount) })}>
                                             <IconButton
                                                 size="small"
-                                                aria-label={`Mortgage ${deed?.name ?? property.square}`}
+                                                aria-label={t("decision.raise.mortgage", { name: deed?.name ?? property.square })}
                                                 disabled={busy}
                                                 onClick={() => void send({ type: "Mortgage", square: property.square })}
                                             >
@@ -59,7 +66,7 @@ export const RaiseFundsBody = ({ env }: { env: DecisionEnv }) => {
                                         <Tooltip title={sellLabel(sell.amount)}>
                                             <IconButton
                                                 size="small"
-                                                aria-label={`Sell ${deed?.name ?? property.square}`}
+                                                aria-label={t("decision.raise.sell", { name: deed?.name ?? property.square })}
                                                 disabled={busy}
                                                 onClick={() => void send({ type: "SellBackProperty", square: property.square })}
                                             >
@@ -78,7 +85,7 @@ export const RaiseFundsBody = ({ env }: { env: DecisionEnv }) => {
                             <Tooltip title={sellLabel(offer.amount)}>
                                 <IconButton
                                     size="small"
-                                    aria-label={`Sell ${labels.share(offer.share)}`}
+                                    aria-label={t("decision.raise.sell", { name: labels.share(offer.share) })}
                                     disabled={busy}
                                     onClick={() => void send({ type: "SellBackShare", share: offer.share })}
                                 >
@@ -90,10 +97,14 @@ export const RaiseFundsBody = ({ env }: { env: DecisionEnv }) => {
                 ))}
             </Stack>
             <Stack direction="row" spacing={1}>
-                {allowed.includes("Pay") && <CommandChoice env={env} label="Settle payment" icon={<Check />} command={{ type: "Pay" }}>Pay</CommandChoice>}
+                {allowed.includes("Pay") && (
+                    <CommandChoice env={env} label={t("decision.raise.payLabel")} icon={<Check />} command={{ type: "Pay" }}>
+                        {t("decision.raise.pay")}
+                    </CommandChoice>
+                )}
                 {allowed.includes("DeclareBankruptcy") && (
-                    <CommandChoice env={env} label="Declare bankruptcy" icon={<BlockOutlined />} command={{ type: "DeclareBankruptcy" }}>
-                        Bankruptcy
+                    <CommandChoice env={env} label={t("decision.raise.bankruptcyLabel")} icon={<BlockOutlined />} command={{ type: "DeclareBankruptcy" }}>
+                        {t("decision.raise.bankruptcy")}
                     </CommandChoice>
                 )}
             </Stack>

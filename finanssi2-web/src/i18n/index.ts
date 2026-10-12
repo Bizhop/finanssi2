@@ -55,7 +55,8 @@ export const initI18n = (language: Language = savedLanguage()) => {
         keySeparator: false,
         // React escapes on its own
         interpolation: { escapeValue: false },
-        returnNull: false,
+        // Resources are inline, so t() works as soon as init returns (tests rely on it)
+        initAsync: false,
     })
     applyLanguage(language)
     return i18next

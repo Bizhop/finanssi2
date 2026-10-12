@@ -1,6 +1,7 @@
 import { useRef, useState } from "react"
 import { useParams } from "react-router"
 import { Alert, Box, Button, CircularProgress, Grid, Stack } from "@mui/material"
+import { useTranslation } from "react-i18next"
 
 import FlagOutlined from "@mui/icons-material/FlagOutlined"
 
@@ -30,6 +31,7 @@ const STACKED_GAME_LAYOUT = "@media (min-width: 1536px) and (max-width: 2199.95p
 const SHORT_WIDE_GAME_LAYOUT = "@media (min-width: 2200px) and (max-height: 1099.95px)"
 
 const GameRoomContent = () => {
+    const { t } = useTranslation()
     const { id } = useParams()
     const { profile, debugMode } = useCurrentUser()
     const { user, view, board, events, error, commandBusy, diceInput, setDiceInput, sendCommand, selectCard } = useGameRoom(id)
@@ -43,7 +45,7 @@ const GameRoomContent = () => {
         ...events.flatMap((entry) => Object.values(entry.event).filter((value): value is string => typeof value === "string")),
     ])
 
-    if (!user) return <Alert severity="info" sx={{ mt: 2 }}>Sign in to open this game.</Alert>
+    if (!user) return <Alert severity="info" sx={{ mt: 2 }}>{t("room.signInRequired")}</Alert>
     if (!view && !error) {
         return (
             <Box sx={{ display: "flex", justifyContent: "center", p: 5 }}>
@@ -62,7 +64,8 @@ const GameRoomContent = () => {
             ...rawGame.state,
             players: rawGame.state.players.map((player) => ({
                 ...player,
-                name: profiles[player.playerId]?.displayName ?? (player.playerId.startsWith("debug:") ? `Debug player ${player.piece + 1}` : player.playerId),
+                name: profiles[player.playerId]?.displayName ??
+                    (player.playerId.startsWith("debug:") ? t("room.debugPlayer", { number: player.piece + 1 }) : player.playerId),
                 photoUrl: avatarSrc(profiles[player.playerId]?.avatar) ?? null,
             })),
         },
@@ -77,7 +80,7 @@ const GameRoomContent = () => {
     const playerName = (playerId: string) =>
         profiles[playerId]?.displayName ??
             game.state.players.find((player) => player.playerId === playerId)?.name ??
-            (playerId.startsWith("debug:") ? "Debug player" : "a former player")
+            (playerId.startsWith("debug:") ? t("room.debugPlayerShort") : t("room.formerPlayer"))
     // Only a Stock Tip drawn during the current turn stays face up on the board
     const turnStockTip = findTurnStockTip(events)
     const deedOf = (square: number) => board?.titleDeeds.find((deed) => deed.square === square)
@@ -90,14 +93,14 @@ const GameRoomContent = () => {
         const offer = options.buyProperty.find((item) => item.square === square)
         if (!deed || !offer) return
         setConfirmRequest({
-            title: `Buy ${deed.name}?`,
+            title: t("room.buyTitle", { name: deed.name }),
             body: (
                 <Stack spacing={1.5} sx={{ alignItems: "center", fontSize: 13 }}>
                     <TitleDeedCard deed={deed} groupName={board?.groups.find((group) => group.id === deed.group)?.name} />
-                    <span>The bank sells it for {formatEuro(offer.amount)}.</span>
+                    <span>{t("room.bankSells", { price: formatEuro(offer.amount) })}</span>
                 </Stack>
             ),
-            confirmLabel: "Buy",
+            confirmLabel: t("room.buy"),
             command: { type: "BuyProperty", square },
         })
     }
@@ -123,14 +126,14 @@ const GameRoomContent = () => {
                     sx={{ ml: "auto" }}
                     onClick={() =>
                         setConfirmRequest({
-                            title: "Resign from the game?",
-                            body: "Your assets return to the bank and you are out of the game.",
-                            confirmLabel: "Resign",
+                            title: t("room.resignTitle"),
+                            body: t("room.resignBody"),
+                            confirmLabel: t("room.resign"),
                             command: { type: "Resign" },
                             danger: true,
                         })}
                 >
-                    Resign
+                    {t("room.resign")}
                 </Button>
             )}
         </>
@@ -146,7 +149,7 @@ const GameRoomContent = () => {
     }
     const gameActivityTabs: GameWindowTab[] = [
         {
-            label: "Chat",
+            label: t("room.tab.chat"),
             content: ({ expanded }) => (
                 <Chat
                     user={user}
@@ -159,12 +162,12 @@ const GameRoomContent = () => {
             ),
         },
         {
-            label: "Event log",
+            label: t("room.tab.events"),
             content: () => <EventLog events={events} board={board} playerName={playerName} />,
         },
         ...(game.mode === "DEBUG" && debugMode
             ? [{
-                label: "Debug",
+                label: t("room.tab.debug"),
                 content: () => (
                     <DebugPanel
                         game={game}
@@ -220,7 +223,7 @@ const GameRoomContent = () => {
                                     boxShadow: 3,
                                 }}
                             >
-                                Waiting for {playerName(pending.player)} to decide.
+                                {t("room.waitingFor", { name: playerName(pending.player) })}
                             </Alert>
                         )}
                     </Box>
@@ -257,18 +260,18 @@ const GameRoomContent = () => {
                                 expected={game.status !== "RUNNING" || expectedUid !== player.playerId
                                     ? null
                                     : pending
-                                    ? player.playerId === actingUid ? "Your decision" : "Deciding"
+                                    ? player.playerId === actingUid ? t("room.expected.yourDecision") : t("room.expected.deciding")
                                     : player.playerId === actingUid
-                                    ? "Your move"
-                                    : "To move"}
+                                    ? t("room.expected.yourMove")
+                                    : t("room.expected.toMove")}
                                 controls={game.status === "RUNNING" && player.playerId === actingUid ? controls : undefined}
                             />
                         ))}
                         {game.state.finished && (
                             <Alert severity="success">
                                 {game.state.winner
-                                    ? `${game.state.players.find((p) => p.playerId === game.state.winner)?.name} wins.`
-                                    : "The game was closed without a winner."}
+                                    ? t("room.wins", { name: game.state.players.find((p) => p.playerId === game.state.winner)?.name })
+                                    : t("room.closedWithoutWinner")}
                             </Alert>
                         )}
                         <GameWindow

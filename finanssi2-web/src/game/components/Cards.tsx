@@ -1,5 +1,6 @@
 // Card-like renderings of the game's paper assets, modelled on the printed cards. Sizes are in em, so the parent's font size scales a card.
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 import { Box, Stack } from "@mui/material"
 import HomeRounded from "@mui/icons-material/HomeRounded"
 import FactoryRounded from "@mui/icons-material/FactoryRounded"
@@ -72,10 +73,11 @@ export const TitleDeedCard = ({ deed, groupName, built = false, mortgaged = fals
     /** The owner has the whole group, so rent is doubled */
     rentDoubled?: boolean
 }) => {
+    const { t } = useTranslation()
     const color = deed.group ? GROUP_COLORS[deed.group] : undefined
     const industrial = deed.building?.label === "Teollisuus"
     return (
-        <Box sx={portrait}>
+        <Box lang="fi" sx={portrait}>
             <Box sx={{ position: "absolute", inset: "0.55em", border: "0.07em solid #333", p: "0.45em", display: "flex", flexDirection: "column" }}>
                 {color
                     ? (
@@ -152,7 +154,7 @@ export const TitleDeedCard = ({ deed, groupName, built = false, mortgaged = fals
             </Box>
             {built && (
                 <Box
-                    title={industrial ? "Industrial plant" : "Building"}
+                    title={industrial ? t("board.card.industrialPlant") : t("board.card.building")}
                     sx={{
                         position: "absolute",
                         top: "0.15em",
@@ -202,7 +204,7 @@ export const ShareCard = ({ share, board }: { share: Share; board: GameBoardData
     const group = board?.groups.find((item) => item.id === share.group)
     const capital = (board?.shares ?? []).filter((item) => share.group && item.group === share.group).reduce((sum, item) => sum + item.value, 0)
     return (
-        <Box sx={{ ...portrait, ...ornament, p: "0.8em" }}>
+        <Box lang="fi" sx={{ ...portrait, ...ornament, p: "0.8em" }}>
             <Box
                 sx={{
                     height: "100%",
@@ -251,7 +253,7 @@ export const ShareCard = ({ share, board }: { share: Share; board: GameBoardData
 
 /** A bond ("obligaatio") */
 export const BondCard = ({ number }: { number: number | "?" }) => (
-    <Box sx={{ ...landscape, ...ornament, p: "0.75em" }}>
+    <Box lang="fi" sx={{ ...landscape, ...ornament, p: "0.75em" }}>
         <Box
             sx={{
                 height: "100%",
@@ -276,7 +278,7 @@ export const BondCard = ({ number }: { number: number | "?" }) => (
 
 /** A loan certificate ("lainatodistus") */
 export const LoanCard = () => (
-    <Box sx={{ ...landscape, p: "0.6em" }}>
+    <Box lang="fi" sx={{ ...landscape, p: "0.6em" }}>
         <Box
             sx={{
                 height: "100%",
@@ -311,7 +313,7 @@ export const LoanCard = () => (
 
 /** A car certificate ("autotodistus") */
 export const CarCard = () => (
-    <Box sx={{ ...landscape, p: "0.45em" }}>
+    <Box lang="fi" sx={{ ...landscape, p: "0.45em" }}>
         <Box
             sx={{
                 height: "100%",
@@ -348,6 +350,7 @@ const CARD_INK = "#1d4f9c"
 /** A card face styled after the printed cards; sizes are in em so the parent's font size scales the whole card */
 export const CardFace = ({ card, fallback, label }: { card: Card | undefined; fallback: string; label?: string }) => (
     <Box
+        lang="fi"
         sx={{
             width: "100%",
             minHeight: "100%",
@@ -387,7 +390,7 @@ export const CardFace = ({ card, fallback, label }: { card: Card | undefined; fa
 
 /** A Finance News or Stock Tip card at a readable size, for peeks */
 export const CardPeek = ({ card, fallback, label }: { card: Card | undefined; fallback: string; label?: string }) => (
-    <Box sx={{ width: 240, minHeight: 327, display: "flex", fontSize: 15, borderRadius: "0.4em", boxShadow: "0 0.2em 0.7em rgba(0,0,0,0.45)" }}>
+    <Box lang="fi" sx={{ width: 240, minHeight: 327, display: "flex", fontSize: 15, borderRadius: "0.4em", boxShadow: "0 0.2em 0.7em rgba(0,0,0,0.45)" }}>
         <CardFace card={card} fallback={fallback} label={label} />
     </Box>
 )

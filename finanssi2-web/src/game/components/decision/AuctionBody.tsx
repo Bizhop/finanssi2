@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { IconButton, InputAdornment, Stack, TextField } from "@mui/material"
 import GavelOutlined from "@mui/icons-material/GavelOutlined"
 import Add from "@mui/icons-material/Add"
@@ -9,6 +10,7 @@ import { AssetChoice, CommandChoice, type DecisionEnv, type PendingOf, PersonTag
 
 /** A sealed bond or asset auction: the lot, and the player's own sealed bid (0 passes) */
 export const AuctionBody = ({ pending, env, minimum }: { pending: PendingOf<"BondAuction" | "AssetAuction">; env: DecisionEnv; minimum: number }) => {
+    const { t } = useTranslation()
     const { allowed, busy, cash } = env
     const [bid, setBid] = useState("0")
     const bondAuction = pending.type === "BondAuction"
@@ -26,7 +28,7 @@ export const AuctionBody = ({ pending, env, minimum }: { pending: PendingOf<"Bon
             <Stack direction="row" spacing={1} sx={{ alignItems: "flex-start" }}>
                 <TextField
                     size="small"
-                    label="Your bid (€)"
+                    label={t("decision.auction.yourBid")}
                     type="number"
                     value={bid}
                     onChange={(event) => setBid(event.target.value)}
@@ -37,18 +39,23 @@ export const AuctionBody = ({ pending, env, minimum }: { pending: PendingOf<"Bon
                         }
                     }}
                     error={bid !== "" && !validAuctionBid(bid, cash, minimum)}
-                    helperText="€500 increments · 0 to pass"
+                    helperText={t("decision.auction.hint")}
                     slotProps={{
                         htmlInput: { min: 0, max: cash, step: 500 },
                         input: {
                             endAdornment: (
                                 <InputAdornment position="end">
-                                    <IconButton size="small" aria-label="Lower bid" disabled={busy || Number(bid) <= 0} onClick={() => stepBid(-1)}>
+                                    <IconButton
+                                        size="small"
+                                        aria-label={t("decision.auction.lower")}
+                                        disabled={busy || Number(bid) <= 0}
+                                        onClick={() => stepBid(-1)}
+                                    >
                                         <Remove fontSize="small" />
                                     </IconButton>
                                     <IconButton
                                         size="small"
-                                        aria-label="Raise bid"
+                                        aria-label={t("decision.auction.raise")}
                                         disabled={busy || nextAuctionBid(bid, 1, minimum) > cash}
                                         onClick={() => stepBid(1)}
                                     >
@@ -67,12 +74,12 @@ export const AuctionBody = ({ pending, env, minimum }: { pending: PendingOf<"Bon
                 />
                 <CommandChoice
                     env={env}
-                    label="Submit sealed bid"
+                    label={t("decision.auction.submit")}
                     icon={<GavelOutlined />}
                     command={{ type: command, amount: Number(bid) }}
                     disabled={!allowed.includes(command) || !validAuctionBid(bid, cash, minimum)}
                 >
-                    {Number(bid) === 0 && bid !== "" ? "Pass" : "Bid"}
+                    {Number(bid) === 0 && bid !== "" ? t("decision.auction.pass") : t("decision.auction.bid")}
                 </CommandChoice>
             </Stack>
         </>

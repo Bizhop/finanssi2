@@ -1,4 +1,5 @@
 import { Box, IconButton, Tooltip } from "@mui/material"
+import { useTranslation } from "react-i18next"
 import AddHome from "@mui/icons-material/AddHome"
 import GroupsOutlined from "@mui/icons-material/GroupsOutlined"
 import { keyframes } from "@emotion/react"
@@ -13,7 +14,7 @@ import type { Card, Game, GameBoardData } from "../../api/gameApi.ts"
 import { playerColor, PlayerToken } from "./PlayerToken.tsx"
 import { SquareDetails } from "./SquareDetails.tsx"
 import { CardFace, cardPeekSlotProps } from "./Cards.tsx"
-import { formatEuro } from "../../ui/format.ts"
+import { formatEuro, formatNumber } from "../../ui/format.ts"
 
 const placement = (rect: SquareRect) =>
     ({
@@ -51,19 +52,20 @@ const iconHalo = keyframes`
 `
 
 /** What calling a shareholders' meeting means, from the rules */
-const MeetingRules = ({ groupName, takeover }: { groupName: string; takeover: number }) => (
-    <Box sx={{ maxWidth: 300, "& p": { m: 0, mt: 0.75 } }}>
-        <Box sx={{ fontWeight: 700 }}>Shareholders' meeting: {groupName}</Box>
-        <p>
-            Show the purchase prices of the other players' properties (with buildings) and shares in the group, now{" "}
-            {formatEuro(takeover)}, and put down a brokerage fee of €20,000–€120,000.
-        </p>
-        <p>
-            Roll both dice. If the total is at most the fee divided by 10,000, you take over their properties and shares and pay them the purchase prices;
-            €30,000 of the fee goes to the bank and the rest is shared among them. Otherwise the takeover fails and the whole fee goes to the bank.
-        </p>
-    </Box>
-)
+const MeetingRules = ({ groupName, takeover }: { groupName: string; takeover: number }) => {
+    const { t } = useTranslation()
+    return (
+        <Box sx={{ maxWidth: 300, "& p": { m: 0, mt: 0.75 } }}>
+            <Box sx={{ fontWeight: 700 }}>{t("board.meeting.title", { group: groupName })}</Box>
+            <p>
+                {t("board.meeting.offer", { takeover: formatEuro(takeover), minFee: formatEuro(20_000), maxFee: formatEuro(120_000) })}
+            </p>
+            <p>
+                {t("board.meeting.roll", { unit: formatNumber(10_000), bankShare: formatEuro(30_000) })}
+            </p>
+        </Box>
+    )
+}
 
 /** Where a building stands on its square: at the outer edge over the printed price, which no longer matters once built */
 const BUILDING_POSITION = {
@@ -128,6 +130,7 @@ export const GameBoard = (
             selectedSquare?: number | null
         },
 ) => {
+    const { t } = useTranslation()
     const propertyBySquare = new Map(game.state.properties.map((property) => [property.square, property]))
     const activeNews = game.state.activeFinanceNews
     return (
@@ -144,7 +147,10 @@ export const GameBoard = (
             }}
         >
             {(board?.squares ??
-                Array.from({ length: 46 }, (_, index) => ({ square: index + 1, name: "Loading…", type: "", group: null, price: null, text: null })))
+                Array.from(
+                    { length: 46 },
+                    (_, index) => ({ square: index + 1, name: t("board.loadingSquare"), type: "", group: null, price: null, text: null }),
+                ))
                 .map((square) => {
                     const property = propertyBySquare.get(square.square)
                     const tokens = game.state.players.filter((player) => !player.out && player.position === square.square)
@@ -164,7 +170,11 @@ export const GameBoard = (
                         >
                             <Box
                                 role={canSelect || forSale ? "button" : undefined}
-                                aria-label={canSelect ? `Select ${square.name}` : forSale ? `Buy ${square.name}` : undefined}
+                                aria-label={canSelect
+                                    ? t("board.selectSquare", { name: square.name })
+                                    : forSale
+                                    ? t("board.buySquare", { name: square.name })
+                                    : undefined}
                                 tabIndex={canSelect || forSale ? 0 : undefined}
                                 onClick={canSelect ? () => onSelectSquare(square.square) : forSale ? () => onBuy(square.square) : undefined}
                                 onKeyDown={canSelect || forSale
@@ -203,7 +213,7 @@ export const GameBoard = (
                                 )}
                                 {onBuild && buildable.includes(square.square) && (
                                     <IconButton
-                                        aria-label={`Build on ${square.name}`}
+                                        aria-label={t("board.buildOn", { name: square.name })}
                                         onClick={() => onBuild(square.square)}
                                         sx={{
                                             position: "absolute",
@@ -231,7 +241,7 @@ export const GameBoard = (
                 return (
                     <Tooltip key={group} arrow title={<MeetingRules groupName={groupData.name} takeover={takeover} />}>
                         <IconButton
-                            aria-label={`Call a shareholders' meeting of ${groupData.name}`}
+                            aria-label={t("board.callMeeting", { group: groupData.name })}
                             onClick={() => onMeeting(group)}
                             sx={{
                                 position: "absolute",
@@ -251,13 +261,13 @@ export const GameBoard = (
                     </Tooltip>
                 )
             })}
-            <Deck rect={CARD_PLACES.financeNews.deck} image={financeNewsBack} name="Finance News deck" />
-            <Deck rect={CARD_PLACES.stockTip.deck} image={stockTipBack} name="Stock Tip deck" />
+            <Deck rect={CARD_PLACES.financeNews.deck} image={financeNewsBack} name={t("board.financeNewsDeck")} />
+            <Deck rect={CARD_PLACES.stockTip.deck} image={stockTipBack} name={t("board.stockTipDeck")} />
             {activeNews && (
                 <DrawnCard
                     rect={CARD_PLACES.financeNews.drawn}
                     card={board?.financeNews.find((card) => card.id === activeNews)}
-                    fallback="Finance News"
+                    fallback={t("board.financeNews")}
                     label="FINANSSILEHTI"
                 />
             )}
@@ -265,7 +275,7 @@ export const GameBoard = (
                 <DrawnCard
                     rect={CARD_PLACES.stockTip.drawn}
                     card={board?.stockTips.find((card) => card.id === turnStockTip)}
-                    fallback="Stock Tip"
+                    fallback={t("board.stockTip")}
                 />
             )}
         </Box>

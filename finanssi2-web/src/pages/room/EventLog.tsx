@@ -4,7 +4,7 @@ import type { GameBoardData } from "../../api/gameApi.ts"
 import { describeEvent, type GameLogEntry } from "../../game/labels/gameEvents.ts"
 
 const CardChapters = ({ card, fallback }: { card: GameBoardData["financeNews"][number] | undefined; fallback: string }) => (
-    <Stack spacing={0.25}>
+    <Stack lang="fi" spacing={0.25}>
         {card?.chapters.map((chapter, index) => (
             <Typography
                 key={index}

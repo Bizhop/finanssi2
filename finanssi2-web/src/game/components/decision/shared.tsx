@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import { Button, Stack, Tooltip, Typography } from "@mui/material"
 
 import type { CommandOptions, Game, GameBoardData, PendingDecision } from "../../../api/gameApi.ts"
+import { t } from "../../../i18n/index.ts"
 import { formatEuro } from "../../../ui/format.ts"
 import type { decisionLabels } from "../../labels/gameDecisions.ts"
 import { DecisionAsset } from "../DecisionAsset.tsx"
@@ -95,4 +96,4 @@ export const PersonTag = ({ env, playerId }: { env: DecisionEnv; playerId: strin
     )
 }
 
-export const sellLabel = (amount: number) => `Sell to bank for ${formatEuro(amount)}`
+export const sellLabel = (amount: number) => t("decision.sellToBank", { amount: formatEuro(amount) })

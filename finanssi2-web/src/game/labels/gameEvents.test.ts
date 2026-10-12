@@ -1,6 +1,10 @@
 import { assertEquals } from "@std/assert"
 import type { GameBoardData } from "../../api/gameApi.ts"
 import { describeEvent, type GameLogEntry } from "./gameEvents.ts"
+import { initI18n } from "../../i18n/index.ts"
+
+// The assertions are in English
+initI18n("en")
 
 const board = {
     squares: [{ square: 5, name: "Maalaamo", type: "PROPERTY", group: "KASITEOLLISUUS", price: 20000, text: null }],

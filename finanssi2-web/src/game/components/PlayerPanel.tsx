@@ -1,6 +1,7 @@
 import { type ReactNode, useState } from "react"
 import { Avatar, Box, Button, ButtonBase, Card, CardContent, Chip, IconButton, Menu, MenuItem, Stack, Tooltip, Typography } from "@mui/material"
 import { keyframes } from "@emotion/react"
+import { useTranslation } from "react-i18next"
 import AccountBalanceOutlined from "@mui/icons-material/AccountBalanceOutlined"
 import Casino from "@mui/icons-material/Casino"
 import CheckCircleOutlineRounded from "@mui/icons-material/CheckCircleOutlineRounded"
@@ -142,6 +143,7 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected, contro
     /** Given for the player you control: assets become actions and the turn actions show */
     controls?: PlayerControls
 }) => {
+    const { t } = useTranslation()
     const [loanMenu, setLoanMenu] = useState<HTMLElement | null>(null)
     const color = playerColor(player.piece)
     const allowed = controls?.allowed ?? []
@@ -153,7 +155,7 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected, contro
     const loans = loanActions(allowed)
     const tipTitle = (id: string) => {
         const card = board?.stockTips.find((item) => item.id === id)
-        return card?.chapters.find((chapter) => chapter.type === "header")?.text ?? "Stock Tip"
+        return card?.chapters.find((chapter) => chapter.type === "header")?.text ?? t("board.stockTip")
     }
     const usableTips = player.heldStockTips.map((id) => stockTipAction(allowed, id, tipTitle(id))).filter((action) => action != null)
     const turnActions = controls && (allowed.includes("Roll") || allowed.includes("EndTurn") || inTurn)
@@ -174,18 +176,20 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected, contro
                     </Avatar>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography sx={{ fontWeight: inTurn ? 700 : 400 }}>
-                            {player.name}
-                            {you ? " (you)" : ""}
-                            {player.out ? " · out" : ""}
+                            {you
+                                ? player.out ? t("board.panel.youOut", { name: player.name }) : t("board.panel.you", { name: player.name })
+                                : player.out
+                                ? t("board.panel.out", { name: player.name })
+                                : player.name}
                         </Typography>
                         <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", mt: 0.25, color: "text.secondary" }}>
-                            <Asset icon={<PaymentsOutlined />} count={formatEuro(player.cash)} title="Cash" />
+                            <Asset icon={<PaymentsOutlined />} count={formatEuro(player.cash)} title={t("board.panel.cash")} />
                             {(player.loans > 0 || controls) && (
                                 <Asset
                                     icon={<AccountBalanceOutlined />}
                                     count={player.loans}
                                     faded={player.loans === 0}
-                                    title={player.loans === 0 ? "No bank loans" : `${player.loans} bank loan${player.loans === 1 ? "" : "s"}`}
+                                    title={player.loans === 0 ? t("board.panel.noLoans") : t("board.panel.loans", { count: player.loans })}
                                     cards={player.loans > 0 ? Array.from({ length: player.loans }, (_, index) => <LoanCard key={index} />) : undefined}
                                     onClick={loans.length > 0 ? setLoanMenu : undefined}
                                 />
@@ -194,7 +198,7 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected, contro
                                 <Asset
                                     icon={<DirectionsCarOutlined />}
                                     faded={!player.car}
-                                    title={player.car ? "Car" : car ? "No car: click to buy one" : "No car"}
+                                    title={player.car ? t("board.panel.car") : car ? t("board.panel.noCarBuy") : t("board.panel.noCar")}
                                     cards={player.car ? <ActionCard card={<CarCard />} actions={car ? [car] : []} controls={controls} /> : undefined}
                                     onClick={car && controls ? () => controls.confirm(car.request) : undefined}
                                 />
@@ -203,7 +207,7 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected, contro
                                 <Asset
                                     icon={<HomeWorkOutlined />}
                                     count={properties.length}
-                                    title="Properties"
+                                    title={t("board.panel.properties")}
                                     cards={properties.map((property) => {
                                         const deed = board?.titleDeeds.find((item) => item.square === property.square)
                                         return deed && (
@@ -230,13 +234,15 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected, contro
                                     icon={<ShowChartOutlined />}
                                     count={shares.length}
                                     faded={shares.length === 0}
-                                    title={controls?.onBuyShare ? "Shares: click to buy one from the bank" : "Shares"}
+                                    title={controls?.onBuyShare ? t("board.panel.sharesBuy") : t("board.panel.shares")}
                                     // While the bank sells shares the icon glows and opens the purchase; hovering still shows owned shares
                                     halo={controls?.onBuyShare != null}
                                     onClick={controls?.onBuyShare}
                                     cards={shares.length === 0 ? undefined : shares.map((owned) => {
                                         const share = board?.shares.find((item) => item.id === owned.id)
-                                        const name = share?.group ? board?.groups.find((group) => group.id === share.group)?.name ?? share.group : "fund"
+                                        const name = share?.group
+                                            ? board?.groups.find((group) => group.id === share.group)?.name ?? share.group
+                                            : t("board.panel.fund")
                                         return share && (
                                             <ActionCard
                                                 key={share.id}
@@ -252,7 +258,7 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected, contro
                                 <Asset
                                     icon={<ReceiptLongOutlined />}
                                     count={bonds.length}
-                                    title="Bonds"
+                                    title={t("board.panel.bonds")}
                                     cards={bonds.map((bond) => <BondCard key={bond.number} number={bond.number} />)}
                                 />
                             )}
@@ -260,7 +266,7 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected, contro
                                 <Asset
                                     icon={<StyleOutlined />}
                                     count={player.heldStockTips.length}
-                                    title="Held Stock Tips"
+                                    title={t("board.panel.heldStockTips")}
                                     // With a single playable card the icon plays it; with several, each card's own button does
                                     onClick={controls && usableTips.length === 1 ? () => controls.confirm(usableTips[0].request) : undefined}
                                     cards={player.heldStockTips.map((id) => {
@@ -270,7 +276,7 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected, contro
                                                 key={id}
                                                 controls={controls}
                                                 actions={action ? [action] : []}
-                                                card={<CardPeek card={board?.stockTips.find((item) => item.id === id)} fallback="Stock Tip" />}
+                                                card={<CardPeek card={board?.stockTips.find((item) => item.id === id)} fallback={t("board.stockTip")} />}
                                             />
                                         )
                                     })}
@@ -283,17 +289,17 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected, contro
                             size="small"
                             label={expected}
                             color="primary"
-                            variant={expected.startsWith("Your") ? "filled" : "outlined"}
-                            sx={expected.startsWith("Your") ? { fontWeight: 700, animation: `${pulse} 1.6s ease-in-out infinite` } : undefined}
+                            variant={controls ? "filled" : "outlined"}
+                            sx={controls ? { fontWeight: 700, animation: `${pulse} 1.6s ease-in-out infinite` } : undefined}
                         />
                     )}
                 </Stack>
                 {controls && turnActions && (
                     <Stack direction="row" spacing={1} sx={{ mt: 1.25, alignItems: "center" }}>
-                        <Tooltip title="Roll the dice">
+                        <Tooltip title={t("board.panel.rollTooltip")}>
                             <span>
                                 <IconButton
-                                    aria-label="Roll"
+                                    aria-label={t("board.panel.roll")}
                                     disabled={!allowed.includes("Roll") || controls.busy}
                                     onClick={() => controls.send({ type: "Roll" })}
                                     sx={{
@@ -307,10 +313,10 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected, contro
                                 </IconButton>
                             </span>
                         </Tooltip>
-                        <Tooltip title="End turn">
+                        <Tooltip title={t("board.panel.endTurn")}>
                             <span>
                                 <IconButton
-                                    aria-label="End turn"
+                                    aria-label={t("board.panel.endTurn")}
                                     color="success"
                                     disabled={!allowed.includes("EndTurn") || controls.busy}
                                     onClick={() => controls.send({ type: "EndTurn" })}
