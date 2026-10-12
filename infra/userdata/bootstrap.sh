@@ -3,7 +3,7 @@ set -euo pipefail
 umask 077
 
 # Amazon Linux 2023 includes curl-minimal, which provides the curl command used below.
-dnf install -y docker jq postgresql15 amazon-ssm-agent
+dnf install -y docker jq postgresql15 amazon-ssm-agent rsyslog
 curl -fsSL __CLOUDWATCH_AGENT_URL__ -o /tmp/amazon-cloudwatch-agent.rpm
 dnf install -y /tmp/amazon-cloudwatch-agent.rpm
 rm -f /tmp/amazon-cloudwatch-agent.rpm
@@ -30,7 +30,8 @@ chmod 0755 /usr/local/bin/caddy
 getent group caddy >/dev/null || groupadd --system caddy
 id -u caddy >/dev/null 2>&1 || useradd --system --gid caddy --home-dir /var/lib/caddy --shell /sbin/nologin caddy
 install -d -o caddy -g caddy -m 0750 /var/lib/caddy /var/log/caddy
-systemctl enable --now docker amazon-ssm-agent
+# AL2023 logs to journald only; rsyslog provides /var/log/messages for the CloudWatch agent and the BackendStarts metric.
+systemctl enable --now docker amazon-ssm-agent rsyslog
 
 install -d -m 0755 /etc/caddy
 cat > /etc/caddy/Caddyfile <<'CADDY'
