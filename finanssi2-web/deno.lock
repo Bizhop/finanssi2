@@ -13,6 +13,7 @@
     "npm:@types/react@^19.3.0": "19.3.0",
     "npm:@vitejs/plugin-react@^6.1.2": "6.1.2_vite@8.3.4_@types+node@26.6.5",
     "npm:firebase@13": "13.0.0",
+    "npm:playwright-core@^1.64.0": "1.64.0",
     "npm:react-dom@^19.3.0": "19.3.0_react@19.3.0",
     "npm:react-hook-form@^7.89.0": "7.89.0_@types+react@19.3.0_react@19.3.0",
     "npm:react-router@^8.4.0": "8.4.0_react@19.3.0_react-dom@19.3.0",
@@ -1274,6 +1275,10 @@
     "picomatch@4.0.7": {
       "integrity": "sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA=="
     },
+    "playwright-core@1.64.0": {
+      "integrity": "sha512-T9r+MZkTECl2+oUcZ26YgZzTrYidTsIhYYkJix+6iDOymOb1FB2RLLSOxRGnZGv5DStt+aduIVbt+E8WygXYpg==",
+      "bin": true
+    },
     "postcss@8.5.29": {
       "integrity": "sha512-49cGhUbXj8Qenv0iTMxA1cFBzxXoctpC9Ujd77t1WcbJIr6nF/eI7g/8MgxrYldFRuAXvja7xQRwavoW7kgrxQ==",
       "dependencies": [
@@ -1531,6 +1536,7 @@
       "npm:@types/react@^19.3.0",
       "npm:@vitejs/plugin-react@^6.1.2",
       "npm:firebase@13",
+      "npm:playwright-core@^1.64.0",
       "npm:react-dom@^19.3.0",
       "npm:react-hook-form@^7.89.0",
       "npm:react-router@^8.4.0",

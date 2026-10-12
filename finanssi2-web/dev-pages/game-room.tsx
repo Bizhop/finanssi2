@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react"
 import ReactDOM from "react-dom/client"
 import { MemoryRouter, Route, Routes } from "react-router"
 import { ToastContainer } from "react-toastify"
-import type { User as FirebaseUser } from "firebase/auth"
 import { Alert, Box, Button, Container, Divider, Grid, IconButton, Paper, Stack, Tooltip } from "@mui/material"
 import HomeIcon from "@mui/icons-material/Home"
 import LogoutIcon from "@mui/icons-material/Logout"
@@ -13,7 +12,8 @@ import { NavLink } from "react-router"
 import { decisionFixtures } from "./decision-fixtures.ts"
 import type { Game } from "../src/components/gameApi.ts"
 import GameRoom from "../src/components/GameRoom.tsx"
-import { CurrentUserProvider, useCurrentUser } from "../src/components/CurrentUserContext.tsx"
+import { FakeCurrentUser } from "./FakeCurrentUser.tsx"
+import { idOfKey, liisa as liisaPerson, olli as olliPerson, pekka as pekkaPerson, profileOf, publicProfiles, tester, viewer as viewerPerson } from "./people.ts"
 import { type StompConnection, StompContext } from "../src/components/StompContext.tsx"
 import { GAME_BOARD_MAX_WIDTH, GAME_ROOM_MAX_WIDTH } from "../src/components/boardLayout.ts"
 
@@ -33,8 +33,8 @@ const afterRoll = params.has("afterRoll") || !!fixture
 // in the head office), so before rolling she may both build and buy from the bank.
 const user = {
     ...player,
-    playerId: "tester",
-    name: "Maija Meikäläinen",
+    playerId: tester.id,
+    name: tester.name,
     piece: 0,
     // Enough for the €125,000 Finanssiyhtymä takeover with a €20,000 or €30,000 brokerage fee, not more
     cash: fixture?.cash ?? 158_000,
@@ -42,11 +42,11 @@ const user = {
     loans: 1,
     heldStockTips: afterRoll ? ["PV-25", "PV-01"] : ["PV-25"],
 }
-const olli = { ...player, playerId: "olli", name: "Olli Other", piece: 1, cash: 64_500, position: 31, loans: 2 }
+const olli = { ...player, playerId: olliPerson.id, name: olliPerson.name, piece: 1, cash: 64_500, position: 31, loans: 2 }
 // Olli and Pekka have no car either, so they roll one die; Liisa rolls two
-const pekka = { ...player, playerId: "pekka", name: "Pekka Pörssi", piece: 2, cash: 131_000, position: 30 }
+const pekka = { ...player, playerId: pekkaPerson.id, name: pekkaPerson.name, piece: 2, cash: 131_000, position: 30 }
 // Shares square 30 with Pekka, whose Sahalaitos she just paid rent for
-const liisa = { ...player, playerId: "liisa", name: "Liisa Laine", piece: 3, cash: 21_000, position: 30, car: true }
+const liisa = { ...player, playerId: liisaPerson.id, name: liisaPerson.name, piece: 3, cash: 21_000, position: 30, car: true }
 
 // Ownership that the title deeds allow: Ompelimo is mortgaged unbuilt, Investointiyhtiö can only be mortgaged once built,
 // Pysäköintitalo can be neither built on nor mortgaged and Sahalaitos cannot be mortgaged
@@ -80,7 +80,7 @@ const finished = new URLSearchParams(location.search).has("finished")
 const debug = new URLSearchParams(location.search).has("debug")
 const appLayout = location.pathname.endsWith("game-room-layout.html")
 
-// Visual copy of the app menu, without initializing Firebase in this mock-only page.
+// Visual copy of the app menu: the real Header signs out through Firebase, which these pages replace with a fixed signed-in user (FakeCurrentUser).
 const PreviewHeader = () => (
     <Box>
         <Grid container spacing={1}>
@@ -122,8 +122,8 @@ const game: Game = {
     state: {
         players: [user, olli, pekka, liisa],
         turnOrder: [user.playerId, olli.playerId, pekka.playerId, liisa.playerId],
-        // ?turn=<playerId> previews another player in turn, e.g. ?turn=olli
-        currentPlayer: new URLSearchParams(location.search).get("turn") ?? user.playerId,
+        // ?turn=<key> previews another player in turn, e.g. ?turn=olli
+        currentPlayer: idOfKey(new URLSearchParams(location.search).get("turn"), user.playerId),
         settings: { loanLimit: "UNLIMITED", compulsorySaleMinimumBid: "HALF_NOMINAL_PRICE", shareholdersMeeting: "ALL_ASSETS_BOUGHT" },
         // ?news=<id> shows another Finance News card face up, e.g. ?news=FL-19 for the longest text
         activeFinanceNews: new URLSearchParams(location.search).get("news") ?? "FL-01",
@@ -227,7 +227,6 @@ const events = [
 ].map((event, index) => ({ id: `preview-game:${index + 1}`, seq: index + 1, time: 0, type: event.type, event }))
 
 const PreviewRoom = () => {
-    const { setUser } = useCurrentUser()
     const [connected, setConnected] = useState(true)
     const [viewer, setViewer] = useState(false)
     const [lastCommand, setLastCommand] = useState("")
@@ -243,60 +242,52 @@ const PreviewRoom = () => {
             return () => chatSubscribers.delete(onMessage)
         },
     }), [connected])
-    useEffect(() => {
-        setUser(
-            {
-                playerId: viewer ? "viewer" : user.playerId,
-                displayName: viewer ? "Read Only Viewer" : user.name,
-                photoURL: null,
-                getIdToken: () => Promise.resolve("preview-token"),
-            } as unknown as FirebaseUser,
-        )
-    }, [setUser, viewer])
     const sendIncoming = () =>
         publishFakeGameMessage({
             id: String(nextChatId++).padStart(19, "0"),
-            userId: "olli",
-            name: "Olli Other",
+            userId: olliPerson.id,
             message: "Live message from another player",
             timestamp: Date.now(),
-            photoUrl: null,
         })
     return (
-        <StompContext.Provider value={previewConnection}>
-            <Stack spacing={1} sx={{ minHeight: 0, flex: 1 }}>
-                <Stack
-                    direction="row"
-                    spacing={1}
-                    sx={{
-                        flexWrap: "wrap",
-                        ...(appLayout &&
-                            {
-                                position: "fixed",
-                                top: 16,
-                                left: "50%",
-                                transform: "translateX(-50%)",
-                                zIndex: 1300,
-                                bgcolor: "background.paper",
-                                p: 1,
-                                borderRadius: 1,
-                                boxShadow: 2,
-                            }),
-                    }}
-                >
-                    <Button size="small" onClick={sendIncoming}>Simulate incoming chat</Button>
-                    <Button size="small" onClick={() => setConnected((current) => !current)}>{connected ? "Disconnect" : "Reconnect"}</Button>
-                    <Button size="small" onClick={() => setViewer((current) => !current)}>{viewer ? "Use seated account" : "View as spectator"}</Button>
+        <FakeCurrentUser person={viewer ? viewerPerson : tester} debugMode={debug}>
+            <StompContext.Provider value={previewConnection}>
+                <Stack spacing={1} sx={{ minHeight: 0, flex: 1 }}>
+                    <Stack
+                        direction="row"
+                        spacing={1}
+                        sx={{
+                            flexWrap: "wrap",
+                            ...(appLayout &&
+                                {
+                                    position: "fixed",
+                                    top: 16,
+                                    left: "50%",
+                                    transform: "translateX(-50%)",
+                                    zIndex: 1300,
+                                    bgcolor: "background.paper",
+                                    p: 1,
+                                    borderRadius: 1,
+                                    boxShadow: 2,
+                                }),
+                        }}
+                    >
+                        <Button size="small" onClick={sendIncoming}>Simulate incoming chat</Button>
+                        <Button size="small" onClick={() => setConnected((current) => !current)}>{connected ? "Disconnect" : "Reconnect"}</Button>
+                        <Button size="small" onClick={() => setViewer((current) => !current)}>{viewer ? "Use seated account" : "View as spectator"}</Button>
+                    </Stack>
+                    {fixture && (
+                        <Alert severity="info">Decision preview: {params.get("decision")}. Commands are recorded below; game rules do not run here.</Alert>
+                    )}
+                    {lastCommand && (
+                        <Alert severity="success">
+                            Submitted: <code>{lastCommand}</code>
+                        </Alert>
+                    )}
+                    <GameRoom />
                 </Stack>
-                {fixture && <Alert severity="info">Decision preview: {params.get("decision")}. Commands are recorded below; game rules do not run here.</Alert>}
-                {lastCommand && (
-                    <Alert severity="success">
-                        Submitted: <code>{lastCommand}</code>
-                    </Alert>
-                )}
-                <GameRoom />
-            </Stack>
-        </StompContext.Provider>
+            </StompContext.Provider>
+        </FakeCurrentUser>
     )
 }
 
@@ -305,11 +296,9 @@ const chatTopic = "/topic/games/preview-game/chat"
 const chatSubscribers = new Set<(body: string) => void>()
 const gameChatHistory = Array.from({ length: 27 }, (_, index) => ({
     id: String(nextChatId++).padStart(19, "0"),
-    userId: index % 2 ? "olli" : "tester",
-    name: index % 2 ? "Olli Other" : "Maija Meikäläinen",
+    userId: index % 2 ? olliPerson.id : tester.id,
     message: index % 6 === 4 ? "A longer game-room message that wraps across lines while the chat list scrolls independently." : `Game message ${index + 1}`,
     timestamp: Date.now() - (27 - index) * 60_000,
-    photoUrl: null,
 }))
 
 const publishFakeGameMessage = (message: (typeof gameChatHistory)[number]) => {
@@ -324,11 +313,9 @@ globalThis.fetch = (input, init) => {
             const body = JSON.parse(String(init.body)) as { message: string }
             const saved = {
                 id: String(nextChatId++).padStart(19, "0"),
-                userId: "tester",
-                name: "Maija Meikäläinen",
+                userId: tester.id,
                 message: body.message,
                 timestamp: Date.now(),
-                photoUrl: null,
             }
             publishFakeGameMessage(saved)
             return Promise.resolve(Response.json(saved))
@@ -373,7 +360,8 @@ globalThis.fetch = (input, init) => {
                 ],
         }))
     }
-    if (path === "/api/me/capabilities") return Promise.resolve(Response.json({ debugMode: debug }))
+    if (path === "/api/me") return Promise.resolve(Response.json(profileOf(tester, debug)))
+    if (path === "/api/users") return Promise.resolve(Response.json(publicProfiles(new URL(String(input).replace(/^undefined/, ""), location.origin))))
     if (path === "/api/game-data") return Promise.resolve(Response.json(board))
     if (init?.method === "POST") {
         console.info("[mock game] command", init.body)
@@ -385,37 +373,35 @@ globalThis.fetch = (input, init) => {
 
 ReactDOM.createRoot(document.getElementById("app")!).render(
     <MemoryRouter initialEntries={["/games/preview-game"]}>
-        <CurrentUserProvider>
-            {appLayout
-                ? (
-                    <Container
-                        maxWidth={false}
-                        component={Paper}
-                        sx={{
-                            height: "100%",
-                            display: "flex",
-                            flexDirection: "column",
-                            pb: 2,
-                            "@media (min-width: 2200px) and (min-height: 1100px)": { maxWidth: GAME_ROOM_MAX_WIDTH },
-                            "@media (min-width: 1536px) and (max-width: 2199.95px)": { maxWidth: GAME_BOARD_MAX_WIDTH },
-                            "@media (min-width: 2200px) and (max-height: 1099.95px)": { maxWidth: GAME_BOARD_MAX_WIDTH },
-                        }}
-                    >
-                        <Stack direction="column" sx={{ flex: 1, minHeight: 0 }}>
-                            <PreviewHeader />
-                            <Divider />
-                            <Routes>
-                                <Route path="/games/:id" element={<PreviewRoom />} />
-                            </Routes>
-                        </Stack>
-                    </Container>
-                )
-                : (
-                    <Routes>
-                        <Route path="/games/:id" element={<PreviewRoom />} />
-                    </Routes>
-                )}
-            <ToastContainer autoClose={1500} position="top-center" />
-        </CurrentUserProvider>
+        {appLayout
+            ? (
+                <Container
+                    maxWidth={false}
+                    component={Paper}
+                    sx={{
+                        height: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        pb: 2,
+                        "@media (min-width: 2200px) and (min-height: 1100px)": { maxWidth: GAME_ROOM_MAX_WIDTH },
+                        "@media (min-width: 1536px) and (max-width: 2199.95px)": { maxWidth: GAME_BOARD_MAX_WIDTH },
+                        "@media (min-width: 2200px) and (max-height: 1099.95px)": { maxWidth: GAME_BOARD_MAX_WIDTH },
+                    }}
+                >
+                    <Stack direction="column" sx={{ flex: 1, minHeight: 0 }}>
+                        <PreviewHeader />
+                        <Divider />
+                        <Routes>
+                            <Route path="/games/:id" element={<PreviewRoom />} />
+                        </Routes>
+                    </Stack>
+                </Container>
+            )
+            : (
+                <Routes>
+                    <Route path="/games/:id" element={<PreviewRoom />} />
+                </Routes>
+            )}
+        <ToastContainer autoClose={1500} position="top-center" />
     </MemoryRouter>,
 )

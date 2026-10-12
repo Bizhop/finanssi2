@@ -15,9 +15,9 @@ export type UserProfile = {
 export type AuthStatus = "initializing" | "signedOut" | "verificationRequired" | "profileLoading" | "ready" | "recoverableError"
 export type PublicProfile = { id: string; displayName: string; avatar: string | null }
 
-const CurrentUserContext = createContext<UserState | null>(null)
+export const CurrentUserContext = createContext<UserState | null>(null)
 type CurrentUserProviderProps = { children: React.ReactNode }
-type UserState = {
+export type UserState = {
     user: User | null
     profile: UserProfile | null
     status: AuthStatus
@@ -27,7 +27,6 @@ type UserState = {
     refreshProfile: () => Promise<void>
     refreshCapabilities: () => Promise<void>
     clearDebugAccess: () => void
-    setUser: React.Dispatch<React.SetStateAction<User | null>>
 }
 
 export const CurrentUserProvider = ({ children }: CurrentUserProviderProps) => {
@@ -104,7 +103,6 @@ export const CurrentUserProvider = ({ children }: CurrentUserProviderProps) => {
                 profile,
                 status,
                 error,
-                setUser,
                 debugMode: Boolean(profile?.capabilities.debugMode),
                 capabilitiesReady: status === "ready",
                 refreshProfile,

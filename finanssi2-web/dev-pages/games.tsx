@@ -1,21 +1,21 @@
 // Game list with a stateful fake backend: one game for each status and role, so every list control can be tried without a backend.
 // Create, join, leave, settings, start, end game and delete change the fake games; ?debug adds debug games and their controls.
-import { useEffect } from "react"
 import ReactDOM from "react-dom/client"
 import { Link, MemoryRouter, Route, Routes, useParams } from "react-router"
 import { ToastContainer } from "react-toastify"
-import type { User as FirebaseUser } from "firebase/auth"
 
 import Games from "../src/components/Games.tsx"
-import { CurrentUserProvider, useCurrentUser } from "../src/components/CurrentUserContext.tsx"
 import { type StompConnection, StompContext } from "../src/components/StompContext.tsx"
 import type { Game } from "../src/components/gameApi.ts"
+import { FakeCurrentUser } from "./FakeCurrentUser.tsx"
+import { liisa as liisaPerson, olli as olliPerson, pekka as pekkaPerson, type Person, profileOf, publicProfiles, tester } from "./people.ts"
 
 const debug = new URLSearchParams(location.search).has("debug")
 
-const seat = (playerId: string, name: string, piece: number) => ({
+// The app names players through /api/users; a debug seat has no account and is named by the app ("Debug player N")
+const seat = (playerId: string, piece: number) => ({
     playerId,
-    name,
+    name: "",
     photoUrl: null,
     piece,
     cash: 75_000,
@@ -25,10 +25,12 @@ const seat = (playerId: string, name: string, piece: number) => ({
     out: false,
     heldStockTips: [],
 })
-const me = seat("tester", "Maija Meikäläinen", 0)
-const olli = seat("olli", "Olli Other", 1)
-const pekka = seat("pekka", "Pekka Pörssi", 2)
-const liisa = seat("liisa", "Liisa Laine", 3)
+const seatOf = (person: Person, piece: number) => seat(person.id, piece)
+const me = seatOf(tester, 0)
+const olli = seatOf(olliPerson, 1)
+const pekka = seatOf(pekkaPerson, 2)
+const liisa = seatOf(liisaPerson, 3)
+const debugSeat = (number: number) => seat(`debug:preview:seat:${number}`, number - 1)
 
 let lastId = 0
 const fakeGame = (status: Game["status"], creator: string, players: ReturnType<typeof seat>[], mode: Game["mode"] = "NORMAL") =>
@@ -72,8 +74,8 @@ let games: Game[] = [
     fakeGame("FINISHED", olli.playerId, [olli, me]),
     ...debug
         ? [
-            fakeGame("LOBBY", me.playerId, [me, seat("seat-2", "Seat 2", 1)], "DEBUG"),
-            fakeGame("RUNNING", me.playerId, [me, seat("seat-2", "Seat 2", 1), seat("seat-3", "Seat 3", 2)], "DEBUG"),
+            fakeGame("LOBBY", me.playerId, [me, debugSeat(2)], "DEBUG"),
+            fakeGame("RUNNING", me.playerId, [me, debugSeat(2), debugSeat(3)], "DEBUG"),
         ]
         : [],
 ]
@@ -101,7 +103,8 @@ globalThis.fetch = (input, init) => {
     const method = init?.method ?? "GET"
     const body = init?.body ? JSON.parse(String(init.body)) : undefined
     console.info("[mock games]", method, path, body ?? "")
-    if (path === "/api/me/capabilities") return json({ debugMode: debug })
+    if (path === "/api/me") return json(profileOf(tester, debug))
+    if (path === "/api/users") return json(publicProfiles(new URL(String(input).replace(/^undefined/, ""), location.origin)))
     if (path === "/api/games" && method === "GET") return json(games)
     if (path === "/api/games" && method === "POST") {
         const game = fakeGame("LOBBY", me.playerId, [me])
@@ -109,7 +112,7 @@ globalThis.fetch = (input, init) => {
         return json(game)
     }
     if (path === "/api/debug/games" && method === "POST") {
-        const seats = Array.from({ length: Number(body?.playerCount ?? 2) }, (_, i) => i === 0 ? me : seat(`seat-${i + 1}`, `Seat ${i + 1}`, i))
+        const seats = Array.from({ length: Number(body?.playerCount ?? 2) }, (_, i) => i === 0 ? me : debugSeat(i + 1))
         const game = fakeGame("LOBBY", me.playerId, seats, "DEBUG")
         games = [game, ...games]
         return json(game)
@@ -145,14 +148,6 @@ globalThis.fetch = (input, init) => {
     return json({ detail: `No mock for ${method} ${path}` }, 404)
 }
 
-const PreviewGames = () => {
-    const { setUser } = useCurrentUser()
-    useEffect(() => {
-        setUser({ uid: me.playerId, displayName: me.name, photoURL: null, getIdToken: () => Promise.resolve("preview-token") } as unknown as FirebaseUser)
-    }, [setUser])
-    return <Games />
-}
-
 // Opening a game only shows where the app would go; the game room has its own test page
 const OpenedGame = () => {
     const { id } = useParams()
@@ -165,14 +160,14 @@ const OpenedGame = () => {
 
 ReactDOM.createRoot(document.getElementById("app")!).render(
     <MemoryRouter initialEntries={["/games"]}>
-        <CurrentUserProvider>
+        <FakeCurrentUser person={tester} debugMode={debug}>
             <StompContext.Provider value={previewConnection}>
                 <Routes>
-                    <Route path="/games" element={<PreviewGames />} />
+                    <Route path="/games" element={<Games />} />
                     <Route path="/games/:id" element={<OpenedGame />} />
                 </Routes>
                 <ToastContainer autoClose={1500} position="top-center" />
             </StompContext.Provider>
-        </CurrentUserProvider>
+        </FakeCurrentUser>
     </MemoryRouter>,
 )

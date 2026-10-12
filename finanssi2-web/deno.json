@@ -8,6 +8,8 @@
         "fmt:check": "deno fmt --check",
         "typecheck": "deno check src/ dev-pages/ vite.config.ts vite.dev-pages.config.ts",
         "lint": "deno lint",
+        // Opens every test page in headless Chromium; needs a Chromium (see dev-pages/smoke.ts)
+        "smoke": "deno run -A dev-pages/smoke.ts",
         "test": "deno test src/components/gameApi.test.ts src/components/gameEvents.test.ts src/components/gameDecisions.test.ts"
     },
     "imports": {
@@ -23,6 +25,7 @@
         "@types/react-dom": "npm:@types/react-dom@^19.3.0",
         "@vitejs/plugin-react": "npm:@vitejs/plugin-react@^6.1.2",
         "firebase": "npm:firebase@^13.0.0",
+        "playwright-core": "npm:playwright-core@^1.64.0",
         "react": "npm:react@^19.3.0",
         "react-dom": "npm:react-dom@^19.3.0",
         "react-hook-form": "npm:react-hook-form@^7.89.0",
