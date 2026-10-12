@@ -31,6 +31,10 @@ const errorText = (reason: unknown) => {
     return reason instanceof Error ? reason.message : "The request failed. Please try again."
 }
 
+type Notice = { text: string; severity: "success" | "info" | "error" }
+const success = (text: string): Notice => ({ text, severity: "success" })
+const info = (text: string): Notice => ({ text, severity: "info" })
+
 const FrontPage = () => {
     const { user, profile, status, error, refreshProfile } = useCurrentUser()
     const [mode, setMode] = useState<"signin" | "register" | "reset">("signin")
@@ -39,16 +43,16 @@ const FrontPage = () => {
     const [confirmation, setConfirmation] = useState("")
     const [displayName, setDisplayName] = useState("")
     const [busy, setBusy] = useState(false)
-    const [message, setMessage] = useState<string | null>(null)
+    const [notice, setNotice] = useState<Notice | null>(null)
     const [pendingCredential, setPendingCredential] = useState<AuthCredential | null>(null)
 
     const run = async (action: () => Promise<unknown>) => {
         setBusy(true)
-        setMessage(null)
+        setNotice(null)
         try {
             await action()
         } catch (reason) {
-            setMessage(errorText(reason))
+            setNotice({ text: errorText(reason), severity: "error" })
         } finally {
             setBusy(false)
         }
@@ -58,7 +62,7 @@ const FrontPage = () => {
         void run(async () => {
             if (mode === "reset") {
                 await sendPasswordResetEmail(auth, email.trim())
-                setMessage("Password reset email sent.")
+                setNotice(success("Password reset email sent."))
                 return
             }
             if (mode === "register") {
@@ -70,14 +74,14 @@ const FrontPage = () => {
                 await updateProfile(result.user, { displayName: displayName.trim() })
                 await sendEmailVerification(result.user)
                 localStorage.setItem(`pending-profile-name:${result.user.uid}`, displayName.trim())
-                setMessage("Check your email for a verification link. Return here after verifying.")
+                setNotice(success("Check your email for a verification link. Return here after verifying."))
                 return
             }
             const result = await signInWithEmailAndPassword(auth, email.trim(), password)
             if (pendingCredential) {
                 await linkWithCredential(result.user, pendingCredential)
                 setPendingCredential(null)
-                setMessage("Google sign-in linked to your account.")
+                setNotice(success("Google sign-in linked to your account."))
             }
         })
     }
@@ -95,7 +99,7 @@ const FrontPage = () => {
                 if (code === "auth/account-exists-with-different-credential") {
                     const credential = GoogleAuthProvider.credentialFromError(reason as Parameters<typeof GoogleAuthProvider.credentialFromError>[0])
                     if (credential) setPendingCredential(credential)
-                    setMessage("This email uses another sign-in method. Sign in with that method below; Google will be linked after authentication.")
+                    setNotice(info("This email uses another sign-in method. Sign in with that method below; Google will be linked after authentication."))
                     return
                 }
                 throw reason
@@ -109,14 +113,14 @@ const FrontPage = () => {
             await user.getIdToken(true)
             if (user.emailVerified) {
                 await refreshProfile()
-                setMessage("Email verified.")
-            } else setMessage("Firebase has not confirmed the verification yet. Try again in a moment.")
+                setNotice(success("Email verified."))
+            } else setNotice(info("Firebase has not confirmed the verification yet. Try again in a moment."))
         })
     const resend = () =>
         void run(async () => {
             if (!user) return
             await sendEmailVerification(user)
-            setMessage("Verification email sent.")
+            setNotice(success("Verification email sent."))
         })
 
     if (status === "initializing" || status === "profileLoading") return <Typography sx={{ p: 2 }}>Loading account…</Typography>
@@ -125,7 +129,7 @@ const FrontPage = () => {
             <Stack spacing={2} sx={{ p: 2, maxWidth: 520 }}>
                 <Typography variant="h5">Verify your email</Typography>
                 <Typography>Open the verification link sent to {user.email}, then return here.</Typography>
-                {message && <Alert severity="info">{message}</Alert>}
+                {notice && <Alert severity={notice.severity}>{notice.text}</Alert>}
                 <Stack direction="row" spacing={1}>
                     <Button disabled={busy} onClick={resend}>Resend email</Button>
                     <Button disabled={busy} onClick={verifyAgain}>I’ve verified</Button>
@@ -148,7 +152,7 @@ const FrontPage = () => {
     return (
         <Stack component="form" onSubmit={submit} spacing={2} sx={{ p: 2, maxWidth: 420 }}>
             <Typography variant="h5">{mode === "register" ? "Create account" : mode === "reset" ? "Reset password" : "Sign in"}</Typography>
-            {message && <Alert severity={message.includes("sent") || message.includes("Check") ? "success" : "info"}>{message}</Alert>}
+            {notice && <Alert severity={notice.severity}>{notice.text}</Alert>}
             <TextField label="Email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
             {mode === "register" && (
                 <TextField

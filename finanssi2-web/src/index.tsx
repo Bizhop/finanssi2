@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router"
 
 import App from "./components/App.tsx"
 import { CurrentUserProvider, useCurrentUser } from "./components/CurrentUserContext.tsx"
+import { ErrorBoundary } from "./components/ErrorBoundary.tsx"
 import { StompProvider } from "./components/StompContext.tsx"
 import { ToastContainer } from "react-toastify"
 import { z } from "zod/mini"
@@ -36,7 +37,9 @@ root.render(
     <BrowserRouter>
         <CurrentUserProvider>
             <StompConnection>
-                <App />
+                <ErrorBoundary>
+                    <App />
+                </ErrorBoundary>
                 <ToastContainer autoClose={1500} position="top-center" />
             </StompConnection>
         </CurrentUserProvider>

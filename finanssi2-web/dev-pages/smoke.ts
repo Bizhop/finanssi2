@@ -5,8 +5,13 @@ import { chromium } from "playwright-core"
 const port = 3011
 const origin = `http://localhost:${port}`
 
+// Pages that are expected to log errors, with the text they must show
+const errorPages = [{ page: "error-boundary.html", text: "Something went wrong while showing this page." }]
+
 const indexHtml = await Deno.readTextFile(new URL("./index.html", import.meta.url))
-const pages = [...indexHtml.matchAll(/href="([^"]+\.html[^"]*)"/g)].map((match) => match[1].replaceAll("&amp;", "&"))
+const pages = [...indexHtml.matchAll(/href="([^"]+\.html[^"]*)"/g)].map((match) => match[1].replaceAll("&amp;", "&")).filter((page) =>
+    !errorPages.some((item) => item.page === page)
+)
 if (pages.length < 20) throw new Error(`Expected the index to link many pages, found ${pages.length}`)
 
 const server = new Deno.Command(Deno.execPath(), {
@@ -79,6 +84,14 @@ try {
             console.log(`       ${problem}`)
             failures.push(`${page}: ${problem}`)
         })
+    }
+    for (const { page, text } of errorPages) {
+        const tab = await context.newPage()
+        await tab.goto(`${origin}/${page}`, { waitUntil: "load" })
+        const shown = await tab.getByText(text).count()
+        await tab.close()
+        console.log(`${shown ? "ok  " : "FAIL"} ${page}`)
+        if (!shown) failures.push(`${page}: expected "${text}"`)
     }
     await browser.close()
 } finally {

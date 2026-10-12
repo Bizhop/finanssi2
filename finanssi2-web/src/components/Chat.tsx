@@ -114,7 +114,12 @@ const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true,
     }
 
     const receiveMessage = (jsonString: string) => {
-        const parsedObject = JSON.parse(jsonString)
+        let parsedObject: unknown
+        try {
+            parsedObject = JSON.parse(jsonString)
+        } catch {
+            return // not a message this client understands; the next page load picks up whatever was missed
+        }
         const safeParsed = ChatMessageSchema.safeParse(parsedObject)
 
         if (safeParsed.success) {

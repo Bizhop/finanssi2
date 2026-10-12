@@ -21,10 +21,10 @@ import {
     Typography,
 } from "@mui/material"
 import AddIcon from "@mui/icons-material/Add"
-import { toast } from "react-toastify"
 
 import { useCurrentUser, usePublicProfiles } from "./CurrentUserContext.tsx"
 import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
+import { errorToast } from "./toasts.ts"
 import { avatarSrc, Game, gameApi, GameApiError } from "./gameApi.ts"
 
 const Games = () => {
@@ -86,21 +86,24 @@ const Games = () => {
 
     useStompSubscription("/topic/games", () => void refresh())
 
-    const run = async (id: string | null, action: () => Promise<unknown>, then?: (value: unknown) => void) => {
-        if (busyRef.current) return
+    /** Runs an action and reloads the list; resolves to whether the action succeeded, so dialogs only close on success */
+    const run = async (id: string | null, action: () => Promise<unknown>, then?: (value: unknown) => void): Promise<boolean> => {
+        if (busyRef.current) return false
         busyRef.current = true
         setBusyGame(id ?? "new")
         try {
             const result = await action()
-            if (userRef.current !== user) return
+            if (userRef.current !== user) return false
             then?.(result)
             await refresh()
+            return true
         } catch (reason) {
             if (reason instanceof GameApiError && reason.status === 403) {
                 clearDebugAccess()
                 setDebugCreateOpen(false)
             }
-            toast(reason instanceof Error ? reason.message : "The request failed", { type: "error" })
+            errorToast(reason instanceof Error ? reason.message : "The request failed")
+            return false
         } finally {
             busyRef.current = false
             setBusyGame(null)
@@ -118,7 +121,9 @@ const Games = () => {
             gameApi<Game>(user, "/api/debug/games", {
                 method: "POST",
                 body: JSON.stringify({ playerCount, settings: { loanLimit, compulsorySaleMinimumBid: minimumBid, shareholdersMeeting: meetingRule } }),
-            })).then(() => setDebugCreateOpen(false))
+            })).then((ok) => {
+                if (ok) setDebugCreateOpen(false)
+            })
     }
 
     const joinGame = (game: Game) => {
@@ -163,7 +168,9 @@ const Games = () => {
             gameApi(user, `/api/games/${game.id}/settings`, {
                 method: "PUT",
                 body: JSON.stringify({ loanLimit, compulsorySaleMinimumBid: minimumBid, shareholdersMeeting: meetingRule }),
-            })).then(() => setSettingsGame(null))
+            })).then((ok) => {
+                if (ok) setSettingsGame(null)
+            })
     }
 
     if (!user) return <Alert severity="info" sx={{ mt: 2 }}>Sign in to create or join a game.</Alert>

@@ -8,6 +8,7 @@ import GameRoom from "./GameRoom.tsx"
 import AccountProfile from "./AccountProfile.tsx"
 import { GAME_BOARD_MAX_WIDTH, GAME_ROOM_MAX_WIDTH } from "./boardLayout.ts"
 import { useCurrentUser } from "./CurrentUserContext.tsx"
+import { ErrorBoundary } from "./ErrorBoundary.tsx"
 
 const AuthenticatedRoute = ({ children }: { children: React.ReactNode }) => {
     const { status } = useCurrentUser()
@@ -53,7 +54,8 @@ const MyRoutes = () => (
 )
 
 const App = () => {
-    const isGameRoom = useLocation().pathname.startsWith("/games/")
+    const { pathname } = useLocation()
+    const isGameRoom = pathname.startsWith("/games/")
     return (
         <Container
             maxWidth={false}
@@ -73,7 +75,10 @@ const App = () => {
             <Stack direction="column" sx={{ flex: 1, minHeight: 0 }}>
                 <Header />
                 <Divider />
-                <MyRoutes />
+                {/* Keyed by path, so leaving a broken page recovers */}
+                <ErrorBoundary key={pathname}>
+                    <MyRoutes />
+                </ErrorBoundary>
             </Stack>
         </Container>
     )

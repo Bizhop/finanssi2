@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Grid, Stack, TextField, Typography } from "@mui/material"
-import { toast } from "react-toastify"
 
 import FlagOutlined from "@mui/icons-material/FlagOutlined"
 
@@ -12,6 +11,7 @@ import { ShareCard, TitleDeedCard } from "./cards.tsx"
 import { bankSalesOpen, buildAction, ConfirmDialog, type ConfirmRequest, meetingGroups, type PlayerControls, takeoverSum, twoDiceAtMost } from "./actions.tsx"
 import { PlayerPanel } from "./PlayerPanel.tsx"
 import { useCurrentUser, usePublicProfiles } from "./CurrentUserContext.tsx"
+import { errorToast } from "./toasts.ts"
 import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
 import { avatarSrc, gameApi, GameApiError, GameBoardData, GameView } from "./gameApi.ts"
 import { describeEvent, GameLogEntry } from "./gameEvents.ts"
@@ -79,7 +79,7 @@ const GameRoomContent = () => {
             if (!mounted.current) return
             setEvents((current) => [...new Map([...current, ...latest].map((entry) => [entry.seq, entry])).values()].sort((a, b) => a.seq - b.seq))
         } catch (reason) {
-            if (mounted.current) toast(apiError(reason), { type: "error" })
+            if (mounted.current) errorToast(apiError(reason))
         }
     }, [id, user])
 
@@ -96,7 +96,9 @@ const GameRoomContent = () => {
         if (user) {
             void gameApi<GameBoardData>(user, "/api/game-data").then((data) => {
                 if (mounted.current) setBoard(data)
-            }).catch((reason) => setError(apiError(reason)))
+            }).catch((reason) => {
+                if (mounted.current) setError(apiError(reason))
+            })
         }
     }, [refresh, refreshEvents, user])
 
@@ -142,7 +144,7 @@ const GameRoomContent = () => {
             await refreshEvents(events.at(-1)?.seq ?? 0)
         } catch (reason) {
             if (!mounted.current) return
-            toast(apiError(reason), { type: "error" })
+            errorToast(apiError(reason))
             if (reason instanceof GameApiError && reason.status === 403 && view?.game.mode === "DEBUG") {
                 clearDebugAccess()
                 setView(null)
@@ -163,7 +165,7 @@ const GameRoomContent = () => {
         if (debug && !debugMode) return
         const dice = diceInput.trim() ? diceInput.trim().split(/[\s,]+/).map(Number) : undefined
         if (debug && dice && (dice.length > 32 || dice.some((value) => !Number.isInteger(value) || value < 1 || value > 6))) {
-            toast("Dice must contain at most 32 values from 1 to 6", { type: "error" })
+            errorToast("Dice must contain at most 32 values from 1 to 6")
             return
         }
         await mutate(async () => {

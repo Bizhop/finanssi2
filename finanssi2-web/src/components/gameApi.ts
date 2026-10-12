@@ -47,7 +47,7 @@ export type Game = {
 export type GameView = { game: Game; allowedCommands: string[]; actingPlayer: string | null }
 
 export class GameApiError extends Error {
-    constructor(message: string, public status: number) {
+    constructor(message: string, public status: number, public code?: string) {
         super(message)
     }
 }
@@ -100,7 +100,7 @@ export async function gameApi<T>(user: User, path: string, init: RequestInit = {
     })
     if (!response.ok) {
         const body = await response.json().catch(() => null)
-        throw new GameApiError(body?.detail ?? `Request failed (${response.status})`, response.status)
+        throw new GameApiError(body?.detail ?? `Request failed (${response.status})`, response.status, body?.code)
     }
     if (response.status === 204) return undefined as T
     const body = await response.text()
