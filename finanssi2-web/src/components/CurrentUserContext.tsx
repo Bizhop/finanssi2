@@ -145,10 +145,10 @@ export const usePublicProfiles = (ids: string[]) => {
                 if (active) setProfiles(Object.fromEntries(groups.flat().map((item) => [item.id, item])))
             }).catch(() => undefined)
         void load()
-        const timer = window.setInterval(() => void load(), 15_000)
+        const timer = setInterval(() => void load(), 15_000)
         return () => {
             active = false
-            window.clearInterval(timer)
+            clearInterval(timer)
         }
     }, [user, key])
     return profiles

@@ -1,9 +1,9 @@
 {
     "tasks": {
-        "dev": "deno run -A --env-file=.env.development npm:vite",
+        "dev": "deno run -A --env-file=.env.development vite",
         // Component test pages (dev-pages/) with a fake login and backend, at http://localhost:3001
-        "dev:pages": "deno run -A --env-file=.env.development npm:vite --config vite.dev-pages.config.ts",
-        "build": "deno run -A --env-file=.env.production npm:vite build --mode production",
+        "dev:pages": "deno run -A --env-file=.env.development vite --config vite.dev-pages.config.ts",
+        "build": "deno run -A --env-file=.env.production vite build --mode production",
         "fmt": "deno fmt",
         "fmt:check": "deno fmt --check",
         "typecheck": "deno check src/ dev-pages/ vite.config.ts vite.dev-pages.config.ts",
@@ -25,7 +25,6 @@
         "firebase": "npm:firebase@^12.19.0",
         "react": "npm:react@^19.3.0",
         "react-dom": "npm:react-dom@^19.3.0",
-        "react-firebase-hooks": "npm:react-firebase-hooks@^5.1.1",
         "react-hook-form": "npm:react-hook-form@^7.89.0",
         "react-router": "npm:react-router@^8.4.0",
         "react-toastify": "npm:react-toastify@^11.1.0",
@@ -33,7 +32,7 @@
         "zod": "npm:zod@^4.6.5"
     },
     "compilerOptions": {
-        "types": ["react", "react-dom", "@types/react", "./src/vite-env.d.ts"],
+        "types": ["./src/vite-env.d.ts"],
         "lib": ["dom", "dom.iterable", "deno.ns"],
         "jsx": "react-jsx",
         "jsxImportSource": "react"
@@ -42,11 +41,12 @@
     "fmt": {
         "semiColons": false,
         "indentWidth": 4,
-        "lineWidth": 160
+        "lineWidth": 160,
+        // The Markdown notes are hand-wrapped prose
+        "exclude": ["**/*.md"]
     },
     "exclude": [
         "src/.vite/",
-        "dev-pages/.vite/",
-        "src/dist/"
+        "dev-pages/.vite/"
     ]
 }

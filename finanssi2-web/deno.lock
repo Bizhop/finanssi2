@@ -14,7 +14,6 @@
     "npm:@vitejs/plugin-react@^6.1.1": "6.1.1_vite@8.3.1_@types+node@26.6.3",
     "npm:firebase@^12.19.0": "12.19.0",
     "npm:react-dom@^19.3.0": "19.3.0_react@19.3.0",
-    "npm:react-firebase-hooks@^5.1.1": "5.1.1_firebase@12.19.0_react@19.3.0",
     "npm:react-hook-form@^7.89.0": "7.89.0_@types+react@19.3.0_react@19.3.0",
     "npm:react-router@^8.4.0": "8.4.0_react@19.3.0_react-dom@19.3.0",
     "npm:react-toastify@^11.1.0": "11.1.0_react@19.3.0_react-dom@19.3.0",
@@ -1324,13 +1323,6 @@
         "scheduler"
       ]
     },
-    "react-firebase-hooks@5.1.1_firebase@12.19.0_react@19.3.0": {
-      "integrity": "sha512-y2UpWs82xs+39q5Rc/wq316ca52QsC0n8m801V+yM4IC4hbfOL4yQPVSh7w+ydstdvjN9F+lvs1WrO2VYxpmdA==",
-      "dependencies": [
-        "firebase",
-        "react"
-      ]
-    },
     "react-hook-form@7.89.0_@types+react@19.3.0_react@19.3.0": {
       "integrity": "sha512-vKcoCfy8RKZDrhSdqsRFp0uEOdS1AhLjOL6hR7Wmfzg1akNxEhaPf5WORx8SgEQPVXakdDyDkqQp+KNxVnnPHg==",
       "dependencies": [
@@ -1546,7 +1538,6 @@
       "npm:@vitejs/plugin-react@^6.1.1",
       "npm:firebase@^12.19.0",
       "npm:react-dom@^19.3.0",
-      "npm:react-firebase-hooks@^5.1.1",
       "npm:react-hook-form@^7.89.0",
       "npm:react-router@^8.4.0",
       "npm:react-toastify@^11.1.0",
