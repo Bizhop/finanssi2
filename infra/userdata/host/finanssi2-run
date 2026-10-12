@@ -22,6 +22,7 @@ exec docker run --rm --name finanssi2 \
     --env SPRING_PROFILES_ACTIVE=prod \
     --env FINANSSI_ALLOWED_ORIGIN="$ALLOWED_ORIGIN" \
     --env FINANSSI_DEBUG_ALLOWED_EMAILS="$DEBUG_ALLOWED_EMAILS" \
-    --env GOOGLE_APPLICATION_CREDENTIALS=/run/finanssi2/config/firebase-admin.json \
+    --env GOOGLE_APPLICATION_CREDENTIALS=/run/finanssi2/firebase/firebase-admin.json \
     --mount type=bind,source=/run/finanssi2/config,target=/run/finanssi2/config,readonly \
+    --mount type=bind,source=/run/finanssi2/firebase,target=/run/finanssi2/firebase,readonly \
     "$IMAGE_REF"
