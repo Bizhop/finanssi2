@@ -9,8 +9,7 @@ Deno.test("successful empty REST responses cover deletion and ordinary leave", a
     try {
         for (const status of [200, 204]) {
             globalThis.fetch = (_input, init) => {
-                const headers = init?.headers as Record<string, string>
-                if (headers.Authorization !== "Bearer verified-token") throw new Error("Missing account token")
+                if (new Headers(init?.headers).get("Authorization") !== "Bearer verified-token") throw new Error("Missing account token")
                 if (init?.method !== "DELETE") throw new Error("Missing delete method")
                 return Promise.resolve(new Response(null, { status }))
             }
@@ -42,6 +41,23 @@ Deno.test("REST failures preserve conflict and forbidden status without replayin
             assertInstanceOf(failure, GameApiError)
             assertEquals([failure.status, failure.message, calls], [status, "Reload required", 1])
         }
+    } finally {
+        globalThis.fetch = originalFetch
+    }
+})
+
+Deno.test("caller headers of any form are merged with the token and the JSON content type", async () => {
+    const originalFetch = globalThis.fetch
+    try {
+        let seen: Headers | undefined
+        globalThis.fetch = (_input, init) => {
+            seen = init?.headers as Headers
+            return Promise.resolve(new Response(null, { status: 204 }))
+        }
+        await gameApi<void>(user, "/api/x", { method: "POST", body: "{}", headers: new Headers({ "X-Test": "1" }) })
+        assertEquals(seen?.get("X-Test"), "1")
+        assertEquals(seen?.get("Authorization"), "Bearer verified-token")
+        assertEquals(seen?.get("Content-Type"), "application/json")
     } finally {
         globalThis.fetch = originalFetch
     }

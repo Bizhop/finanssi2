@@ -8,10 +8,8 @@ import { ErrorBoundary } from "./ui/ErrorBoundary.tsx"
 import { PublicProfilesProvider } from "./auth/PublicProfiles.tsx"
 import { StompProvider } from "./realtime/StompContext.tsx"
 import { ToastContainer } from "react-toastify"
+import { env } from "./env.ts"
 import "./i18n/init.ts"
-
-// http(s)://host → ws(s)://host/ws
-const stompUrl = `${import.meta.env.VITE_FINANSSI_API_URL.replace(/^http/, "ws")}/ws`
 
 // The websocket is open only while a user is logged in, authenticated with their Firebase ID token
 const StompConnection = ({ children }: { children: ReactNode }) => {
@@ -19,7 +17,7 @@ const StompConnection = ({ children }: { children: ReactNode }) => {
     return (
         <StompProvider
             key={user ? `${user.uid}:${profile?.id ?? status}` : "signed-out"}
-            url={stompUrl}
+            url={env().stompUrl}
             enabled={user !== null && status === "ready"}
             getAccessToken={() => user ? user.getIdToken() : Promise.reject(new Error("Not signed in"))}
         >

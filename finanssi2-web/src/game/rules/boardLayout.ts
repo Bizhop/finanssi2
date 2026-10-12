@@ -7,6 +7,18 @@ export const GAME_BOARD_MAX_WIDTH = `calc(${BOARD_ASPECT_RATIO * 100}dvh - ${BOA
 /** Fits a two-thirds-width board below the app header, leaving 180px for app chrome and room spacing. */
 export const GAME_ROOM_MAX_WIDTH = `calc(${BOARD_ASPECT_RATIO * 1.5 * 100}dvh - ${BOARD_ASPECT_RATIO * 1.5 * 180}px)`
 
+/** Wide screens where the room is the board over the side panel instead of beside it (a width/height mix, so not MUI breakpoints) */
+export const STACKED_GAME_LAYOUT = "@media (min-width: 1536px) and (max-width: 2199.95px)"
+export const SHORT_WIDE_GAME_LAYOUT = "@media (min-width: 2200px) and (max-height: 1099.95px)"
+const TALL_WIDE_GAME_LAYOUT = "@media (min-width: 2200px) and (min-height: 1100px)"
+
+/** The width of the page container in a game room, by screen */
+export const gameRoomWidthStyles = {
+    [TALL_WIDE_GAME_LAYOUT]: { maxWidth: GAME_ROOM_MAX_WIDTH },
+    [STACKED_GAME_LAYOUT]: { maxWidth: GAME_BOARD_MAX_WIDTH },
+    [SHORT_WIDE_GAME_LAYOUT]: { maxWidth: GAME_BOARD_MAX_WIDTH },
+}
+
 /**
  * Square divider positions measured from the board image, in percent of the image width (top, bottom) or height (left, right).
  * Each side has its own lines because the printed board is not perfectly uniform.

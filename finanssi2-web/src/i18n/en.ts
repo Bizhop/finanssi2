@@ -10,6 +10,7 @@ export const en: Record<MessageKey, string> = {
     "common.create": "Create",
     "common.delete": "Delete",
     "common.player": "Player",
+    "common.loading": "Loading…",
     "common.loadingAccount": "Loading account…",
     "common.requestFailed": "The request failed. Please try again.",
 
@@ -23,6 +24,7 @@ export const en: Record<MessageKey, string> = {
     "nav.language": "Language",
 
     "app.notFound": "Page not found!",
+    "app.connectionLost": "The connection to the server was lost. Trying to reconnect; the page will not update until then.",
 
     "error.generic": "Something went wrong while showing this page.",
     "error.tryAgain": "Try again",

@@ -19,13 +19,11 @@ type MyNavLinkProps = {
 
 const MyNavLink = ({ to, label, icon }: MyNavLinkProps) => (
     <Grid size={1} sx={{ textAlign: "center" }}>
-        <NavLink to={to}>
-            <Tooltip title={label}>
-                <IconButton size="small">
-                    {icon}
-                </IconButton>
-            </Tooltip>
-        </NavLink>
+        <Tooltip title={label}>
+            <IconButton component={NavLink} to={to} size="small" aria-label={label}>
+                {icon}
+            </IconButton>
+        </Tooltip>
     </Grid>
 )
 

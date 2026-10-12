@@ -133,6 +133,7 @@ Other frontend tasks (run from `finanssi2-web`, defined in `deno.json` like npm 
 | `deno task test` | Run the unit tests (rules, labels, API transport, i18n catalogs) |
 | `deno task smoke` | Open every dev-page preview in headless Chromium, in Finnish and English (needs a Chromium) |
 | `deno task lint` | Lint the sources (unused imports/variables etc.) |
+| `deno task lint:hooks` | React Hooks and React Compiler rules (ESLint), which `deno lint` does not have |
 | `deno task fmt` | Format the code |
 | `deno task fmt:check` | Check formatting without changing files (for CI) |
 

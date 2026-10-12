@@ -4,11 +4,14 @@ import { Client } from "@stomp/stompjs"
 /** The current STOMP connection; a new value (and new subscriptions) for every connect */
 export type StompConnection = {
     connected: boolean
+    /** The last attempt to connect failed or the connection broke, and it has not been restored yet */
+    problem?: boolean
     /** Subscribes on this connection; returns a function that unsubscribes */
     subscribe: (destination: string, onMessage: (body: string) => void) => () => void
 }
 
 const disconnected: StompConnection = { connected: false, subscribe: () => () => {} }
+const failed: StompConnection = { ...disconnected, problem: true }
 
 export const StompContext = createContext<StompConnection | null>(null)
 
@@ -24,6 +27,8 @@ type StompProviderProps = {
 
 export const StompProvider = ({ url, enabled, getAccessToken, children }: StompProviderProps) => {
     const [connectedClient, setConnectedClient] = useState<Client | null>(null)
+    // Set when a connection attempt fails or the connection breaks; the client keeps retrying and the next connect clears it
+    const [problem, setProblem] = useState(false)
     // An effect event, so that a new function on every render doesn't reconnect
     const fetchAccessToken = useEffectEvent(() => getAccessToken())
 
@@ -37,14 +42,22 @@ export const StompProvider = ({ url, enabled, getAccessToken, children }: StompP
             beforeConnect: async (client) => {
                 client.connectHeaders = { Authorization: `Bearer ${await fetchAccessToken()}` }
             },
-            onConnect: () => setConnectedClient(client),
+            onConnect: () => {
+                setProblem(false)
+                setConnectedClient(client)
+            },
             // Only if still current: a replaced client's close can arrive after the new one connected
             onWebSocketClose: () => setConnectedClient((current) => current === client ? null : current),
-            onStompError: (frame) => console.error("STOMP error:", frame.headers.message),
+            onWebSocketError: () => setProblem(true),
+            onStompError: (frame) => {
+                console.error("STOMP error:", frame.headers.message)
+                setProblem(true)
+            },
         })
         client.activate()
         return () => {
             setConnectedClient(null)
+            setProblem(false)
             void client.deactivate()
         }
     }, [url, enabled])
@@ -61,7 +74,9 @@ export const StompProvider = ({ url, enabled, getAccessToken, children }: StompP
                     }
                 },
             }
-            : disconnected, [connectedClient])
+            : problem
+            ? failed
+            : disconnected, [connectedClient, problem])
 
     return <StompContext value={connection}>{children}</StompContext>
 }
@@ -73,6 +88,12 @@ const useStompConnection = () => {
 }
 
 export const useStompConnected = () => useStompConnection().connected
+
+/** True while the realtime connection is down because of an error; it reconnects by itself */
+export const useStompProblem = () => {
+    const connection = useStompConnection()
+    return connection.problem === true
+}
 
 /** Calls onMessage for every message to the destination; subscribes again after each reconnect */
 export const useStompSubscription = (destination: string, onMessage: (body: string) => void) => {

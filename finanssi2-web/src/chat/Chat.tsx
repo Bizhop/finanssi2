@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useEffectEvent, useRef } from "react"
 import { Alert, Avatar, Box, Button, Divider, IconButton, List, ListItem, ListItemAvatar, ListItemText, Paper, Stack, Tooltip, Typography } from "@mui/material"
 import type { User } from "firebase/auth"
 import { type SubmitHandler, useForm } from "react-hook-form"
@@ -39,13 +39,14 @@ export const Chat = ({ user, gameId, embedded = false, compact = false, canSend 
     // so a tall panel does not fetch the entire history just because the sentinel is initially visible.
     const messageListRef = useRef<HTMLUListElement>(null)
     const loadMoreTriggerRef = useRef<HTMLLIElement>(null)
+    const loadOlder = useEffectEvent(() => loadOlderMessages())
     useEffect(() => {
         const trigger = loadMoreTriggerRef.current
         if (!trigger || !hasOlderMessages || !expanded) return
         const observer = new IntersectionObserver(
             ([entry]) => {
                 const list = messageListRef.current
-                if (entry.isIntersecting && list && list.scrollHeight > list.clientHeight + 1) loadOlderMessages()
+                if (entry.isIntersecting && list && list.scrollHeight > list.clientHeight + 1) loadOlder()
             },
             // Start loading a bit before the user reaches the top
             { root: messageListRef.current, rootMargin: "200px 0px 0px 0px" },
@@ -56,7 +57,7 @@ export const Chat = ({ user, gameId, embedded = false, compact = false, canSend 
 
     return (
         <Stack direction="column" sx={{ flex: 1, minHeight: 0 }}>
-            {!embedded && <h1>{t("chat.title")}</h1>}
+            {!embedded && <Typography variant="h4" component="h1">{t("chat.title")}</Typography>}
             <Box component={embedded ? "div" : Paper} sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
                 <List
                     ref={messageListRef}
@@ -146,15 +147,13 @@ const ChatLine = ({ message, compact, profile }: ChatLineProps) => {
         <>
             <ListItem>
                 <ListItemAvatar>
-                    <Tooltip title={message.userId} placement="left">
-                        <Avatar
-                            src={avatarSrc(profile?.avatar)}
-                            alt={profile?.displayName ?? t("common.player")}
-                            sx={compact ? { width: 30, height: 30 } : undefined}
-                        >
-                            {(profile?.displayName ?? "?").slice(0, 1).toUpperCase()}
-                        </Avatar>
-                    </Tooltip>
+                    <Avatar
+                        src={avatarSrc(profile?.avatar)}
+                        alt={profile?.displayName ?? t("common.player")}
+                        sx={compact ? { width: 30, height: 30 } : undefined}
+                    >
+                        {(profile?.displayName ?? "?").slice(0, 1).toUpperCase()}
+                    </Avatar>
                 </ListItemAvatar>
                 <ListItemText
                     primary={

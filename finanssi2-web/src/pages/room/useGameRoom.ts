@@ -110,11 +110,15 @@ export const useGameRoom = (id: string | undefined) => {
         void refreshEvents(events.at(-1)?.seq ?? 0)
     })
     useEffect(() => {
+        // Loading from the server: the state changes after the responses arrive, not during the effect
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         reload()
     }, [connected, user])
 
     // Debug access that ends while a debug game is open closes the room
     useEffect(() => {
+        // Leaving the room is a reaction to the access changing outside React
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (view?.game.mode === "DEBUG" && status === "ready" && !debugMode) leaveRoom()
     }, [view, debugMode, status, leaveRoom])
 

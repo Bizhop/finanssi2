@@ -1,6 +1,7 @@
 import type { User } from "firebase/auth"
 import type { z } from "zod/mini"
 
+import { apiUrl } from "../env.ts"
 import { t } from "../i18n/index.ts"
 
 export type { Card, CommandOptions, Game, GameBoardData, GamePlayer, GameSquare, GameView, PendingDecision, PublicProfile, UserProfile } from "./schemas.ts"
@@ -14,19 +15,18 @@ export class GameApiError extends Error {
 export const avatarSrc = (avatar: string | null | undefined) => {
     if (!avatar) return undefined
     if (!avatar.startsWith("/")) return avatar
-    return `${(import.meta.env?.VITE_FINANSSI_API_URL ?? "").replace(/\/$/, "")}${avatar}`
+    return `${apiUrl()}${avatar}`
 }
 
 export async function gameApi<T>(user: User, path: string, init: RequestInit = {}): Promise<T> {
     const token = await user.getIdToken()
-    const response = await fetch(`${(import.meta.env?.VITE_FINANSSI_API_URL ?? "")}${path}`, {
-        ...init,
-        headers: {
-            Authorization: `Bearer ${token}`,
-            ...(init.body && !(typeof FormData !== "undefined" && init.body instanceof FormData) ? { "Content-Type": "application/json" } : {}),
-            ...init.headers,
-        },
-    })
+    // A Headers instance, an array or a plain object from the caller all merge the same way
+    const headers = new Headers(init.headers)
+    headers.set("Authorization", `Bearer ${token}`)
+    if (init.body && !(typeof FormData !== "undefined" && init.body instanceof FormData) && !headers.has("Content-Type")) {
+        headers.set("Content-Type", "application/json")
+    }
+    const response = await fetch(`${apiUrl()}${path}`, { ...init, headers })
     if (!response.ok) {
         const body = await response.json().catch(() => null)
         throw new GameApiError(body?.detail ?? t("api.requestFailed", { status: response.status }), response.status, body?.code)

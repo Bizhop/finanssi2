@@ -33,6 +33,8 @@ messages, reconnect controls, and spectator mode. Frontend checks pass; responsi
   bond offers, bond/asset bids, Finance News direction and Stock Tip options.
 - Active Finance News, current-player held card text and Stock Tip choice text render card chapters with headings/italics. Finished games show the winner or
   closure and standings sorted by net worth.
+- Build and runtime: settings are validated once (`src/env.ts`); a banner shows when the realtime connection is down; the game room and account routes are
+  lazy-loaded; the React Compiler is enabled and `deno task lint:hooks` checks the hooks rules.
 - Separate Vite dev pages for chat and mocked running/finished game rooms, without Google sign-in or a backend.
 
 ## Decisions

@@ -95,7 +95,13 @@ const Asset = ({ icon, count, title, cards, onClick, faded, halo }: {
                     </ButtonBase>
                 )
                 : (
-                    <Box component="span" tabIndex={0} aria-label={title} sx={{ ...assetSx, color: faded ? "text.disabled" : undefined, cursor: "default" }}>
+                    <Box
+                        component="span"
+                        role="img"
+                        tabIndex={0}
+                        aria-label={title}
+                        sx={{ ...assetSx, color: faded ? "text.disabled" : undefined, cursor: "default" }}
+                    >
                         {shownIcon}
                         {count != null && <Typography variant="body2" component="span">{count}</Typography>}
                     </Box>

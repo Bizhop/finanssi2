@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useEffectEvent, useRef, useState } from "react"
 import type { User } from "firebase/auth"
 
 import { t } from "../i18n/index.ts"
@@ -102,8 +102,9 @@ export const useChatHistory = (user: User, gameId?: string) => {
             })
 
     const connected = useStompConnected()
+    const refreshOnConnect = useEffectEvent(() => refreshNewestMessages())
     useEffect(() => {
-        if (connected) refreshNewestMessages()
+        if (connected) refreshOnConnect()
     }, [connected])
 
     return { messages, hasOlderMessages, loadingOlder, error, connected, loadOlderMessages, sendMessage }

@@ -1,12 +1,10 @@
-import { defineConfig } from "vite"
-import react from "@vitejs/plugin-react"
+import { defineConfig, loadEnv } from "vite"
+import react, { reactCompilerPreset } from "@vitejs/plugin-react"
+import babel from "@rolldown/plugin-babel"
 import deno from "@deno/vite-plugin"
 import { fileURLToPath } from "node:url"
 import { createHash } from "node:crypto"
 import { readFileSync } from "node:fs"
-
-import "react"
-import "react-dom"
 
 // Vite rebuilds its pre-bundled dependencies when a lockfile it knows changes, but deno.lock isn't one of them, so after a dependency
 // change it kept using a stale cache (e.g. "ENOENT ... node_modules/.deno/<removed package>"). A cache directory per deno.lock
@@ -16,6 +14,7 @@ const projectRoot = fileURLToPath(new URL(".", import.meta.url))
 
 function validateProductionEnvironment(mode: string) {
     if (mode !== "production") return
+    const settings = loadEnv(mode, projectRoot, "VITE_")
     const required = [
         "VITE_FIREBASE_API_KEY",
         "VITE_FIREBASE_AUTH_DOMAIN",
@@ -25,12 +24,12 @@ function validateProductionEnvironment(mode: string) {
         "VITE_FIREBASE_APP_ID",
         "VITE_FINANSSI_API_URL",
     ]
-    const missing = required.filter((name) => !process.env[name]?.trim())
+    const missing = required.filter((name) => !settings[name]?.trim())
     if (missing.length) throw new Error(`Missing required production environment variables: ${missing.join(", ")}`)
 
     let apiUrl: URL
     try {
-        apiUrl = new URL(process.env.VITE_FINANSSI_API_URL ?? "")
+        apiUrl = new URL(settings.VITE_FINANSSI_API_URL ?? "")
     } catch {
         throw new Error("VITE_FINANSSI_API_URL must be an absolute HTTPS URL")
     }
@@ -49,6 +48,8 @@ export default defineConfig(({ mode }) => {
         },
         plugins: [
             react(),
+            // Memoises components and hooks at build time, so the code needs no manual useMemo/useCallback for performance
+            babel({ presets: [reactCompilerPreset()] }),
             deno(),
         ],
         build: {
@@ -61,7 +62,8 @@ export default defineConfig(({ mode }) => {
                         groups: [
                             {
                                 name: "react",
-                                test: /node_modules[\\/].*[\\/](react|react-dom|react-router|scheduler)[\\/]/,
+                                // Directly under node_modules, so that @emotion/react stays with MUI
+                                test: /node_modules[\\/](react|react-dom|react-router|scheduler)[\\/]/,
                             },
                             { name: "mui", test: /node_modules[\\/].*[\\/](@mui|@emotion|@popperjs|stylis)[\\/]/ },
                             { name: "firebase", test: /node_modules[\\/].*[\\/](@firebase|firebase|idb)[\\/]/ },

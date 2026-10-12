@@ -17,7 +17,7 @@ import { useCurrentUser } from "../auth/CurrentUserContext.tsx"
 import { usePublicProfiles } from "../auth/PublicProfiles.tsx"
 import { avatarSrc } from "../api/gameApi.ts"
 import { DecisionDialog } from "../game/components/DecisionDialog.tsx"
-import { BOARD_ASPECT_RATIO } from "../game/rules/boardLayout.ts"
+import { BOARD_ASPECT_RATIO, SHORT_WIDE_GAME_LAYOUT, STACKED_GAME_LAYOUT } from "../game/rules/boardLayout.ts"
 import { formatEuro } from "../ui/format.ts"
 import { BuyShareDialog } from "./room/BuyShareDialog.tsx"
 import { DebugPanel } from "./room/DebugPanel.tsx"
@@ -26,9 +26,6 @@ import { turnStockTip as findTurnStockTip } from "./room/eventLog.ts"
 import { FinalStandings } from "./room/FinalStandings.tsx"
 import { MeetingDialog } from "./room/MeetingDialog.tsx"
 import { useGameRoom } from "./room/useGameRoom.ts"
-
-const STACKED_GAME_LAYOUT = "@media (min-width: 1536px) and (max-width: 2199.95px)"
-const SHORT_WIDE_GAME_LAYOUT = "@media (min-width: 2200px) and (max-height: 1099.95px)"
 
 const GameRoomContent = () => {
     const { t } = useTranslation()

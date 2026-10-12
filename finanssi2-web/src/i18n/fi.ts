@@ -11,6 +11,7 @@ export const fi = {
     "common.create": "Luo",
     "common.delete": "Poista",
     "common.player": "Pelaaja",
+    "common.loading": "Ladataan…",
     "common.loadingAccount": "Ladataan tiliä…",
     "common.requestFailed": "Pyyntö epäonnistui. Yritä uudelleen.",
 
@@ -24,6 +25,7 @@ export const fi = {
     "nav.language": "Kieli",
 
     "app.notFound": "Sivua ei löytynyt!",
+    "app.connectionLost": "Yhteys palvelimeen on katkennut. Yritetään yhdistää uudelleen; sivu ei päivity ennen sitä.",
 
     "error.generic": "Jokin meni pieleen sivua näytettäessä.",
     "error.tryAgain": "Yritä uudelleen",
