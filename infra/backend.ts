@@ -21,6 +21,8 @@ function startupScript(values: {
     databaseAdminSecretArn: string
     databaseApplicationSecretArn: string
     cloudWatchAgentUrl: string
+    hostLogGroup: string
+    applicationLogGroup: string
 }): string {
     const script = String.raw`#!/bin/bash
 set -euo pipefail
@@ -111,7 +113,7 @@ cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<'CWAGE
       "files": {
         "collect_list": [{
           "file_path": "/var/log/messages",
-          "log_group_name": "/finanssi2/prod/host",
+          "log_group_name": "__HOST_LOG_GROUP__",
           "log_stream_name": "{instance_id}/messages",
           "timezone": "UTC"
         }]
@@ -228,7 +230,7 @@ exec docker run --rm --name finanssi2 \
     --memory=1280m --pids-limit=512 \
     --log-driver=awslogs \
     --log-opt awslogs-region="$AWS_REGION" \
-    --log-opt awslogs-group=/finanssi2/prod/backend \
+    --log-opt awslogs-group=__APPLICATION_LOG_GROUP__ \
     --log-opt awslogs-create-group=false \
     --log-opt awslogs-stream="$(cat /var/lib/cloud/data/instance-id)/finanssi2-backend" \
     --publish 127.0.0.1:8080:8080 \
@@ -296,6 +298,8 @@ systemctl start finanssi2.service || true
         .replaceAll("__DEBUG_ALLOWED_EMAILS__", values.debugEmails)
         .replaceAll("__INSTANCE_ID_DIMENSION__", "${aws:InstanceId}")
         .replaceAll("__CLOUDWATCH_AGENT_URL__", values.cloudWatchAgentUrl)
+        .replaceAll("__HOST_LOG_GROUP__", values.hostLogGroup)
+        .replaceAll("__APPLICATION_LOG_GROUP__", values.applicationLogGroup)
 }
 
 export function createBackend(
@@ -320,12 +324,13 @@ export function createBackend(
         imageScanningConfiguration: { scanOnPush: true },
         encryptionConfigurations: [{ encryptionType: "AES256" }],
     }, { provider })
+    const logGroupPrefix = `/finanssi2/${pulumi.getStack()}`
     const hostLogGroup = new aws.cloudwatch.LogGroup(`${prefix}-host-logs`, {
-        name: "/finanssi2/prod/host",
+        name: `${logGroupPrefix}/host`,
         retentionInDays: 30,
     }, { provider })
     const applicationLogGroup = new aws.cloudwatch.LogGroup(`${prefix}-application-logs`, {
-        name: "/finanssi2/prod/backend",
+        name: `${logGroupPrefix}/backend`,
         retentionInDays: 30,
     }, { provider })
     new aws.ecr.LifecyclePolicy(`${prefix}-backend-image-retention`, {
@@ -417,6 +422,8 @@ export function createBackend(
             cloudWatchAgentUrl: `https://amazoncloudwatch-agent.s3.amazonaws.com/amazon_linux/${
                 settings.architecture === "arm64" ? "arm64" : "amd64"
             }/latest/amazon-cloudwatch-agent.rpm`,
+            hostLogGroup: `${logGroupPrefix}/host`,
+            applicationLogGroup: `${logGroupPrefix}/backend`,
         })
     )
 

@@ -79,14 +79,14 @@ export function createDatabase(
     new aws.secretsmanager.SecretVersion(`${prefix}-database-admin-version`, {
         secretId: adminSecret.id,
         secretString: pulumi.secret(
-            pulumi.all([cluster.endpoint, adminPassword.result]).apply(([host, password]) =>
+            pulumi.all([cluster.endpoint, cluster.port, cluster.databaseName, adminPassword.result]).apply(([host, port, dbname, password]) =>
                 JSON.stringify({
                     username: "finanssi_admin",
                     password,
                     engine: "aurora-postgresql",
                     host,
-                    port: 5432,
-                    dbname: "finanssi",
+                    port,
+                    dbname,
                 })
             ),
         ),
@@ -100,14 +100,14 @@ export function createDatabase(
     new aws.secretsmanager.SecretVersion(`${prefix}-database-application-version`, {
         secretId: applicationSecret.id,
         secretString: pulumi.secret(
-            pulumi.all([cluster.endpoint, applicationPassword.result]).apply(([host, password]) =>
+            pulumi.all([cluster.endpoint, cluster.port, cluster.databaseName, applicationPassword.result]).apply(([host, port, dbname, password]) =>
                 JSON.stringify({
                     username: "finanssi_app",
                     password,
                     engine: "aurora-postgresql",
                     host,
-                    port: 5432,
-                    dbname: "finanssi",
+                    port,
+                    dbname,
                 })
             ),
         ),
