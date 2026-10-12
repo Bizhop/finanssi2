@@ -120,9 +120,6 @@ export function createBackend(
             firebaseSecretArn,
             databaseAdminSecretArn,
             databaseApplicationSecretArn,
-            cloudWatchAgentUrl: `https://amazoncloudwatch-agent.s3.amazonaws.com/amazon_linux/${
-                settings.architecture === "arm64" ? "arm64" : "amd64"
-            }/latest/amazon-cloudwatch-agent.rpm`,
             hostLogGroup: `${logGroupPrefix}/host`,
             applicationLogGroup: `${logGroupPrefix}/backend`,
         })

@@ -3,13 +3,7 @@ set -euo pipefail
 umask 077
 
 # Amazon Linux 2023 includes curl-minimal, which provides the curl command used below.
-dnf install -y docker jq postgresql15 amazon-ssm-agent rsyslog
-curl -fsSL __CLOUDWATCH_AGENT_URL__ -o /tmp/amazon-cloudwatch-agent.rpm
-dnf install -y /tmp/amazon-cloudwatch-agent.rpm
-rm -f /tmp/amazon-cloudwatch-agent.rpm
-curl -fsSL https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem -o /etc/ssl/certs/aws-rds-global-bundle.pem
-echo 'fe45bbebf92ad3e27a583bbb2ddd1553c521ed4d49af5514dc0a40372ea5395c  /etc/ssl/certs/aws-rds-global-bundle.pem' | sha256sum --check --status
-chmod 0644 /etc/ssl/certs/aws-rds-global-bundle.pem
+dnf install -y docker jq postgresql15 amazon-ssm-agent amazon-cloudwatch-agent rsyslog
 case "$(uname -m)" in
     x86_64)
         caddy_arch=amd64

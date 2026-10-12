@@ -10,7 +10,6 @@ export interface UserDataValues {
     firebaseSecretArn: string
     databaseAdminSecretArn: string
     databaseApplicationSecretArn: string
-    cloudWatchAgentUrl: string
     hostLogGroup: string
     applicationLogGroup: string
 }
@@ -37,7 +36,6 @@ export function renderUserData(values: UserDataValues): string {
         .replaceAll("__ALLOWED_ORIGIN__", values.allowedOrigin)
         .replaceAll("__DEBUG_ALLOWED_EMAILS__", values.debugEmails)
         .replaceAll("__INSTANCE_ID_DIMENSION__", "${aws:InstanceId}")
-        .replaceAll("__CLOUDWATCH_AGENT_URL__", values.cloudWatchAgentUrl)
         .replaceAll("__HOST_LOG_GROUP__", values.hostLogGroup)
         .replaceAll("__APPLICATION_LOG_GROUP__", values.applicationLogGroup)
     const size = Buffer.byteLength(script, "utf8")
