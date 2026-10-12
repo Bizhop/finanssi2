@@ -5,6 +5,7 @@ import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
 import fi.bizhop.finanssi2.db.ApplicationUserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
@@ -18,6 +19,7 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class LinkedGoogleEmailController {
     final ApplicationUserRepository users;
+    final ObjectProvider<FirebaseAuth> firebaseAuth;
 
     @PostMapping("/api/me/verify-linked-google-email")
     public void verifyLinkedGoogleEmail(@RequestAttribute("firebaseToken") FirebaseToken token) {
@@ -29,7 +31,7 @@ public class LinkedGoogleEmailController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account email does not match");
 
         try {
-            var firebase = FirebaseAuth.getInstance();
+            var firebase = firebaseAuth.getObject();
             var account = firebase.getUser(token.getUid());
             var googleEmail = Arrays.stream(account.getProviderData())
                     .filter(provider -> provider.getProviderId().equals("google.com"))

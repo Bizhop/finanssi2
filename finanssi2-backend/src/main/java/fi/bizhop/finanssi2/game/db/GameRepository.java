@@ -23,6 +23,20 @@ public class GameRepository {
     @Qualifier("persistenceEventMapper") final ObjectMapper persistenceEventMapper;
     @PersistenceContext EntityManager entityManager;
 
+    /** What authorization needs to know about a game, without loading its state */
+    public record Access(GameMode mode, String creator) {}
+
+    @Transactional(readOnly = true)
+    public Optional<Access> findAccess(String id) {
+        try {
+            return entityManager.createQuery("select g.mode, g.creatorUser.id from GameEntity g where g.id = :id", Object[].class)
+                    .setParameter("id", UUID.fromString(id)).getResultStream().findFirst()
+                    .map(row -> new Access((GameMode) row[0], row[1].toString()));
+        } catch (IllegalArgumentException invalidId) {
+            return Optional.empty();
+        }
+    }
+
     @Transactional(readOnly = true)
     public Optional<Game> findById(String id) {
         try {

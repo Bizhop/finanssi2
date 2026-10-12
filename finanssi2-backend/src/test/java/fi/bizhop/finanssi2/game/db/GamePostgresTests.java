@@ -90,6 +90,18 @@ abstract class GamePostgresTests {
     }
 
     @Test
+    void accessLookupReturnsModeAndCreatorWithoutTheState() {
+        var game = create("access-owner");
+
+        var access = gameRepository.findAccess(game.getId()).orElseThrow();
+
+        assertEquals(GameMode.NORMAL, access.mode());
+        assertEquals(game.getCreator(), access.creator());
+        assertTrue(gameRepository.findAccess(UUID.randomUUID().toString()).isEmpty());
+        assertTrue(gameRepository.findAccess("not-a-uuid").isEmpty());
+    }
+
+    @Test
     void debugOwnerResolvesAllAuctionBidsAndGrandDrawOffers() {
         var owner = user("owner");
         var game = gameService.createDebug(owner, 3, GameSettings.DEFAULT);

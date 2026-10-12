@@ -39,9 +39,9 @@ class PrivateChatDeliveryInterceptorTest {
         var id = "66f9a1b2-c3d4-5e6f-8718-2931a2b3c4d5";
         var game = new Game(GameMode.DEBUG);
         game.setCreator("owner");
-        when(gameRepository.findById(id)).thenReturn(Optional.of(game));
+        when(gameRepository.findAccess(id)).thenReturn(Optional.of(new GameRepository.Access(game.getMode(), game.getCreator())));
         doThrow(new NotAllowedException("Debug access is not enabled for this account"))
-                .when(debugAccess).requireOwner(game, user);
+                .when(debugAccess).requireOwner(GameMode.DEBUG, "owner", user);
 
         var accessor = SimpMessageHeaderAccessor.create(SimpMessageType.MESSAGE);
         accessor.setDestination("/topic/games/" + id + "/chat");

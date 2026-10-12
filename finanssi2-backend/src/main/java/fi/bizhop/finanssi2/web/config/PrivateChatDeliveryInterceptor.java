@@ -29,9 +29,9 @@ public class PrivateChatDeliveryInterceptor implements ChannelInterceptor {
         if (auth == null) return null;
         var gameId = destination.substring("/topic/games/".length(), destination.length() - "/chat".length());
         try {
-            var game = gameRepository.findById(gameId).orElse(null);
-            if (game != null && game.getMode() == GameMode.DEBUG) debugAccess.requireOwner(game, auth.user());
-            return game == null ? null : message;
+            var access = gameRepository.findAccess(gameId).orElse(null);
+            if (access != null && access.mode() == GameMode.DEBUG) debugAccess.requireOwner(access.mode(), access.creator(), auth.user());
+            return access == null ? null : message;
         } catch (RuntimeException denied) {
             return null;
         }
