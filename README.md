@@ -92,9 +92,14 @@ The API runs at http://localhost:8080.
 Firebase Authentication must have Google and email/password providers enabled. Email/password users must verify their address before
 the backend provisions a profile or allows game/chat access. Google and password sign-in share an application profile only when Firebase
 has linked them to the same Firebase account. The app lets signed-in users edit their display name and upload/remove a custom avatar;
-avatars are processed and stored in PostgreSQL, and game/chat entries keep the name and avatar snapshot from when they were created.
+avatars are processed and stored in PostgreSQL, and game and chat entries reference players by user id, so a changed name or avatar shows everywhere.
 `GET /api/me` supplies the profile and debug capability used by the frontend. Backend upload limits and image validation are configured
 for JPEG/PNG input up to 2 MiB; processed images are bounded JPEGs.
+
+API errors are RFC 9457 `ProblemDetail` bodies: `detail` is the message to show, and the sign-in errors also carry a `code`
+(`EMAIL_VERIFICATION_REQUIRED`, `ACCOUNT_LINKING_CONFLICT`). `GET /api/games/{id}` returns the commands the user may send
+(`allowedCommands`) and, in `options`, the concrete choices behind them with their current prices, Finance News modifiers included
+(properties and shares to buy, mortgage, redemption and buy-back amounts, building prices, shareholders' meeting fees, bonds).
 
 ### 3. Frontend
 

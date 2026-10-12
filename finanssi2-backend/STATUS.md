@@ -96,6 +96,29 @@ outbound debug access rechecks, and database cascade deletion. Two-account webso
   requires new state fields to be included. Existing tests cover data, engine, service, controller, PostgreSQL and authentication.
   PostgreSQL persistence tests use a host database (`databaseTest`) or Testcontainers (`containerTest`) for manual runs.
 
+## Backend improvements (2026-10-12)
+
+Done on branch `improvements/backend` from [the improvement plan](../plan/backend-improvements.md):
+
+- **Errors.** Every failure is a `ProblemDetail` through one `ApiErrors` advice (Spring's own exceptions, `ResponseStatusException`,
+  rule violations, missing elements → 404, bad arguments → 400); the token filter writes the same shape with a `code`. Nothing is
+  left to the default error body, so the frontend's `detail` is always present.
+- **JSON.** The persistence mappers are private to the game repositories and Jackson 3 only (Hibernate's JSON format mapper is set to
+  `Jackson3JsonFormatMapper`); the application's own mapper renders API responses, with a test that views carry no deck order or
+  sealed bids. firebase-admin is trimmed to what Auth needs (Firestore and Cloud Storage excluded, jar 126 → 78 MB); a smoke test
+  loads the token verification path, because the exclusion removed classes Auth still needs (`google-http-client-jackson2`, `gax`).
+- **Structure.** `GameEngine` (1,600 → ~800 lines) delegates to `StockTips`, `FinanceNews`, `ShareholdersMeetings`, `Bankruptcy` and
+  `CommandValidator`; card ids are `FinanceNewsCard`/`StockTipCard` enums with exhaustive switches; engine state is changed through
+  `GameState` methods. Settings bind to `Finanssi2Properties`; profile logic is in `ProfileService`; broadcasts are published as
+  events and sent after commit. The `service`/`web`/`db` packages were not reorganised by feature.
+- **Null safety.** All packages are `@NullMarked`, checked by NullAway through Error Prone at compile time (main sources only).
+- **Removed.** `/api/hello`, `/api/secure-hello`, the actuator starter, the unused `/api` STOMP prefix and the Dev controller test.
+  The whitelist property is now comma separated.
+- **API.** `GET /api/games/{id}` adds `options`: concrete legal choices with current prices (including Finance News modifiers),
+  additive to `allowedCommands`. The frontend plan consumes it when the decision dialog is split.
+- **Not done.** Persistence N+1/avatar-table changes (R4/R5) are not needed until list or request latency is measured on Aurora.
+  Replacing the event-delete queries with `@OnDelete(CASCADE)` would not change existing foreign keys (`ddl-auto=update`).
+
 ## Private single-player debug mode
 
 - Six planned implementation steps were completed in separate commits on 2026-10-02. The implementation plan was retired;
@@ -268,7 +291,5 @@ Engine tests run with the recommended rules unless they set `GameSettings.ORIGIN
   were broader than the current `FinanceNewsTest`, `StockTipsTest` and `GameEndTest` classes; implementation is not evidence
   that every planned scenario has an automated test.
 
-The last full isolated suite run was before the PostgreSQL migration, on 2026-10-02 (231 tests, including the former in-memory
-MongoDB suite, HTTP endpoints and real websocket clients). On 2026-10-05, all 212 regular tests and all 13 PostgreSQL integration
-checks passed against the host PostgreSQL 17 instance. Follow [AGENTS.md](AGENTS.md) for build isolation and [README](../README.md)
+On 2026-10-12, after the backend improvements below, all 259 regular tests and all 17 Testcontainers PostgreSQL checks passed. Follow [AGENTS.md](AGENTS.md) for build isolation and [README](../README.md)
 for local setup.
