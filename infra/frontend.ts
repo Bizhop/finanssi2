@@ -11,7 +11,13 @@ export function createFrontend(
     prefix: string,
     provider: aws.Provider,
     usEast1Provider: aws.Provider,
-    settings: { hostname: string; createDistribution: boolean },
+    settings: {
+        hostname: string
+        apiHostname: string
+        firebaseAuthDomain: string
+        createDistribution: boolean
+        cspReportOnly: boolean
+    },
 ): Frontend {
     const bucket = new aws.s3.Bucket(`${prefix}-frontend`, {
         bucket: `${prefix}-frontend`,
@@ -81,6 +87,37 @@ export function createFrontend(
             },
         }, { provider })
 
+        // Allows the API (REST and websocket), Firebase sign-in (identity endpoints, the gapi script, the auth-domain iframe) and nothing else.
+        // No Cross-Origin-Opener-Policy: it would break the Google sign-in popup.
+        const contentSecurityPolicy = [
+            "default-src 'none'",
+            "script-src 'self' https://apis.google.com",
+            "style-src 'self' 'unsafe-inline'",
+            `img-src 'self' data: blob: https://${settings.apiHostname}`,
+            "font-src 'self' data:",
+            `connect-src 'self' https://${settings.apiHostname} wss://${settings.apiHostname} https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com`,
+            `frame-src https://${settings.firebaseAuthDomain} https://accounts.google.com`,
+            "base-uri 'self'",
+            "form-action 'self'",
+            "object-src 'none'",
+            "frame-ancestors 'none'",
+        ].join("; ")
+        const responseHeadersPolicy = new aws.cloudfront.ResponseHeadersPolicy(`${prefix}-frontend-headers`, {
+            name: `${prefix}-frontend-headers`,
+            comment: "Security headers for the Finanssi frontend",
+            securityHeadersConfig: {
+                strictTransportSecurity: { override: true, accessControlMaxAgeSec: 31536000, includeSubdomains: false, preload: false },
+                contentTypeOptions: { override: true },
+                frameOptions: { override: true, frameOption: "DENY" },
+                referrerPolicy: { override: true, referrerPolicy: "strict-origin-when-cross-origin" },
+                // Report-only mode lets a changed policy be tried against real sign-ins without blocking anything.
+                ...(settings.cspReportOnly ? {} : { contentSecurityPolicy: { override: true, contentSecurityPolicy } }),
+            },
+            ...(settings.cspReportOnly
+                ? { customHeadersConfig: { items: [{ header: "Content-Security-Policy-Report-Only", override: true, value: contentSecurityPolicy }] } }
+                : {}),
+        }, { provider })
+
         distribution = new aws.cloudfront.Distribution(`${prefix}-frontend-cdn`, {
             enabled: true,
             comment: "Finanssi 2 frontend",
@@ -98,6 +135,7 @@ export function createFrontend(
                 cachedMethods: ["GET", "HEAD", "OPTIONS"],
                 compress: true,
                 cachePolicyId: cachePolicy.id,
+                responseHeadersPolicyId: responseHeadersPolicy.id,
                 functionAssociations: [{ eventType: "viewer-request", functionArn: routeFunction.arn }],
             },
             restrictions: { geoRestriction: { restrictionType: "none" } },
@@ -107,6 +145,8 @@ export function createFrontend(
                 minimumProtocolVersion: "TLSv1.2_2021",
             },
             priceClass: "PriceClass_100",
+            httpVersion: "http2and3",
+            isIpv6Enabled: true,
         }, { provider, dependsOn: [validation] })
 
         new aws.s3.BucketPolicy(`${prefix}-frontend-cdn-policy`, {

@@ -20,6 +20,7 @@ const monthlyBudgetLimitUsd = config.requireNumber("monthlyBudgetLimitUsd")
 const budgetAlertEmail = config.require("budgetAlertEmail")
 const firebaseWeb = config.requireObject<FirebaseWebConfig>("firebaseWeb")
 const createFrontendDistribution = config.getBoolean("createFrontendDistribution") ?? false
+const cspReportOnly = config.getBoolean("frontendCspReportOnly") ?? false
 
 interface FirebaseWebConfig {
     apiKey: string
@@ -127,7 +128,10 @@ const backend = createBackend(prefix, provider, {
 })
 const frontend = createFrontend(prefix, provider, usEast1Provider, {
     hostname: frontendHostname,
+    apiHostname,
+    firebaseAuthDomain: firebaseWeb.authDomain,
     createDistribution: createFrontendDistribution,
+    cspReportOnly,
 })
 createMonitoring(prefix, provider, usEast1Provider, {
     instance: backend.instance,
