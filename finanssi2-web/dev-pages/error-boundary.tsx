@@ -1,6 +1,6 @@
 // A component that throws while rendering, inside the app's error boundary: the page shows the fallback with "Try again" and "Back to the
 // start" instead of going blank. "Try again" renders the component again, which works after ?fixed or after the toggle below.
-import { useState } from "react"
+import { StrictMode, useState } from "react"
 import ReactDOM from "react-dom/client"
 import { Button, Stack } from "@mui/material"
 
@@ -25,4 +25,8 @@ const Page = () => {
     )
 }
 
-ReactDOM.createRoot(document.getElementById("app")!).render(<Page />)
+ReactDOM.createRoot(document.getElementById("app")!).render(
+    <StrictMode>
+        <Page />
+    </StrictMode>,
+)

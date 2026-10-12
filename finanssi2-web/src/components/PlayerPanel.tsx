@@ -17,6 +17,7 @@ import { BondCard, CarCard, cardPeekSlotProps, CardRow, LoanCard, ShareCard, Tit
 import { type AssetAction, carAction, loanActions, type PlayerControls, propertyActions, shareActions, stockTipAction } from "./actions.tsx"
 import { rentDoubled } from "./SquareDetails.tsx"
 import type { Game, GameBoardData, GamePlayer } from "./gameApi.ts"
+import { formatEuro } from "./format.ts"
 
 const pulse = keyframes`
     0%, 100% { box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.55); }
@@ -168,7 +169,7 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected, contro
                             {player.out ? " · out" : ""}
                         </Typography>
                         <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", mt: 0.25, color: "text.secondary" }}>
-                            <Asset icon={<PaymentsOutlined />} count={`€${player.cash.toLocaleString()}`} title="Cash" />
+                            <Asset icon={<PaymentsOutlined />} count={formatEuro(player.cash)} title="Cash" />
                             {(player.loans > 0 || controls) && (
                                 <Asset
                                     icon={<AccountBalanceOutlined />}

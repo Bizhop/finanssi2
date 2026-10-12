@@ -13,6 +13,7 @@ import type { Card, Game, GameBoardData } from "./gameApi.ts"
 import { playerColor, PlayerToken } from "./PlayerToken.tsx"
 import { SquareDetails } from "./SquareDetails.tsx"
 import { cardPeekSlotProps } from "./cards.tsx"
+import { formatEuro } from "./format.ts"
 
 const CARD_INK = "#1d4f9c"
 
@@ -103,8 +104,8 @@ const MeetingRules = ({ groupName, takeover }: { groupName: string; takeover: nu
     <Box sx={{ maxWidth: 300, "& p": { m: 0, mt: 0.75 } }}>
         <Box sx={{ fontWeight: 700 }}>Shareholders' meeting: {groupName}</Box>
         <p>
-            Show the purchase prices of the other players' properties (with buildings) and shares in the group, now €{takeover.toLocaleString()}, and put down a
-            brokerage fee of €20,000–€120,000.
+            Show the purchase prices of the other players' properties (with buildings) and shares in the group, now{" "}
+            {formatEuro(takeover)}, and put down a brokerage fee of €20,000–€120,000.
         </p>
         <p>
             Roll both dice. If the total is at most the fee divided by 10,000, you take over their properties and shares and pay them the purchase prices;

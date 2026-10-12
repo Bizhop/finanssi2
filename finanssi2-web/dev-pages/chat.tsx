@@ -1,6 +1,6 @@
 // Logged-in front page with a chat history, loaded page by page as you scroll up. Floating buttons simulate messages arriving over the
 // websocket, and the websocket disconnecting (messages sent meanwhile are fetched after reconnecting).
-import { useMemo, useState } from "react"
+import { StrictMode, useMemo, useState } from "react"
 import ReactDOM from "react-dom/client"
 import { MemoryRouter } from "react-router"
 import { Button, Stack } from "@mui/material"
@@ -47,7 +47,9 @@ const TestPage = () => {
 }
 
 ReactDOM.createRoot(document.getElementById("app")!).render(
-    <MemoryRouter>
-        <TestPage />
-    </MemoryRouter>,
+    <StrictMode>
+        <MemoryRouter>
+            <TestPage />
+        </MemoryRouter>
+    </StrictMode>,
 )

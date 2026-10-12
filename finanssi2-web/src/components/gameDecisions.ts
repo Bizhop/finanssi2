@@ -1,6 +1,5 @@
 import type { Game, GameBoardData } from "./gameApi.ts"
-
-export const euros = (amount: number) => `€${amount.toLocaleString("en-US")}`
+import { formatEuro } from "./format.ts"
 
 export const validAuctionBid = (input: string, cash: number, minimum: number) => {
     const amount = Number(input)
@@ -14,7 +13,7 @@ export const decisionLabels = (game: Game, board: GameBoardData | null) => {
     const share = (id: string) => {
         const data = board?.shares.find((item) => item.id === id)
         const group = board?.groups.find((item) => item.id === data?.group)?.name ?? "Fund"
-        return data ? `${group} share (${euros(data.value)}, ${data.dividendPercent}% dividend, ${id.split("-").at(-1)})` : id
+        return data ? `${group} share (${formatEuro(data.value)}, ${data.dividendPercent}% dividend, ${id.split("-").at(-1)})` : id
     }
     const asset = (id: string) => id.startsWith("P:") ? property(id.slice(2)) : id.startsWith("S:") ? share(id.slice(2)) : id
     const option = (card: string, value: string) => {
@@ -34,7 +33,7 @@ export const decisionLabels = (game: Game, board: GameBoardData | null) => {
                 const deed = board?.titleDeeds.find((item) => item.square === Number(value))
                 const owned = game.state.properties.find((item) => item.square === Number(value))
                 const price = deed ? deed.price + (owned?.built ? deed.building?.price ?? 0 : 0) : null
-                return `Sell ${property(value)}${price === null ? "" : ` for ${euros(price)}`}`
+                return `Sell ${property(value)}${price === null ? "" : ` for ${formatEuro(price)}`}`
             }
             case "PV-35":
                 return `Transfer ${asset(value)} to your left neighbour for €10,000`

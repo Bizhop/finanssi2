@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Grid, Stack, TextField, Typography } from "@mui/material"
 
@@ -10,13 +10,15 @@ import { GameWindow, type GameWindowTab } from "./GameWindow.tsx"
 import { ShareCard, TitleDeedCard } from "./cards.tsx"
 import { bankSalesOpen, buildAction, ConfirmDialog, type ConfirmRequest, meetingGroups, type PlayerControls, takeoverSum, twoDiceAtMost } from "./actions.tsx"
 import { PlayerPanel } from "./PlayerPanel.tsx"
-import { useCurrentUser, usePublicProfiles } from "./CurrentUserContext.tsx"
+import { useCurrentUser } from "./CurrentUserContext.tsx"
+import { usePublicProfiles } from "./PublicProfiles.tsx"
 import { errorToast } from "./toasts.ts"
 import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
 import { avatarSrc, gameApi, GameApiError, type GameBoardData, type GameView } from "./gameApi.ts"
 import { describeEvent, type GameLogEntry } from "./gameEvents.ts"
 import { DecisionDialog } from "./DecisionDialog.tsx"
 import { BOARD_ASPECT_RATIO } from "./boardLayout.ts"
+import { formatEuro } from "./format.ts"
 
 type GameUpdate = { version: number; events: GameLogEntry[] }
 
@@ -27,7 +29,7 @@ const apiError = (reason: unknown) => reason instanceof Error ? reason.message :
 
 const GameRoomContent = () => {
     const { id } = useParams()
-    const { user, profile, debugMode, capabilitiesReady, clearDebugAccess } = useCurrentUser()
+    const { user, profile, status, debugMode, clearDebugAccess } = useCurrentUser()
     const navigate = useNavigate()
     // The GameRoom wrapper remounts this per game and user; late responses after unmount must not toast or navigate.
     const mounted = useRef(true)
@@ -91,16 +93,13 @@ const GameRoomContent = () => {
     }, [])
 
     useEffect(() => {
-        void refresh()
-        void refreshEvents()
-        if (user) {
-            void gameApi<GameBoardData>(user, "/api/game-data").then((data) => {
-                if (mounted.current) setBoard(data)
-            }).catch((reason) => {
-                if (mounted.current) setError(apiError(reason))
-            })
-        }
-    }, [refresh, refreshEvents, user])
+        if (!user) return
+        void gameApi<GameBoardData>(user, "/api/game-data").then((data) => {
+            if (mounted.current) setBoard(data)
+        }).catch((reason) => {
+            if (mounted.current) setError(apiError(reason))
+        })
+    }, [user])
 
     const receiveUpdate = useCallback((body: string) => {
         if (!mounted.current) return
@@ -125,12 +124,14 @@ const GameRoomContent = () => {
 
     useStompSubscription(`/topic/games/${id}`, receiveUpdate)
 
+    // Load on mount and again whenever the websocket (re)connects: updates sent while it was down never arrive over it
+    const reload = useEffectEvent(() => {
+        void refresh()
+        void refreshEvents(events.at(-1)?.seq ?? 0)
+    })
     useEffect(() => {
-        if (connected) {
-            void refresh()
-            void refreshEvents(events.at(-1)?.seq ?? 0)
-        }
-    }, [connected])
+        reload()
+    }, [connected, user])
 
     /** Runs an action, then reloads the game unless the action leaves it (`reload` false) */
     const mutate = async (action: () => Promise<unknown>, reload = true) => {
@@ -189,11 +190,11 @@ const GameRoomContent = () => {
     }
 
     useEffect(() => {
-        if (view?.game.mode === "DEBUG" && capabilitiesReady && !debugMode) {
+        if (view?.game.mode === "DEBUG" && status === "ready" && !debugMode) {
             setView(null)
             navigate("/games", { replace: true })
         }
-    }, [view, debugMode, capabilitiesReady, navigate])
+    }, [view, debugMode, status, navigate])
 
     if (!user) return <Alert severity="info" sx={{ mt: 2 }}>Sign in to open this game.</Alert>
     if (!view && !error) {
@@ -250,8 +251,8 @@ const GameRoomContent = () => {
                 <Stack spacing={1.5} sx={{ alignItems: "center", fontSize: 13 }}>
                     <TitleDeedCard deed={deed} groupName={board?.groups.find((group) => group.id === deed.group)?.name} />
                     <span>
-                        The bank sells it for €{deed.price.toLocaleString()}.
-                        {deed.price > cash && ` You have €${cash.toLocaleString()}: raise €${(deed.price - cash).toLocaleString()} more first.`}
+                        The bank sells it for {formatEuro(deed.price)}.
+                        {deed.price > cash && ` You have ${formatEuro(cash)}: raise ${formatEuro(deed.price - cash)} more first.`}
                     </span>
                 </Stack>
             ),
@@ -483,8 +484,8 @@ const GameRoomContent = () => {
                     <Typography variant="h6">Final standings</Typography>
                     {[...game.state.finalStandings].sort((a, b) => b.netWorth - a.netWorth).map((standing, index) => (
                         <Typography key={standing.player}>
-                            {index + 1}. {game.state.players.find((p) => p.playerId === standing.player)?.name ?? standing.player}{" "}
-                            — €{standing.netWorth.toLocaleString()} net worth (€{standing.cash.toLocaleString()} cash)
+                            {index + 1}. {game.state.players.find((p) => p.playerId === standing.player)?.name ?? standing.player} —{" "}
+                            {formatEuro(standing.netWorth)} net worth ({formatEuro(standing.cash)} cash)
                         </Typography>
                     ))}
                 </>
@@ -527,7 +528,7 @@ const GameRoomContent = () => {
                                             void sendCommand({ type: "BuyShare", share: share.id })
                                         }}
                                     >
-                                        Buy €{share.value.toLocaleString()}
+                                        Buy {formatEuro(share.value)}
                                     </Button>
                                 </Stack>
                             )
@@ -544,8 +545,8 @@ const GameRoomContent = () => {
                     <DialogContent>
                         <Stack spacing={2} sx={{ pt: 1 }}>
                             <Typography variant="body2">
-                                Taking over the other players' properties and shares costs €{meeting.takeover.toLocaleString()}, plus the brokerage fee. You
-                                have €{cash.toLocaleString()}.
+                                Taking over the other players' properties and shares costs {formatEuro(meeting.takeover)}, plus the brokerage fee. You have{" "}
+                                {formatEuro(cash)}.
                             </Typography>
                             <TextField
                                 select
@@ -557,15 +558,15 @@ const GameRoomContent = () => {
                             >
                                 {[20000, 30000, 40000, 50000, 60000, 70000, 80000, 90000, 100000, 110000, 120000].map((fee) => (
                                     <option key={fee} value={fee} disabled={meeting.takeover + fee > cash}>
-                                        €{fee.toLocaleString()}:{" "}
+                                        {formatEuro(fee)}:{" "}
                                         {Math.round(twoDiceAtMost(fee / 10000) * 100)}% chance{meeting.takeover + fee > cash ? " (not enough cash)" : ""}
                                     </option>
                                 ))}
                             </TextField>
                             <Typography variant="body2" color={meeting.takeover + meetingFee > cash ? "error" : "text.secondary"}>
                                 {meeting.takeover + meetingFee > cash
-                                    ? `You need €${(meeting.takeover + meetingFee).toLocaleString()}: raise €${
-                                        (meeting.takeover + meetingFee - cash).toLocaleString()
+                                    ? `You need ${formatEuro(meeting.takeover + meetingFee)}: raise ${
+                                        formatEuro(meeting.takeover + meetingFee - cash)
                                     } more first, e.g. by mortgaging or selling.`
                                     : `The takeover succeeds on a dice total of ${meetingFee / 10000} or less.`}
                             </Typography>

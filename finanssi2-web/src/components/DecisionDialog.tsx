@@ -12,11 +12,12 @@ import Add from "@mui/icons-material/Add"
 import Remove from "@mui/icons-material/Remove"
 import SwapHoriz from "@mui/icons-material/SwapHoriz"
 import type { Game, GameBoardData } from "./gameApi.ts"
-import { decisionLabels, euros, newsDestination, nextAuctionBid, propertySaleProceeds, shareSaleProceeds, validAuctionBid } from "./gameDecisions.ts"
+import { decisionLabels, newsDestination, nextAuctionBid, propertySaleProceeds, shareSaleProceeds, validAuctionBid } from "./gameDecisions.ts"
 import { GameBoard } from "./GameBoard.tsx"
 import { DecisionAsset } from "./DecisionAsset.tsx"
 import { DecisionSquare } from "./DecisionSquare.tsx"
 import { PlayerToken } from "./PlayerToken.tsx"
+import { formatEuro } from "./format.ts"
 
 type Pending = Game["state"]["pendingDecisions"][number]
 
@@ -133,11 +134,11 @@ export const DecisionDialog = ({ pending, allowed, send, game, board, busy, anch
         )
     }
     const summary = pending.type === "RaiseFunds"
-        ? `${euros(Number(pending.amount))} to ${pending.creditor ? labels.player(String(pending.creditor)) : "the bank"}`
+        ? `${formatEuro(Number(pending.amount))} to ${pending.creditor ? labels.player(String(pending.creditor)) : "the bank"}`
         : pending.type === "BondOffer"
         ? "€500 per bond"
         : pending.type === "AssetAuction"
-        ? `Minimum bid ${euros(minimum)} · sealed bids`
+        ? `Minimum bid ${formatEuro(minimum)} · sealed bids`
         : pending.type === "BondAuction"
         ? "Sealed bids · the winner receives a random available bond"
         : pending.card === "PV-10"
@@ -145,7 +146,7 @@ export const DecisionDialog = ({ pending, allowed, send, game, board, busy, anch
         : pending.card === "PV-17"
         ? "Select a highlighted property on the board."
         : null
-    const sellLabel = (amount: number) => `Sell to bank for ${amount.toLocaleString("en-US")}€`
+    const sellLabel = (amount: number) => `Sell to bank for ${formatEuro(amount)}`
     const stepBid = (direction: 1 | -1) => {
         const next = nextAuctionBid(bid, direction, minimum)
         if (next <= cash) setBid(String(next))
@@ -196,16 +197,16 @@ export const DecisionDialog = ({ pending, allowed, send, game, board, busy, anch
                     </Box>
                     <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
                         <Tooltip title="Available cash">
-                            <Chip size="small" icon={<PaymentsOutlined />} label={euros(cash)} />
+                            <Chip size="small" icon={<PaymentsOutlined />} label={formatEuro(cash)} />
                         </Tooltip>
                         {pending.type === "RaiseFunds" && (
                             <Tooltip title="Still needed to settle this payment">
-                                <Chip size="small" color="warning" label={`−${euros(Math.max(0, Number(pending.amount) - cash))}`} />
+                                <Chip size="small" color="warning" label={`−${formatEuro(Math.max(0, Number(pending.amount) - cash))}`} />
                             </Tooltip>
                         )}
                         {isAuction && (
                             <Tooltip title="Minimum nonzero bid">
-                                <Chip size="small" icon={<GavelOutlined />} label={euros(minimum)} />
+                                <Chip size="small" icon={<GavelOutlined />} label={formatEuro(minimum)} />
                             </Tooltip>
                         )}
                     </Stack>
@@ -489,7 +490,7 @@ export const DecisionDialog = ({ pending, allowed, send, game, board, busy, anch
                                                         undefined,
                                                         <Stack direction="row">
                                                             {allowed.includes("Mortgage") && deed.mortgage?.[state] != null && (
-                                                                <Tooltip title={`Mortgage for ${euros(deed.mortgage[state]!)}`}>
+                                                                <Tooltip title={`Mortgage for ${formatEuro(deed.mortgage[state]!)}`}>
                                                                     <IconButton
                                                                         size="small"
                                                                         aria-label={`Mortgage ${deed.name}`}

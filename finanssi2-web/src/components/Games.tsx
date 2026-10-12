@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react"
 import { useNavigate } from "react-router"
 import {
     Alert,
@@ -22,15 +22,19 @@ import {
 } from "@mui/material"
 import AddIcon from "@mui/icons-material/Add"
 
-import { useCurrentUser, usePublicProfiles } from "./CurrentUserContext.tsx"
+import { useCurrentUser } from "./CurrentUserContext.tsx"
+import { usePublicProfiles } from "./PublicProfiles.tsx"
 import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
 import { errorToast } from "./toasts.ts"
 import { avatarSrc, type Game, gameApi, GameApiError } from "./gameApi.ts"
 
 const Games = () => {
-    const { user, profile, debugMode, refreshCapabilities, clearDebugAccess } = useCurrentUser()
+    const { user, profile, debugMode, refreshProfile, clearDebugAccess } = useCurrentUser()
     const userRef = useRef(user)
-    userRef.current = user
+    // For async callbacks that must ignore results once the user has changed
+    useEffect(() => {
+        userRef.current = user
+    }, [user])
     const requestRef = useRef(0)
     const busyRef = useRef(false)
     const connected = useStompConnected()
@@ -66,23 +70,15 @@ const Games = () => {
             })
     }, [user])
 
-    useEffect(() => {
+    // Load on mount, and again on every (re)connect: list changes sent while the websocket was down never arrive over it. The app remounts
+    // this per account, so no state needs resetting when the user changes.
+    const load = useEffectEvent(() => {
         void refresh()
-    }, [refresh])
-
+        if (connected) void refreshProfile()
+    })
     useEffect(() => {
-        if (connected) {
-            void refresh()
-            void refreshCapabilities()
-        }
-    }, [connected, refresh, refreshCapabilities])
-
-    useEffect(() => {
-        setGames([])
-        setLoading(true)
-        setSettingsGame(null)
-        setDebugCreateOpen(false)
-    }, [user])
+        load()
+    }, [connected, user])
 
     useStompSubscription("/topic/games", () => void refresh())
 

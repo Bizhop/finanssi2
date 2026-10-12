@@ -5,6 +5,7 @@ import HomeRounded from "@mui/icons-material/HomeRounded"
 import FactoryRounded from "@mui/icons-material/FactoryRounded"
 
 import type { GameBoardData } from "./gameApi.ts"
+import { formatNumber } from "./format.ts"
 
 type TitleDeed = GameBoardData["titleDeeds"][number]
 type Share = GameBoardData["shares"][number]
@@ -21,7 +22,7 @@ const GROUP_COLORS: Record<string, { band: string; text: string }> = {
 }
 
 /** Money as printed on the cards: "10 000" */
-const amount = (value: number | null | undefined) => value == null ? "–" : value.toLocaleString("fi-FI")
+const amount = (value: number | null | undefined) => value == null ? "–" : formatNumber(value, "fi-FI")
 
 const paper = {
     position: "relative",

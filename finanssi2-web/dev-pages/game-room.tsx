@@ -1,5 +1,5 @@
 // Mocked running game for checking the board, assets, active card, commands and responsive layout without a backend.
-import { useEffect, useMemo, useState } from "react"
+import { StrictMode, useEffect, useMemo, useState } from "react"
 import ReactDOM from "react-dom/client"
 import { MemoryRouter, Route, Routes } from "react-router"
 import { ToastContainer } from "react-toastify"
@@ -372,36 +372,38 @@ globalThis.fetch = (input, init) => {
 }
 
 ReactDOM.createRoot(document.getElementById("app")!).render(
-    <MemoryRouter initialEntries={["/games/preview-game"]}>
-        {appLayout
-            ? (
-                <Container
-                    maxWidth={false}
-                    component={Paper}
-                    sx={{
-                        height: "100%",
-                        display: "flex",
-                        flexDirection: "column",
-                        pb: 2,
-                        "@media (min-width: 2200px) and (min-height: 1100px)": { maxWidth: GAME_ROOM_MAX_WIDTH },
-                        "@media (min-width: 1536px) and (max-width: 2199.95px)": { maxWidth: GAME_BOARD_MAX_WIDTH },
-                        "@media (min-width: 2200px) and (max-height: 1099.95px)": { maxWidth: GAME_BOARD_MAX_WIDTH },
-                    }}
-                >
-                    <Stack direction="column" sx={{ flex: 1, minHeight: 0 }}>
-                        <PreviewHeader />
-                        <Divider />
-                        <Routes>
-                            <Route path="/games/:id" element={<PreviewRoom />} />
-                        </Routes>
-                    </Stack>
-                </Container>
-            )
-            : (
-                <Routes>
-                    <Route path="/games/:id" element={<PreviewRoom />} />
-                </Routes>
-            )}
-        <ToastContainer autoClose={1500} position="top-center" />
-    </MemoryRouter>,
+    <StrictMode>
+        <MemoryRouter initialEntries={["/games/preview-game"]}>
+            {appLayout
+                ? (
+                    <Container
+                        maxWidth={false}
+                        component={Paper}
+                        sx={{
+                            height: "100%",
+                            display: "flex",
+                            flexDirection: "column",
+                            pb: 2,
+                            "@media (min-width: 2200px) and (min-height: 1100px)": { maxWidth: GAME_ROOM_MAX_WIDTH },
+                            "@media (min-width: 1536px) and (max-width: 2199.95px)": { maxWidth: GAME_BOARD_MAX_WIDTH },
+                            "@media (min-width: 2200px) and (max-height: 1099.95px)": { maxWidth: GAME_BOARD_MAX_WIDTH },
+                        }}
+                    >
+                        <Stack direction="column" sx={{ flex: 1, minHeight: 0 }}>
+                            <PreviewHeader />
+                            <Divider />
+                            <Routes>
+                                <Route path="/games/:id" element={<PreviewRoom />} />
+                            </Routes>
+                        </Stack>
+                    </Container>
+                )
+                : (
+                    <Routes>
+                        <Route path="/games/:id" element={<PreviewRoom />} />
+                    </Routes>
+                )}
+            <ToastContainer autoClose={1500} position="top-center" />
+        </MemoryRouter>
+    </StrictMode>,
 )

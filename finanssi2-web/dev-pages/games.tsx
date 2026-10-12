@@ -1,3 +1,4 @@
+import { StrictMode } from "react"
 // Game list with a stateful fake backend: one game for each status and role, so every list control can be tried without a backend.
 // Create, join, leave, settings, start, end game and delete change the fake games; ?debug adds debug games and their controls.
 import ReactDOM from "react-dom/client"
@@ -159,15 +160,17 @@ const OpenedGame = () => {
 }
 
 ReactDOM.createRoot(document.getElementById("app")!).render(
-    <MemoryRouter initialEntries={["/games"]}>
-        <FakeCurrentUser person={tester} debugMode={debug}>
-            <StompContext.Provider value={previewConnection}>
-                <Routes>
-                    <Route path="/games" element={<Games />} />
-                    <Route path="/games/:id" element={<OpenedGame />} />
-                </Routes>
-                <ToastContainer autoClose={1500} position="top-center" />
-            </StompContext.Provider>
-        </FakeCurrentUser>
-    </MemoryRouter>,
+    <StrictMode>
+        <MemoryRouter initialEntries={["/games"]}>
+            <FakeCurrentUser person={tester} debugMode={debug}>
+                <StompContext.Provider value={previewConnection}>
+                    <Routes>
+                        <Route path="/games" element={<Games />} />
+                        <Route path="/games/:id" element={<OpenedGame />} />
+                    </Routes>
+                    <ToastContainer autoClose={1500} position="top-center" />
+                </StompContext.Provider>
+            </FakeCurrentUser>
+        </MemoryRouter>
+    </StrictMode>,
 )

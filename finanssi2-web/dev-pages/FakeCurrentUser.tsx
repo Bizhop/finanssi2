@@ -4,6 +4,7 @@ import type { ReactNode } from "react"
 import type { User } from "firebase/auth"
 
 import { CurrentUserContext, type UserState } from "../src/components/CurrentUserContext.tsx"
+import { PublicProfilesProvider } from "../src/components/PublicProfiles.tsx"
 import { type Person, profileOf } from "./people.ts"
 
 export const FakeCurrentUser = ({ person, debugMode = false, children }: { person: Person; debugMode?: boolean; children: ReactNode }) => {
@@ -23,10 +24,12 @@ export const FakeCurrentUser = ({ person, debugMode = false, children }: { perso
         status: "ready",
         error: null,
         debugMode,
-        capabilitiesReady: true,
         refreshProfile: () => Promise.resolve(),
-        refreshCapabilities: () => Promise.resolve(),
         clearDebugAccess: () => {},
     }
-    return <CurrentUserContext value={value}>{children}</CurrentUserContext>
+    return (
+        <CurrentUserContext value={value}>
+            <PublicProfilesProvider>{children}</PublicProfilesProvider>
+        </CurrentUserContext>
+    )
 }

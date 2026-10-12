@@ -1,10 +1,11 @@
-import type { ReactNode } from "react"
+import { type ReactNode, StrictMode } from "react"
 import ReactDOM from "react-dom/client"
 import { BrowserRouter } from "react-router"
 
 import App from "./components/App.tsx"
 import { CurrentUserProvider, useCurrentUser } from "./components/CurrentUserContext.tsx"
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx"
+import { PublicProfilesProvider } from "./components/PublicProfiles.tsx"
 import { StompProvider } from "./components/StompContext.tsx"
 import { ToastContainer } from "react-toastify"
 import { z } from "zod/mini"
@@ -34,14 +35,18 @@ const StompConnection = ({ children }: { children: ReactNode }) => {
 const container = document.getElementById("app")!
 const root = ReactDOM.createRoot(container)
 root.render(
-    <BrowserRouter>
-        <CurrentUserProvider>
-            <StompConnection>
-                <ErrorBoundary>
-                    <App />
-                </ErrorBoundary>
-                <ToastContainer autoClose={1500} position="top-center" />
-            </StompConnection>
-        </CurrentUserProvider>
-    </BrowserRouter>,
+    <StrictMode>
+        <BrowserRouter>
+            <CurrentUserProvider>
+                <StompConnection>
+                    <PublicProfilesProvider>
+                        <ErrorBoundary>
+                            <App />
+                        </ErrorBoundary>
+                    </PublicProfilesProvider>
+                    <ToastContainer autoClose={1500} position="top-center" />
+                </StompConnection>
+            </CurrentUserProvider>
+        </BrowserRouter>
+    </StrictMode>,
 )

@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react"
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { onIdTokenChanged, reload, type User } from "firebase/auth"
 import { auth } from "./firebase.ts"
 import { gameApi } from "./gameApi.ts"
@@ -13,7 +13,6 @@ export type UserProfile = {
     capabilities: { debugMode: boolean }
 }
 export type AuthStatus = "initializing" | "signedOut" | "verificationRequired" | "profileLoading" | "ready" | "recoverableError"
-export type PublicProfile = { id: string; displayName: string; avatar: string | null }
 
 export const CurrentUserContext = createContext<UserState | null>(null)
 type CurrentUserProviderProps = { children: ReactNode }
@@ -23,9 +22,7 @@ export type UserState = {
     status: AuthStatus
     error: string | null
     debugMode: boolean
-    capabilitiesReady: boolean
     refreshProfile: () => Promise<void>
-    refreshCapabilities: () => Promise<void>
     clearDebugAccess: () => void
 }
 
@@ -37,8 +34,12 @@ export const CurrentUserProvider = ({ children }: CurrentUserProviderProps) => {
     const userRef = useRef<User | null>(null)
     const profileRef = useRef<UserProfile | null>(null)
     const requestRef = useRef(0)
-    userRef.current = user
-    profileRef.current = profile
+
+    // The latest values for the async handlers below, which compare against them after each await
+    useEffect(() => {
+        userRef.current = user
+        profileRef.current = profile
+    }, [user, profile])
 
     const refreshProfile = useCallback(async () => {
         const current = userRef.current
@@ -94,60 +95,17 @@ export const CurrentUserProvider = ({ children }: CurrentUserProviderProps) => {
             }
         }), [])
 
-    const refreshCapabilities = refreshProfile
     const clearDebugAccess = useCallback(() => setProfile((current) => current ? { ...current, capabilities: { debugMode: false } } : null), [])
-    return (
-        <CurrentUserContext.Provider
-            value={{
-                user,
-                profile,
-                status,
-                error,
-                debugMode: Boolean(profile?.capabilities.debugMode),
-                capabilitiesReady: status === "ready",
-                refreshProfile,
-                refreshCapabilities,
-                clearDebugAccess,
-            }}
-        >
-            {children}
-        </CurrentUserContext.Provider>
+    const debugMode = Boolean(profile?.capabilities.debugMode)
+    const value = useMemo(
+        () => ({ user, profile, status, error, debugMode, refreshProfile, clearDebugAccess }),
+        [user, profile, status, error, debugMode, refreshProfile, clearDebugAccess],
     )
+    return <CurrentUserContext value={value}>{children}</CurrentUserContext>
 }
 
 export const useCurrentUser = () => {
     const context = useContext(CurrentUserContext)
     if (!context) throw new Error("useCurrentUser must be used within a CurrentUserProvider")
     return context
-}
-
-export const usePublicProfiles = (ids: string[]) => {
-    const { user } = useCurrentUser()
-    const [profiles, setProfiles] = useState<Record<string, PublicProfile>>({})
-    const key = [...new Set(ids.filter((id) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)))].sort().join(",")
-    useEffect(() => {
-        if (!user || !key) {
-            setProfiles({})
-            return
-        }
-        let active = true
-        const chunks: string[][] = []
-        const profileIds = key.split(",")
-        for (let index = 0; index < profileIds.length; index += 100) chunks.push(profileIds.slice(index, index + 100))
-        const load = () =>
-            Promise.all(chunks.map((chunk) => {
-                const params = new URLSearchParams()
-                chunk.forEach((id) => params.append("ids", id))
-                return gameApi<PublicProfile[]>(user, `/api/users?${params}`)
-            })).then((groups) => {
-                if (active) setProfiles(Object.fromEntries(groups.flat().map((item) => [item.id, item])))
-            }).catch(() => undefined)
-        void load()
-        const timer = setInterval(() => void load(), 15_000)
-        return () => {
-            active = false
-            clearInterval(timer)
-        }
-    }, [user, key])
-    return profiles
 }

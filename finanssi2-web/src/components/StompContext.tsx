@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react"
+import { createContext, type ReactNode, useContext, useEffect, useEffectEvent, useMemo, useState } from "react"
 import { Client } from "@stomp/stompjs"
 
 /** The current STOMP connection; a new value (and new subscriptions) for every connect */
@@ -24,9 +24,8 @@ type StompProviderProps = {
 
 export const StompProvider = ({ url, enabled, getAccessToken, children }: StompProviderProps) => {
     const [connectedClient, setConnectedClient] = useState<Client | null>(null)
-    // Read through a ref so that a new function on every render doesn't reconnect
-    const getAccessTokenRef = useRef(getAccessToken)
-    getAccessTokenRef.current = getAccessToken
+    // An effect event, so that a new function on every render doesn't reconnect
+    const fetchAccessToken = useEffectEvent(() => getAccessToken())
 
     useEffect(() => {
         if (!enabled) return
@@ -36,7 +35,7 @@ export const StompProvider = ({ url, enabled, getAccessToken, children }: StompP
             reconnectDelay: 5000,
             // A fresh token for every attempt: Firebase ID tokens expire after an hour
             beforeConnect: async (client) => {
-                client.connectHeaders = { Authorization: `Bearer ${await getAccessTokenRef.current()}` }
+                client.connectHeaders = { Authorization: `Bearer ${await fetchAccessToken()}` }
             },
             onConnect: () => setConnectedClient(client),
             // Only if still current: a replaced client's close can arrive after the new one connected
@@ -64,7 +63,7 @@ export const StompProvider = ({ url, enabled, getAccessToken, children }: StompP
             }
             : disconnected, [connectedClient])
 
-    return <StompContext.Provider value={connection}>{children}</StompContext.Provider>
+    return <StompContext value={connection}>{children}</StompContext>
 }
 
 const useStompConnection = () => {
@@ -78,11 +77,11 @@ export const useStompConnected = () => useStompConnection().connected
 /** Calls onMessage for every message to the destination; subscribes again after each reconnect */
 export const useStompSubscription = (destination: string, onMessage: (body: string) => void) => {
     const connection = useStompConnection()
-    const onMessageRef = useRef(onMessage)
-    onMessageRef.current = onMessage
+    // Always the latest handler, without resubscribing when its identity changes
+    const receive = useEffectEvent((body: string) => onMessage(body))
 
     useEffect(() => {
         if (!connection.connected) return
-        return connection.subscribe(destination, (body) => onMessageRef.current(body))
+        return connection.subscribe(destination, receive)
     }, [connection, destination])
 }

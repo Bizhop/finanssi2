@@ -4,6 +4,7 @@ import type { ReactNode } from "react"
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material"
 
 import type { Game, GameBoardData } from "./gameApi.ts"
+import { formatEuro } from "./format.ts"
 
 export type Command = Record<string, unknown>
 export type ConfirmRequest = {
@@ -38,7 +39,6 @@ export const CAR_PRICE = 50_000
 export const CAR_SELL_BACK_PRICE = 25_000
 export const LOAN_AMOUNT = 50_000
 
-const euros = (value: number) => `€${value.toLocaleString()}`
 const byState = (values: { unbuilt: number | null; built: number | null } | null, property: Property) => values?.[property.built ? "built" : "unbuilt"] ?? null
 
 export const buildAction = (allowed: string[], property: Property, deed: TitleDeed): AssetAction | null =>
@@ -47,7 +47,7 @@ export const buildAction = (allowed: string[], property: Property, deed: TitleDe
             label: "Build",
             request: {
                 title: `Build on ${deed.name}?`,
-                body: `${deed.building.label === "Teollisuus" ? "An industrial plant" : "A building"} costs ${euros(deed.building.price)}.`,
+                body: `${deed.building.label === "Teollisuus" ? "An industrial plant" : "A building"} costs ${formatEuro(deed.building.price)}.`,
                 confirmLabel: "Build",
                 command: { type: "Build", squares: [deed.square] },
             },
@@ -64,7 +64,9 @@ export const propertyActions = (allowed: string[], property: Property, deed: Tit
             label: "Mortgage",
             request: {
                 title: `Mortgage ${deed.name}?`,
-                body: `The bank lends you ${euros(mortgage)}. Redeeming it later costs ${redemption != null ? euros(redemption) : "the redemption value"}.`,
+                body: `The bank lends you ${formatEuro(mortgage)}. Redeeming it later costs ${
+                    redemption != null ? formatEuro(redemption) : "the redemption value"
+                }.`,
                 confirmLabel: "Mortgage",
                 command: { type: "Mortgage", square: deed.square },
             },
@@ -73,7 +75,7 @@ export const propertyActions = (allowed: string[], property: Property, deed: Tit
             label: "Redeem",
             request: {
                 title: `Redeem ${deed.name}?`,
-                body: redemption != null ? `Redeeming costs ${euros(redemption)}.` : undefined,
+                body: redemption != null ? `Redeeming costs ${formatEuro(redemption)}.` : undefined,
                 confirmLabel: "Redeem",
                 command: { type: "Redeem", square: deed.square },
             },
@@ -82,7 +84,7 @@ export const propertyActions = (allowed: string[], property: Property, deed: Tit
             label: "Sell",
             request: {
                 title: `Sell ${deed.name} back to the bank?`,
-                body: `The bank pays ${euros(buyBack)}${property.built ? ", including the building" : ""}.`,
+                body: `The bank pays ${formatEuro(buyBack)}${property.built ? ", including the building" : ""}.`,
                 confirmLabel: "Sell",
                 command: { type: "SellBackProperty", square: deed.square },
                 danger: true,
@@ -98,7 +100,7 @@ export const shareActions = (allowed: string[], share: Share, name: string): Ass
             label: "Sell",
             request: {
                 title: `Sell the ${name} share back to the bank?`,
-                body: `The bank pays ${euros(share.buyBack)}.`,
+                body: `The bank pays ${formatEuro(share.buyBack)}.`,
                 confirmLabel: "Sell",
                 command: { type: "SellBackShare", share: share.id },
                 danger: true,
@@ -120,7 +122,7 @@ export const carAction = (allowed: string[], hasCar: boolean): AssetAction | nul
             label: "Buy car",
             request: {
                 title: "Buy a car?",
-                body: `A car costs ${euros(CAR_PRICE)}. With a car you roll two dice on your turn (one inside the bank).`,
+                body: `A car costs ${formatEuro(CAR_PRICE)}. With a car you roll two dice on your turn (one inside the bank).`,
                 confirmLabel: "Buy car",
                 command: { type: "BuyCar" },
             },
@@ -130,7 +132,7 @@ export const carAction = (allowed: string[], hasCar: boolean): AssetAction | nul
             label: "Sell car",
             request: {
                 title: "Sell your car back to the bank?",
-                body: `The bank pays ${euros(CAR_SELL_BACK_PRICE)}.`,
+                body: `The bank pays ${formatEuro(CAR_SELL_BACK_PRICE)}.`,
                 confirmLabel: "Sell car",
                 command: { type: "SellCar" },
                 danger: true,
@@ -141,19 +143,19 @@ export const carAction = (allowed: string[], hasCar: boolean): AssetAction | nul
 export const loanActions = (allowed: string[]): AssetAction[] => {
     const actions: (AssetAction | false)[] = [
         allowed.includes("TakeLoan") && {
-            label: `Take a loan (+${euros(LOAN_AMOUNT)})`,
+            label: `Take a loan (+${formatEuro(LOAN_AMOUNT)})`,
             request: {
                 title: "Take a bank loan?",
-                body: `The bank lends you ${euros(LOAN_AMOUNT)}. Interest is charged on square 1 and when you repay a loan on square 43.`,
+                body: `The bank lends you ${formatEuro(LOAN_AMOUNT)}. Interest is charged on square 1 and when you repay a loan on square 43.`,
                 confirmLabel: "Take loan",
                 command: { type: "TakeLoan" },
             },
         },
         allowed.includes("RepayLoan") && {
-            label: `Repay a loan (−${euros(LOAN_AMOUNT)})`,
+            label: `Repay a loan (−${formatEuro(LOAN_AMOUNT)})`,
             request: {
                 title: "Repay a bank loan?",
-                body: `You pay the bank ${euros(LOAN_AMOUNT)}.`,
+                body: `You pay the bank ${formatEuro(LOAN_AMOUNT)}.`,
                 confirmLabel: "Repay loan",
                 command: { type: "RepayLoan" },
             },

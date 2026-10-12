@@ -1,4 +1,5 @@
 import type { GameBoardData } from "./gameApi.ts"
+import { formatEuro } from "./format.ts"
 
 export type GameLogEntry = { id: string; seq: number; time: number; type: string; event: Record<string, unknown> }
 
@@ -8,7 +9,7 @@ export type EventContext = {
     board: GameBoardData | null
 }
 
-const money = (value: unknown) => `€${Number(value ?? 0).toLocaleString()}`
+const money = (value: unknown) => formatEuro(Number(value ?? 0))
 const diceText = (dice: unknown) => {
     const values = Array.isArray(dice) ? dice.map(Number) : []
     return values.length > 1 ? `${values.join(" + ")} = ${values.reduce((sum, value) => sum + value, 0)}` : values.join("")

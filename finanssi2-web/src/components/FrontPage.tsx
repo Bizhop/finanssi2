@@ -73,7 +73,6 @@ const FrontPage = () => {
                 const result = await createUserWithEmailAndPassword(auth, email.trim(), password)
                 await updateProfile(result.user, { displayName: displayName.trim() })
                 await sendEmailVerification(result.user)
-                localStorage.setItem(`pending-profile-name:${result.user.uid}`, displayName.trim())
                 setNotice(success("Check your email for a verification link. Return here after verifying."))
                 return
             }

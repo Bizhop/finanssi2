@@ -9,7 +9,8 @@ import SendIcon from "@mui/icons-material/Send"
 import { InputField } from "./FormInput.tsx"
 import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
 import { avatarSrc, gameApi, GameApiError } from "./gameApi.ts"
-import { type PublicProfile, usePublicProfiles } from "./CurrentUserContext.tsx"
+import { type PublicProfile, usePublicProfiles } from "./PublicProfiles.tsx"
+import { formatDateTime } from "./format.ts"
 
 const ChatMessageSchema = z.object({
     id: z.string(),
@@ -57,7 +58,9 @@ const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true,
     const loadingOlderMessages = useRef(false)
     // For async callbacks that need the messages at the time they complete
     const messagesRef = useRef(messages)
-    messagesRef.current = messages
+    useEffect(() => {
+        messagesRef.current = messages
+    }, [messages])
     const { control, handleSubmit, formState: { errors, isDirty, isSubmitting, isValid }, reset } = useForm<TNewChatMessage>({
         resolver: zodResolver(NewChatMessageSchema),
         mode: "all",
@@ -129,15 +132,6 @@ const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true,
     }
 
     useStompSubscription(topic, receiveMessage)
-
-    useEffect(() => {
-        setMessages([])
-        setHasOlderMessages(true)
-        loadingOlderMessages.current = false
-        setLoadingOlder(false)
-        setError(null)
-        reset()
-    }, [path, user.uid, reset])
 
     // Messages sent while the websocket was down (or before it first connected) never arrive over it, so fetch the newest page after every connect
     const refreshNewestMessages = () =>
@@ -282,7 +276,7 @@ const ChatLine = ({ message, compact, profile }: ChatLineProps) => {
                 </ListItemAvatar>
                 <ListItemText
                     primary={
-                        <Tooltip title={formatDate(message.timestamp)} placement="top-start">
+                        <Tooltip title={formatDateTime(message.timestamp)} placement="top-start">
                             <span>
                                 <Box component="span" sx={{ fontWeight: "fontWeightMedium", color: "primary.main" }}>
                                     {senderFirstName(profile?.displayName)}:
@@ -302,10 +296,5 @@ const ChatLine = ({ message, compact, profile }: ChatLineProps) => {
 
 // First word of the display name, or the email's local part when there's no name
 const senderFirstName = (displayName?: string) => displayName?.trim().split(/\s+/)[0] || "Player"
-
-const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp)
-    return date.toLocaleString()
-}
 
 export default Chat
