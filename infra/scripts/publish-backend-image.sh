@@ -1,16 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-fail() {
-    printf 'error: %s\n' "$*" >&2
-    exit 1
-}
-
-for command in aws docker git pulumi; do
-    command -v "$command" >/dev/null 2>&1 || fail "required command not found: $command"
-done
-
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=lib.sh
+source "$script_dir/lib.sh"
+
+require_commands aws docker git jq pulumi
+
+infra_dir="$script_dir/.."
 repo_root=$(cd -- "$script_dir/../.." && pwd)
 backend_dir="$repo_root/finanssi2-backend"
 stack=${PULUMI_STACK:-prod}
@@ -21,17 +18,16 @@ case "$deploy_backend" in
     *) fail "DEPLOY_BACKEND must be true or false" ;;
 esac
 
-if [[ -n "$(git -C "$repo_root" status --porcelain -- finanssi2-backend)" ]]; then
+backend_changes=$(git -C "$repo_root" status --porcelain -- finanssi2-backend)
+if [[ -n "$backend_changes" ]]; then
     fail "commit or stash backend changes before publishing an image"
 fi
 
-repository_url=$(cd "$script_dir/.." && pulumi stack output backendRepositoryUrl --stack "$stack")
-region=$(cd "$script_dir/.." && pulumi config get aws:region --stack "$stack")
-architecture=$(cd "$script_dir/.." && pulumi stack output selectedArchitecture --stack "$stack")
-
-[[ "$repository_url" =~ ^[0-9]{12}\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com/[a-z0-9._/-]+$ ]] \
-    || fail "unexpected ECR repository URL from stack output"
-[[ "$region" =~ ^[a-z0-9-]+$ ]] || fail "unexpected AWS region from stack config"
+load_stack_outputs "$infra_dir" "$stack"
+repository_url=$(stack_output backendRepositoryUrl)
+architecture=$(stack_output selectedArchitecture)
+region=$(stack_region "$infra_dir" "$stack")
+validate_repository_url "$repository_url"
 
 case "$architecture" in
     x86_64) platform=linux/amd64 ;;
@@ -67,4 +63,5 @@ image_ref="$repository_url@$digest"
 case "$deploy_backend" in
     true) "$script_dir/deploy-backend-image.sh" "$image_ref" >&2 ;;
     false) ;;
+    *) fail "DEPLOY_BACKEND must be true or false" ;;
 esac

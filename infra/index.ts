@@ -159,4 +159,5 @@ export const frontendCertificateArn = frontend.certificate.arn
 export const frontendCertificateDnsRecords = frontend.certificate.domainValidationOptions.apply((options) =>
     options.map((option) => ({ name: option.resourceRecordName, type: option.resourceRecordType, value: option.resourceRecordValue }))
 )
+export const frontendDistributionId = frontend.distribution?.id ?? null
 export const frontendDistributionHostname = frontend.distribution?.domainName ?? null
