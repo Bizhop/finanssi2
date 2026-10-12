@@ -1,3 +1,4 @@
+import { assertEquals, assertInstanceOf } from "@std/assert"
 import type { User } from "firebase/auth"
 import { gameApi, GameApiError } from "./gameApi.ts"
 
@@ -13,9 +14,7 @@ Deno.test("successful empty REST responses cover deletion and ordinary leave", a
                 if (init?.method !== "DELETE") throw new Error("Missing delete method")
                 return Promise.resolve(new Response(null, { status }))
             }
-            if (await gameApi<void>(user, "/api/debug/games/game", { method: "DELETE" }) !== undefined) {
-                throw new Error("Empty success must return undefined")
-            }
+            assertEquals(await gameApi<void>(user, "/api/debug/games/game", { method: "DELETE" }), undefined)
         }
     } finally {
         globalThis.fetch = originalFetch
@@ -40,9 +39,8 @@ Deno.test("REST failures preserve conflict and forbidden status without replayin
             } catch (reason) {
                 failure = reason
             }
-            if (!(failure instanceof GameApiError) || failure.status !== status || failure.message !== "Reload required" || calls !== 1) {
-                throw new Error("Expected one request and a status-bearing error")
-            }
+            assertInstanceOf(failure, GameApiError)
+            assertEquals([failure.status, failure.message, calls], [status, "Reload required", 1])
         }
     } finally {
         globalThis.fetch = originalFetch

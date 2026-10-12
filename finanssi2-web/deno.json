@@ -10,7 +10,7 @@
         "lint": "deno lint",
         // Opens every test page in headless Chromium; needs a Chromium (see dev-pages/smoke.ts)
         "smoke": "deno run -A dev-pages/smoke.ts",
-        "test": "deno test src/components/gameApi.test.ts src/components/gameEvents.test.ts src/components/gameDecisions.test.ts"
+        "test": "deno test src/"
     },
     "imports": {
         "@deno/vite-plugin": "npm:@deno/vite-plugin@^2.0.4",
@@ -19,6 +19,7 @@
         "@hookform/resolvers": "npm:@hookform/resolvers@^5.9.1",
         "@mui/icons-material": "npm:@mui/icons-material@^9.5.0",
         "@mui/material": "npm:@mui/material@^9.5.0",
+        "@std/assert": "jsr:@std/assert@^1.0.19",
         "@stomp/stompjs": "npm:@stomp/stompjs@^7.3.0",
         "@types/node": "npm:@types/node@^26.6.5",
         "@types/react": "npm:@types/react@^19.3.0",
@@ -41,6 +42,12 @@
         "jsxImportSource": "react"
     },
     "nodeModulesDir": "auto",
+    "lint": {
+        "rules": {
+            "tags": ["recommended", "react", "jsx"],
+            "include": ["react-rules-of-hooks"]
+        }
+    },
     "fmt": {
         "semiColons": false,
         "indentWidth": 4,

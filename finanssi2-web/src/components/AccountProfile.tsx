@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react"
+import { type SubmitEvent, useState } from "react"
 import { Alert, Avatar, Button, Stack, TextField, Typography } from "@mui/material"
 import { EmailAuthProvider, GoogleAuthProvider, linkWithCredential, reauthenticateWithPopup, reload, validatePassword } from "firebase/auth"
 import { toast } from "react-toastify"
@@ -17,7 +17,7 @@ const AccountProfile = () => {
     const [passwordMessage, setPasswordMessage] = useState<string | null>(null)
     const [passwordError, setPasswordError] = useState<string | null>(null)
     const [avatarError, setAvatarError] = useState<string | null>(null)
-    const submit = async (event: FormEvent) => {
+    const submit = async (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault()
         if (!user || !profile) return
         setBusy(true)
@@ -33,7 +33,7 @@ const AccountProfile = () => {
             setBusy(false)
         }
     }
-    const addPassword = async (event: FormEvent) => {
+    const addPassword = async (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault()
         if (!user || !profile) return
         setBusy(true)

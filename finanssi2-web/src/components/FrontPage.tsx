@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react"
+import { type SubmitEvent, useState } from "react"
 import { Alert, Button, Stack, TextField, Typography } from "@mui/material"
 import {
     createUserWithEmailAndPassword,
@@ -57,7 +57,7 @@ const FrontPage = () => {
             setBusy(false)
         }
     }
-    const submit = (event: FormEvent) => {
+    const submit = (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault()
         void run(async () => {
             if (mode === "reset") {
