@@ -571,7 +571,7 @@ public class GameEngine {
             events.addAll(bankDividend(state, player, square, dice));
         }
         if (bonds.available(state)) {
-            state.getPendingDecisions().add(new PendingDecision.BondOffer(player.getPlayerId(), BondContinuation.NONE));
+            state.enqueueDecision(new PendingDecision.BondOffer(player.getPlayerId(), BondContinuation.NONE));
         }
         return List.copyOf(events);
     }
@@ -750,7 +750,7 @@ public class GameEngine {
     }
 
     List<GameEvent> pay(GameState state) {
-        var decision = (RaiseFunds) state.getPendingDecisions().removeFirst();
+        var decision = (RaiseFunds) state.popDecision();
         return payments.settle(state, decision);
     }
 }

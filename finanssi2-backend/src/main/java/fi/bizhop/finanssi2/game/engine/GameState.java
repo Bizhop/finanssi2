@@ -38,6 +38,37 @@ public class GameState {
     @Nullable String winner;
     List<PlayerStanding> finalStandings = new ArrayList<>();
 
+    public void addPlayer(PlayerState player) {
+        players.add(player);
+    }
+
+    public void removePlayer(PlayerState player) {
+        players.remove(player);
+    }
+
+    /** Queues a decision behind the pending ones */
+    public void enqueueDecision(PendingDecision decision) {
+        pendingDecisions.add(decision);
+    }
+
+    /** Puts a decision first, e.g. the next bidder of an auction */
+    public void pushDecision(PendingDecision decision) {
+        pendingDecisions.addFirst(decision);
+    }
+
+    /** Takes the first pending decision, the one being resolved */
+    public PendingDecision popDecision() {
+        return pendingDecisions.removeFirst();
+    }
+
+    public void dropDecisionsOf(String playerId) {
+        pendingDecisions.removeIf(pending -> pending.player().equals(playerId));
+    }
+
+    public void replaceDecision(int index, PendingDecision decision) {
+        pendingDecisions.set(index, decision);
+    }
+
     /** The player who may act now: the one addressed by the first pending decision, otherwise the one whose turn it is */
     public String actor() {
         return pendingDecisions.isEmpty() ? currentPlayer : pendingDecisions.getFirst().player();

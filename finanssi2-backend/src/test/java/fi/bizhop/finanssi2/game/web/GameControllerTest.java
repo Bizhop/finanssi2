@@ -1,10 +1,7 @@
 package fi.bizhop.finanssi2.game.web;
 
-import fi.bizhop.finanssi2.db.ChatRepository;
 import fi.bizhop.finanssi2.game.db.Game;
 import fi.bizhop.finanssi2.game.db.GameLogEntry;
-import fi.bizhop.finanssi2.game.db.GameLogRepository;
-import fi.bizhop.finanssi2.game.db.GameRepository;
 import fi.bizhop.finanssi2.game.db.GameStatus;
 import fi.bizhop.finanssi2.game.engine.GameEvent;
 import fi.bizhop.finanssi2.game.engine.GameSetup;
@@ -12,15 +9,8 @@ import fi.bizhop.finanssi2.game.engine.LoanLimit;
 import fi.bizhop.finanssi2.game.engine.PendingDecision;
 import fi.bizhop.finanssi2.game.engine.PlayerState;
 import fi.bizhop.finanssi2.game.engine.ScriptedDice;
-import fi.bizhop.finanssi2.game.data.GameData;
-import fi.bizhop.finanssi2.game.service.DiceSource;
-import fi.bizhop.finanssi2.service.MessagingService;
+import fi.bizhop.finanssi2.ApiTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.resttestclient.TestRestTemplate;
-import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -28,8 +18,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import tools.jackson.databind.JsonNode;
 
 import java.util.List;
@@ -43,28 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureTestRestTemplate
-@ActiveProfiles("test")
-class GameControllerTest {
+class GameControllerTest extends ApiTest {
     static final String GAME_ID = "66f9a1b2c3d4e5f607182931";
-
-    @LocalServerPort
-    int port;
-    @Autowired
-    TestRestTemplate restTemplate;
-    @MockitoBean
-    MessagingService messagingService;
-    @MockitoBean
-    ChatRepository chatRepository;
-    @MockitoBean
-    GameRepository gameRepository;
-    @MockitoBean
-    GameLogRepository gameLogRepository;
-    @MockitoBean
-    DiceSource diceSource;
-    @Autowired
-    GameData gameData;
 
     String url(String path) {
         return String.format("http://localhost:%d/api/games%s", port, path);
@@ -199,8 +167,7 @@ class GameControllerTest {
     @Test
     void testInvalidEventsParameter() {
         for (var query : List.of("?after=-1", "?after=abc")) {
-            assertEquals(HttpStatus.BAD_REQUEST, restTemplate.getForEntity(url("/" + GAME_ID + "/events" + query), String.class)
-                    .getStatusCode(), query);
+            assertEquals(HttpStatus.BAD_REQUEST, get("/" + GAME_ID + "/events" + query, "a").getStatusCode(), query);
         }
     }
 

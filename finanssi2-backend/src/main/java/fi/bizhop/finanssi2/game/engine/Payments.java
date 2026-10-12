@@ -46,7 +46,7 @@ public class Payments {
         if (!paymentPending && player.getCash() >= decision.amount()) {
             return settle(state, decision);
         }
-        state.getPendingDecisions().add(decision);
+        state.enqueueDecision(decision);
         return List.of(new PaymentDue(player.getPlayerId(), creditor, decision.amount()));
     }
 

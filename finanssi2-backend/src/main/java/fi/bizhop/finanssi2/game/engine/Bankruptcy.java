@@ -38,7 +38,7 @@ class Bankruptcy {
      * the turn passes on.
      */
     List<GameEvent> declareBankruptcy(GameState state, PlayerState player, Dice dice) {
-        var decision = (RaiseFunds) state.getPendingDecisions().removeFirst();
+        var decision = (RaiseFunds) state.popDecision();
         return bankrupt(state, player, decision.creditor(), dice);
     }
 
@@ -51,7 +51,7 @@ class Bankruptcy {
 
     List<GameEvent> bankrupt(GameState state, PlayerState player, @Nullable String creditorUid, Dice dice) {
         var wasCurrent = player.getPlayerId().equals(state.getCurrentPlayer());
-        state.getPendingDecisions().removeIf(pending -> pending.player().equals(player.getPlayerId()));
+        state.dropDecisionsOf(player.getPlayerId());
         var events = new ArrayList<GameEvent>();
 
         // Liquidate everything the bank will buy or lend on, and use every remaining loan before paying the creditor.

@@ -67,7 +67,7 @@ class FinanceNews {
         if (card == FL_07) events.addAll(engine.chargePlayers(state, player, p -> roundUp500(p.getCash(), 2), MoneyReason.FINANCE_NEWS));
         if (card == FL_13) events.addAll(engine.chargePlayers(state, player, p -> roundUp500(
                 Math.min(p.getCash(), 100_000) / 10 + Math.max(0, p.getCash() - 100_000) / 4, 1), MoneyReason.FINANCE_NEWS));
-        if (card == FL_04) state.getPendingDecisions().add(new PendingDecision.NewsDirection(player.getPlayerId(), id));
+        if (card == FL_04) state.enqueueDecision(new PendingDecision.NewsDirection(player.getPlayerId(), id));
         if (card == FL_10) {
             for (var playerId : List.copyOf(state.getTurnOrder())) {
                 var standing = state.player(playerId).orElseThrow();
@@ -87,7 +87,7 @@ class FinanceNews {
     }
 
     List<GameEvent> chooseNewsDirection(GameState state, PlayerState drawer, boolean forward, Dice dice) {
-        var decision = (PendingDecision.NewsDirection) state.getPendingDecisions().removeFirst();
+        var decision = (PendingDecision.NewsDirection) state.popDecision();
         var events = new ArrayList<GameEvent>();
         var from = drawer.getPosition();
         var to = from;

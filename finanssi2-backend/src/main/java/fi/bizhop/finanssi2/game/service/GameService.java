@@ -155,7 +155,7 @@ public class GameService {
             publisher.publishEvent(new Broadcast(LOBBY_TOPIC, new LobbyChange(id, null)));
             return;
         }
-        players.remove(player);
+        game.getState().removePlayer(player);
         if (game.getCreator().equals(user.userId())) {
             game.setCreator(players.getFirst().getPlayerId());
         }
@@ -300,7 +300,7 @@ public class GameService {
         var players = game.getState().getPlayers();
         var taken = players.stream().map(PlayerState::getPiece).toList();
         var piece = IntStream.range(0, MAX_PLAYERS).filter(p -> !taken.contains(p)).findFirst().orElseThrow();
-        players.add(new PlayerState(user.userId(), piece));
+        game.getState().addPlayer(new PlayerState(user.userId(), piece));
         return new GameEvent.PlayerJoined(user.userId(), piece);
     }
 

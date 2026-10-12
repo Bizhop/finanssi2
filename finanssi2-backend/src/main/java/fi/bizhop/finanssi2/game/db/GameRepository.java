@@ -191,9 +191,9 @@ public class GameRepository {
             var decision = state.getPendingDecisions().get(i);
             var bids = bids(decisions.get(i).get("bids"));
             switch (decision) {
-                case PendingDecision.BondAuction auction -> state.getPendingDecisions().set(i,
+                case PendingDecision.BondAuction auction -> state.replaceDecision(i,
                         new PendingDecision.BondAuction(auction.player(), auction.order(), auction.index(), bids));
-                case PendingDecision.AssetAuction auction -> state.getPendingDecisions().set(i,
+                case PendingDecision.AssetAuction auction -> state.replaceDecision(i,
                         new PendingDecision.AssetAuction(auction.seller(), auction.asset(),
                                 auction.minimumBid(), auction.order(), auction.index(), bids));
                 default -> { }

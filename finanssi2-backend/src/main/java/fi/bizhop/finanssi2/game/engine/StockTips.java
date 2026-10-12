@@ -207,11 +207,11 @@ class StockTips {
     }
 
     void queueChoice(GameState state, PlayerState player, String card, List<String> options, List<GameEvent> events) {
-        if (!options.isEmpty()) state.getPendingDecisions().add(new PendingDecision.StockTipChoice(player.getPlayerId(), card, options));
+        if (!options.isEmpty()) state.enqueueDecision(new PendingDecision.StockTipChoice(player.getPlayerId(), card, options));
     }
 
     List<GameEvent> resolveStockTipChoice(GameState state, PlayerState player, String option, Dice dice) {
-        var decision = (PendingDecision.StockTipChoice) state.getPendingDecisions().removeFirst();
+        var decision = (PendingDecision.StockTipChoice) state.popDecision();
         var events = new ArrayList<GameEvent>();
         events.add(new GameEvent.StockTipUsed(player.getPlayerId(), decision.card()));
         switch (StockTipCard.of(decision.card())) {
@@ -428,17 +428,17 @@ class StockTips {
                 .map(PlayerState::getPlayerId).toList();
         if (order.isEmpty()) return;
         var minimum = rules.compulsorySaleMinimumBid(state, asset);
-        state.getPendingDecisions().add(new PendingDecision.AssetAuction(seller.getPlayerId(), asset, minimum, order, 0, List.of()));
+        state.enqueueDecision(new PendingDecision.AssetAuction(seller.getPlayerId(), asset, minimum, order, 0, List.of()));
         events.add(new GameEvent.AssetAuctionStarted(seller.getPlayerId(), asset, minimum, order));
     }
 
     List<GameEvent> bidAsset(GameState state, PlayerState bidder, int amount) {
-        var auction = (PendingDecision.AssetAuction) state.getPendingDecisions().removeFirst();
+        var auction = (PendingDecision.AssetAuction) state.popDecision();
         var bids = new ArrayList<>(auction.bids());
         bids.add(new PendingDecision.Bid(bidder.getPlayerId(), amount));
         var nextIndex = auction.index() + 1;
         if (nextIndex < auction.order().size()) {
-            state.getPendingDecisions().addFirst(new PendingDecision.AssetAuction(auction.seller(), auction.asset(),
+            state.pushDecision(new PendingDecision.AssetAuction(auction.seller(), auction.asset(),
                     auction.minimumBid(), auction.order(), nextIndex, bids));
             return List.of();
         }

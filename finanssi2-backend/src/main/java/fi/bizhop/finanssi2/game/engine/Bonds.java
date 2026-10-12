@@ -35,7 +35,7 @@ public class Bonds {
         if (!available(state)) {
             return drawBonds(state, rules.smallBondPrizes(state), dice);
         }
-        state.getPendingDecisions().add(new PendingDecision.BondOffer(player.getPlayerId(), BondContinuation.SMALL_DRAW));
+        state.enqueueDecision(new PendingDecision.BondOffer(player.getPlayerId(), BondContinuation.SMALL_DRAW));
         return List.of();
     }
 
@@ -50,7 +50,7 @@ public class Bonds {
         if (order.isEmpty()) {
             return List.of();
         }
-        state.getPendingDecisions().add(new PendingDecision.BondAuction(order.getFirst(), order, 0, List.of()));
+        state.enqueueDecision(new PendingDecision.BondAuction(order.getFirst(), order, 0, List.of()));
         return List.of();
     }
 
@@ -58,7 +58,7 @@ public class Bonds {
         var bond = state.bond(number);
         bond.setOwner(player.getPlayerId());
         var paid = payments.toBank(player, rules.bondPrice(state), MoneyReason.BOND_PURCHASE);
-        var offer = (PendingDecision.BondOffer) state.getPendingDecisions().removeFirst();
+        var offer = (PendingDecision.BondOffer) state.popDecision();
         var events = new ArrayList<GameEvent>();
         events.add(paid);
         events.add(new GameEvent.BondBought(player.getPlayerId(), number));
@@ -67,7 +67,7 @@ public class Bonds {
     }
 
     List<GameEvent> passBond(GameState state, Dice dice) {
-        var offer = (PendingDecision.BondOffer) state.getPendingDecisions().removeFirst();
+        var offer = (PendingDecision.BondOffer) state.popDecision();
         return afterBondOffer(state, offer, dice);
     }
 
@@ -100,14 +100,14 @@ public class Bonds {
     }
 
     List<GameEvent> bidBond(GameState state, PlayerState player, int amount, Dice dice) {
-        var auction = (PendingDecision.BondAuction) state.getPendingDecisions().removeFirst();
+        var auction = (PendingDecision.BondAuction) state.popDecision();
         var bids = Stream.concat(auction.bids().stream(), Stream.of(new PendingDecision.Bid(player.getPlayerId(), amount))).toList();
         var next = IntStream.range(auction.index() + 1, auction.order().size())
                 .filter(index -> bids.stream().noneMatch(bid -> bid.player().equals(auction.order().get(index))))
                 .findFirst();
         if (next.isPresent()) {
             var index = next.getAsInt();
-            state.getPendingDecisions().addFirst(new PendingDecision.BondAuction(auction.order().get(index), auction.order(), index, bids));
+            state.pushDecision(new PendingDecision.BondAuction(auction.order().get(index), auction.order(), index, bids));
             return List.of();
         }
         var winner = bids.stream().filter(bid -> bid.amount() > 0)

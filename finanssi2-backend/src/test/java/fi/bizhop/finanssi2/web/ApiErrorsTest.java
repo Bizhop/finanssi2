@@ -1,23 +1,12 @@
 package fi.bizhop.finanssi2.web;
 
-import fi.bizhop.finanssi2.db.ApplicationUserRepository;
-import fi.bizhop.finanssi2.db.ChatRepository;
-import fi.bizhop.finanssi2.game.db.GameLogRepository;
-import fi.bizhop.finanssi2.game.db.GameRepository;
-import fi.bizhop.finanssi2.service.MessagingService;
+import fi.bizhop.finanssi2.ApiTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.resttestclient.TestRestTemplate;
-import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import tools.jackson.databind.JsonNode;
 
 import java.util.Optional;
@@ -30,25 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 /** Every controller family answers failures with a ProblemDetail whose {@code detail} the frontend can show */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureTestRestTemplate
-@ActiveProfiles("test")
-class ApiErrorsTest {
-    @LocalServerPort
-    int port;
-    @Autowired
-    TestRestTemplate restTemplate;
-    @MockitoBean
-    MessagingService messagingService;
-    @MockitoBean
-    ChatRepository chatRepository;
-    @MockitoBean
-    GameRepository gameRepository;
-    @MockitoBean
-    GameLogRepository gameLogRepository;
-    @MockitoBean
-    ApplicationUserRepository users;
-
+class ApiErrorsTest extends ApiTest {
     private JsonNode send(HttpMethod method, String path, String uid, String body) {
         var headers = new HttpHeaders();
         if (uid != null) headers.add(TEST_USER_HEADER, uid);
