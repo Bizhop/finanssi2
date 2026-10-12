@@ -78,18 +78,14 @@ export function createDatabase(
     }, { provider })
     new aws.secretsmanager.SecretVersion(`${prefix}-database-admin-version`, {
         secretId: adminSecret.id,
-        secretString: pulumi.secret(
-            pulumi.all([cluster.endpoint, cluster.port, cluster.databaseName, adminPassword.result]).apply(([host, port, dbname, password]) =>
-                JSON.stringify({
-                    username: "finanssi_admin",
-                    password,
-                    engine: "aurora-postgresql",
-                    host,
-                    port,
-                    dbname,
-                })
-            ),
-        ),
+        secretString: pulumi.secret(pulumi.jsonStringify({
+            username: "finanssi_admin",
+            password: adminPassword.result,
+            engine: "aurora-postgresql",
+            host: cluster.endpoint,
+            port: cluster.port,
+            dbname: cluster.databaseName,
+        })),
     }, { provider, dependsOn: [instance] })
 
     const applicationSecret = new aws.secretsmanager.Secret(`${prefix}-database-application-secret`, {
@@ -99,18 +95,14 @@ export function createDatabase(
     }, { provider })
     new aws.secretsmanager.SecretVersion(`${prefix}-database-application-version`, {
         secretId: applicationSecret.id,
-        secretString: pulumi.secret(
-            pulumi.all([cluster.endpoint, cluster.port, cluster.databaseName, applicationPassword.result]).apply(([host, port, dbname, password]) =>
-                JSON.stringify({
-                    username: "finanssi_app",
-                    password,
-                    engine: "aurora-postgresql",
-                    host,
-                    port,
-                    dbname,
-                })
-            ),
-        ),
+        secretString: pulumi.secret(pulumi.jsonStringify({
+            username: "finanssi_app",
+            password: applicationPassword.result,
+            engine: "aurora-postgresql",
+            host: cluster.endpoint,
+            port: cluster.port,
+            dbname: cluster.databaseName,
+        })),
     }, { provider, dependsOn: [instance] })
 
     return { cluster, instance, adminSecret, applicationSecret }

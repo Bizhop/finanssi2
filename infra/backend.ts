@@ -355,46 +355,37 @@ export function createBackend(
     }, { provider })
     const backendAccessPolicy = new aws.iam.RolePolicy(`${prefix}-backend-access-policy`, {
         role: instanceRole.id,
-        policy: pulumi.all([
-            repository.arn,
-            settings.firebaseSecret.arn,
-            settings.database.adminSecret.arn,
-            settings.database.applicationSecret.arn,
-            hostLogGroup.arn,
-            applicationLogGroup.arn,
-        ]).apply(([repoArn, firebaseArn, dbAdminArn, dbAppArn, hostLogArn, applicationLogArn]) =>
-            JSON.stringify({
-                Version: "2012-10-17",
-                Statement: [
-                    {
-                        Effect: "Allow",
-                        Action: "ecr:GetAuthorizationToken",
-                        Resource: "*",
-                    },
-                    {
-                        Effect: "Allow",
-                        Action: ["ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"],
-                        Resource: repoArn,
-                    },
-                    {
-                        Effect: "Allow",
-                        Action: ["secretsmanager:DescribeSecret", "secretsmanager:GetSecretValue"],
-                        Resource: [firebaseArn, dbAdminArn, dbAppArn],
-                    },
-                    {
-                        Effect: "Allow",
-                        Action: "cloudwatch:PutMetricData",
-                        Resource: "*",
-                        Condition: { StringEquals: { "cloudwatch:namespace": "Finanssi2/EC2" } },
-                    },
-                    {
-                        Effect: "Allow",
-                        Action: ["logs:CreateLogStream", "logs:PutLogEvents", "logs:DescribeLogStreams"],
-                        Resource: [`${hostLogArn}:*`, `${applicationLogArn}:*`],
-                    },
-                ],
-            })
-        ),
+        policy: pulumi.jsonStringify({
+            Version: "2012-10-17",
+            Statement: [
+                {
+                    Effect: "Allow",
+                    Action: "ecr:GetAuthorizationToken",
+                    Resource: "*",
+                },
+                {
+                    Effect: "Allow",
+                    Action: ["ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"],
+                    Resource: repository.arn,
+                },
+                {
+                    Effect: "Allow",
+                    Action: ["secretsmanager:DescribeSecret", "secretsmanager:GetSecretValue"],
+                    Resource: [settings.firebaseSecret.arn, settings.database.adminSecret.arn, settings.database.applicationSecret.arn],
+                },
+                {
+                    Effect: "Allow",
+                    Action: "cloudwatch:PutMetricData",
+                    Resource: "*",
+                    Condition: { StringEquals: { "cloudwatch:namespace": "Finanssi2/EC2" } },
+                },
+                {
+                    Effect: "Allow",
+                    Action: ["logs:CreateLogStream", "logs:PutLogEvents", "logs:DescribeLogStreams"],
+                    Resource: [pulumi.interpolate`${hostLogGroup.arn}:*`, pulumi.interpolate`${applicationLogGroup.arn}:*`],
+                },
+            ],
+        }),
     }, { provider })
     const instanceProfile = new aws.iam.InstanceProfile(`${prefix}-backend-profile`, {
         role: instanceRole.name,
