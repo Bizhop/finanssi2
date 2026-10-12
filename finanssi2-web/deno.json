@@ -1,52 +1,72 @@
 {
     "tasks": {
-        "dev": "deno run -A --env-file=.env.development npm:vite",
+        "dev": "deno run -A --env-file=.env.development vite",
         // Component test pages (dev-pages/) with a fake login and backend, at http://localhost:3001
-        "dev:pages": "deno run -A --env-file=.env.development npm:vite --config vite.dev-pages.config.ts",
-        "build": "deno run -A --env-file=.env.production npm:vite build --mode production",
+        "dev:pages": "deno run -A --env-file=.env.development vite --config vite.dev-pages.config.ts",
+        "build": "deno run -A --env-file=.env.production vite build --mode production",
         "fmt": "deno fmt",
         "fmt:check": "deno fmt --check",
         "typecheck": "deno check src/ dev-pages/ vite.config.ts vite.dev-pages.config.ts",
         "lint": "deno lint",
-        "test": "deno test src/components/gameApi.test.ts src/components/gameEvents.test.ts src/components/gameDecisions.test.ts"
+        // React Hooks and React Compiler rules, which deno lint does not have
+        "lint:hooks": "deno run -A npm:eslint src dev-pages",
+        // Opens every test page in headless Chromium; needs a Chromium (see dev-pages/smoke.ts)
+        "smoke": "deno run -A dev-pages/smoke.ts",
+        "test": "deno test --allow-env=NODE_ENV src/"
     },
     "imports": {
+        "@babel/core": "npm:@babel/core@^8.0.7",
         "@deno/vite-plugin": "npm:@deno/vite-plugin@^2.0.4",
         "@emotion/react": "npm:@emotion/react@^11.14.0",
         "@emotion/styled": "npm:@emotion/styled@^11.14.1",
         "@hookform/resolvers": "npm:@hookform/resolvers@^5.9.1",
-        "@mui/icons-material": "npm:@mui/icons-material@^9.4.0",
-        "@mui/material": "npm:@mui/material@^9.4.0",
+        "@mui/icons-material": "npm:@mui/icons-material@^9.5.0",
+        "@mui/material": "npm:@mui/material@^9.5.0",
+        "@rolldown/plugin-babel": "npm:@rolldown/plugin-babel@^0.2.4",
+        "@std/assert": "jsr:@std/assert@^1.0.19",
         "@stomp/stompjs": "npm:@stomp/stompjs@^7.3.0",
-        "@types/node": "npm:@types/node@^26.6.3",
+        "@types/node": "npm:@types/node@^26.6.5",
         "@types/react": "npm:@types/react@^19.3.0",
         "@types/react-dom": "npm:@types/react-dom@^19.3.0",
-        "@vitejs/plugin-react": "npm:@vitejs/plugin-react@^6.1.1",
-        "firebase": "npm:firebase@^12.19.0",
+        "@vitejs/plugin-react": "npm:@vitejs/plugin-react@^6.1.2",
+        "babel-plugin-react-compiler": "npm:babel-plugin-react-compiler@^1.0.0",
+        "eslint": "npm:eslint@^10.12.0",
+        "eslint-plugin-react-hooks": "npm:eslint-plugin-react-hooks@^7.1.1",
+        "firebase": "npm:firebase@^13.0.0",
+        "i18next": "npm:i18next@^26.4.3",
+        "playwright-core": "npm:playwright-core@^1.64.0",
         "react": "npm:react@^19.3.0",
         "react-dom": "npm:react-dom@^19.3.0",
-        "react-firebase-hooks": "npm:react-firebase-hooks@^5.1.1",
         "react-hook-form": "npm:react-hook-form@^7.89.0",
+        "react-i18next": "npm:react-i18next@^17.0.16",
         "react-router": "npm:react-router@^8.4.0",
         "react-toastify": "npm:react-toastify@^11.1.0",
-        "vite": "npm:vite@^8.3.1",
+        "typescript-eslint": "npm:typescript-eslint@^8.71.1",
+        "vite": "npm:vite@^8.3.4",
         "zod": "npm:zod@^4.6.5"
     },
     "compilerOptions": {
-        "types": ["react", "react-dom", "@types/react", "./src/vite-env.d.ts"],
+        "types": ["./src/vite-env.d.ts"],
         "lib": ["dom", "dom.iterable", "deno.ns"],
         "jsx": "react-jsx",
         "jsxImportSource": "react"
     },
     "nodeModulesDir": "auto",
+    "lint": {
+        "rules": {
+            "tags": ["recommended", "react", "jsx"],
+            "include": ["react-rules-of-hooks", "verbatim-module-syntax", "no-non-null-assertion"]
+        }
+    },
     "fmt": {
         "semiColons": false,
         "indentWidth": 4,
-        "lineWidth": 160
+        "lineWidth": 160,
+        // The Markdown notes are hand-wrapped prose
+        "exclude": ["**/*.md"]
     },
     "exclude": [
         "src/.vite/",
-        "dev-pages/.vite/",
-        "src/dist/"
+        "dev-pages/.vite/"
     ]
 }

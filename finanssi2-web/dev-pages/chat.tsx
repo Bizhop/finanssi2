@@ -1,17 +1,18 @@
 // Logged-in front page with a chat history, loaded page by page as you scroll up. Floating buttons simulate messages arriving over the
 // websocket, and the websocket disconnecting (messages sent meanwhile are fetched after reconnecting).
-import { useMemo, useState } from "react"
+import { StrictMode, useMemo, useState } from "react"
 import ReactDOM from "react-dom/client"
 import { MemoryRouter } from "react-router"
 import { Button, Stack } from "@mui/material"
 
-import App from "../src/components/App.tsx"
-import { CurrentUserProvider } from "../src/components/CurrentUserContext.tsx"
-import { StompContext } from "../src/components/StompContext.tsx"
-import { fakeBackend, fakeChatMessages, fakeLogin, fakeStompConnection, nextFakeId, receiveFakeChatMessage } from "./mocks.ts"
+import { App } from "../src/App.tsx"
+import { StompContext } from "../src/realtime/StompContext.tsx"
+import { appRoot } from "./root.ts"
+import { FakeCurrentUser } from "./FakeCurrentUser.tsx"
+import { fakeBackend, fakeChatMessages, fakeStompConnection, nextFakeId, receiveFakeChatMessage } from "./mocks.ts"
+import { olli, tester } from "./people.ts"
 
 const count = Number(new URLSearchParams(location.search).get("count") ?? 100)
-fakeLogin()
 fakeBackend(fakeChatMessages(count))
 
 let received = 0
@@ -19,11 +20,9 @@ const simulateIncoming = (messageCount: number) => {
     for (let i = 0; i < messageCount; i++) {
         receiveFakeChatMessage({
             id: nextFakeId(),
-            userId: "other",
-            name: "Olli Other",
+            userId: olli.id,
             message: `Incoming message ${++received}`,
             timestamp: Date.now(),
-            photoUrl: "",
         })
     }
 }
@@ -34,7 +33,7 @@ const TestPage = () => {
 
     return (
         <StompContext.Provider value={connection}>
-            <CurrentUserProvider>
+            <FakeCurrentUser person={tester}>
                 <App />
                 <Stack direction="row" spacing={1} sx={{ position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)" }}>
                     <Button variant="contained" size="small" onClick={() => simulateIncoming(1)}>Incoming message</Button>
@@ -43,13 +42,15 @@ const TestPage = () => {
                         {connected ? "Disconnect" : "Reconnect"}
                     </Button>
                 </Stack>
-            </CurrentUserProvider>
+            </FakeCurrentUser>
         </StompContext.Provider>
     )
 }
 
-ReactDOM.createRoot(document.getElementById("app")!).render(
-    <MemoryRouter>
-        <TestPage />
-    </MemoryRouter>,
+ReactDOM.createRoot(appRoot()).render(
+    <StrictMode>
+        <MemoryRouter>
+            <TestPage />
+        </MemoryRouter>
+    </StrictMode>,
 )

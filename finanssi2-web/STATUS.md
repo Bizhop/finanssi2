@@ -33,6 +33,8 @@ messages, reconnect controls, and spectator mode. Frontend checks pass; responsi
   bond offers, bond/asset bids, Finance News direction and Stock Tip options.
 - Active Finance News, current-player held card text and Stock Tip choice text render card chapters with headings/italics. Finished games show the winner or
   closure and standings sorted by net worth.
+- Build and runtime: settings are validated once (`src/env.ts`); a banner shows when the realtime connection is down; the game room and account routes are
+  lazy-loaded; the React Compiler is enabled and `deno task lint:hooks` checks the hooks rules.
 - Separate Vite dev pages for chat and mocked running/finished game rooms, without Google sign-in or a backend.
 
 ## Decisions
@@ -61,6 +63,13 @@ messages, reconnect controls, and spectator mode. Frontend checks pass; responsi
 - Finance News direction choices show actual landing squares, including mandatory stops. Kokous uses a highlighted board picker and confirms the chosen
   destination. Fire previews include three buildings to choose two from, plus a forced-pair confirmation case. Bond transfers show the donor's token and colour.
 - `deno task build` is enabled and requires the production Firebase web settings and HTTPS API URL in `.env.production`; this has not yet been run in an environment with Deno and the production values.
+
+## Language
+
+The UI is available in Finnish (default) and English through i18next. The switch is in the account page; the choice lasts until the page is reloaded and
+sets `<html lang>`; changing it remounts the page content so cached text is recomputed. Money, numbers and dates follow the language (`src/ui/format.ts`). Card, board and share text stays Finnish. Backend
+error text is English until the backend adds stable error codes (`GameApiError` already keeps `code`). `deno task smoke` visits every preview in both
+languages.
 
 ## Private debug games
 

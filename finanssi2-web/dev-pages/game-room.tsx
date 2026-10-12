@@ -1,9 +1,8 @@
 // Mocked running game for checking the board, assets, active card, commands and responsive layout without a backend.
-import { useEffect, useMemo, useState } from "react"
+import { StrictMode, useEffect, useMemo, useState } from "react"
 import ReactDOM from "react-dom/client"
 import { MemoryRouter, Route, Routes } from "react-router"
 import { ToastContainer } from "react-toastify"
-import type { User as FirebaseUser } from "firebase/auth"
 import { Alert, Box, Button, Container, Divider, Grid, IconButton, Paper, Stack, Tooltip } from "@mui/material"
 import HomeIcon from "@mui/icons-material/Home"
 import LogoutIcon from "@mui/icons-material/Logout"
@@ -11,11 +10,13 @@ import CasinoIcon from "@mui/icons-material/Casino"
 import { NavLink } from "react-router"
 
 import { decisionFixtures } from "./decision-fixtures.ts"
-import type { Game } from "../src/components/gameApi.ts"
-import GameRoom from "../src/components/GameRoom.tsx"
-import { CurrentUserProvider, useCurrentUser } from "../src/components/CurrentUserContext.tsx"
-import { type StompConnection, StompContext } from "../src/components/StompContext.tsx"
-import { GAME_BOARD_MAX_WIDTH, GAME_ROOM_MAX_WIDTH } from "../src/components/boardLayout.ts"
+import type { CommandOptions, Game } from "../src/api/gameApi.ts"
+import { GameRoom } from "../src/pages/GameRoom.tsx"
+import { FakeCurrentUser } from "./FakeCurrentUser.tsx"
+import { appRoot } from "./root.ts"
+import { idOfKey, liisa as liisaPerson, olli as olliPerson, pekka as pekkaPerson, profileOf, publicProfiles, tester, viewer as viewerPerson } from "./people.ts"
+import { type StompConnection, StompContext } from "../src/realtime/StompContext.tsx"
+import { gameRoomWidthStyles } from "../src/game/rules/boardLayout.ts"
 
 // Real game data, the same files the backend serves from /api/game-data
 import boardFile from "../../finanssi2-backend/src/main/resources/gamedata/pelilauta.json" with { type: "json" }
@@ -33,8 +34,8 @@ const afterRoll = params.has("afterRoll") || !!fixture
 // in the head office), so before rolling she may both build and buy from the bank.
 const user = {
     ...player,
-    playerId: "tester",
-    name: "Maija Meikäläinen",
+    playerId: tester.id,
+    name: tester.name,
     piece: 0,
     // Enough for the €125,000 Finanssiyhtymä takeover with a €20,000 or €30,000 brokerage fee, not more
     cash: fixture?.cash ?? 158_000,
@@ -42,11 +43,11 @@ const user = {
     loans: 1,
     heldStockTips: afterRoll ? ["PV-25", "PV-01"] : ["PV-25"],
 }
-const olli = { ...player, playerId: "olli", name: "Olli Other", piece: 1, cash: 64_500, position: 31, loans: 2 }
+const olli = { ...player, playerId: olliPerson.id, name: olliPerson.name, piece: 1, cash: 64_500, position: 31, loans: 2 }
 // Olli and Pekka have no car either, so they roll one die; Liisa rolls two
-const pekka = { ...player, playerId: "pekka", name: "Pekka Pörssi", piece: 2, cash: 131_000, position: 30 }
+const pekka = { ...player, playerId: pekkaPerson.id, name: pekkaPerson.name, piece: 2, cash: 131_000, position: 30 }
 // Shares square 30 with Pekka, whose Sahalaitos she just paid rent for
-const liisa = { ...player, playerId: "liisa", name: "Liisa Laine", piece: 3, cash: 21_000, position: 30, car: true }
+const liisa = { ...player, playerId: liisaPerson.id, name: liisaPerson.name, piece: 3, cash: 21_000, position: 30, car: true }
 
 // Ownership that the title deeds allow: Ompelimo is mortgaged unbuilt, Investointiyhtiö can only be mortgaged once built,
 // Pysäköintitalo can be neither built on nor mortgaged and Sahalaitos cannot be mortgaged
@@ -80,7 +81,7 @@ const finished = new URLSearchParams(location.search).has("finished")
 const debug = new URLSearchParams(location.search).has("debug")
 const appLayout = location.pathname.endsWith("game-room-layout.html")
 
-// Visual copy of the app menu, without initializing Firebase in this mock-only page.
+// Visual copy of the app menu: the real Header signs out through Firebase, which these pages replace with a fixed signed-in user (FakeCurrentUser).
 const PreviewHeader = () => (
     <Box>
         <Grid container spacing={1}>
@@ -122,8 +123,8 @@ const game: Game = {
     state: {
         players: [user, olli, pekka, liisa],
         turnOrder: [user.playerId, olli.playerId, pekka.playerId, liisa.playerId],
-        // ?turn=<playerId> previews another player in turn, e.g. ?turn=olli
-        currentPlayer: new URLSearchParams(location.search).get("turn") ?? user.playerId,
+        // ?turn=<key> previews another player in turn, e.g. ?turn=olli
+        currentPlayer: idOfKey(new URLSearchParams(location.search).get("turn"), user.playerId),
         settings: { loanLimit: "UNLIMITED", compulsorySaleMinimumBid: "HALF_NOMINAL_PRICE", shareholdersMeeting: "ALL_ASSETS_BOUGHT" },
         // ?news=<id> shows another Finance News card face up, e.g. ?news=FL-19 for the longest text
         activeFinanceNews: new URLSearchParams(location.search).get("news") ?? "FL-01",
@@ -167,10 +168,14 @@ if (params.get("decision") === "bond-transfer") {
     })
 }
 if (params.get("decision") === "PV-17") {
-    fixture!.pending.options = titleDeedFile.titleDeeds.map((deed) => String(deed.square))
+    if (fixture?.pending.type === "StockTipChoice") fixture.pending.options = titleDeedFile.titleDeeds.map((deed) => String(deed.square))
 }
-if (["PV-10", "fire-forced", "PV-31"].includes(params.get("decision") ?? "")) game.state.properties.find((property) => property.square === 19)!.built = true
-if (params.get("decision") === "PV-10") game.state.properties.find((property) => property.square === 10)!.built = true
+const built = (square: number) => {
+    const property = game.state.properties.find((item) => item.square === square)
+    if (property) property.built = true
+}
+if (["PV-10", "fire-forced", "PV-31"].includes(params.get("decision") ?? "")) built(19)
+if (params.get("decision") === "PV-10") built(10)
 if (fixture?.pending.type === "BondOffer") user.position = 45
 if (fixture?.pending.type === "BondAuction") user.position = 38
 if (fixture?.pending.type === "NewsDirection") user.position = 31
@@ -182,6 +187,82 @@ const board = {
     shares: shareFile.shares,
     financeNews,
     stockTips,
+}
+
+/**
+ * The backend's options for the player Maija controls, worked out here from the fixture: only what the allowed commands and her cash
+ * permit, at the printed prices (the real backend also applies Finance News modifiers).
+ */
+const fakeOptions = (allowedCommands: string[]): CommandOptions => {
+    const can = (command: string) => allowedCommands.includes(command)
+    const stateOf = (property: { built: boolean }) => property.built ? "built" as const : "unbuilt" as const
+    const deedOf = (square: number) => {
+        const deed = board.titleDeeds.find((item) => item.square === square)
+        if (!deed) throw new Error(`No title deed for square ${square}`)
+        return deed
+    }
+    const mine = game.state.properties.filter((property) => property.owner === user.playerId)
+    const priced = (items: { square: number; amount: number | null | undefined }[]) =>
+        items.flatMap((item) => item.amount == null ? [] : [{ square: item.square, amount: item.amount }])
+    return {
+        buyProperty: can("BuyProperty")
+            ? priced(
+                game.state.properties.filter((property) => property.owner === null).map((property) => ({
+                    square: property.square,
+                    amount: deedOf(property.square).price,
+                })),
+            )
+                .filter((offer) => offer.amount <= user.cash)
+            : [],
+        buyShare: can("BuyShare")
+            ? game.state.shares.filter((share) => share.owner === null).flatMap((share) => {
+                const value = board.shares.find((item) => item.id === share.id)?.value ?? 0
+                return value <= user.cash ? [{ share: share.id, amount: value }] : []
+            })
+            : [],
+        mortgage: can("Mortgage")
+            ? priced(
+                mine.filter((property) => !property.mortgaged).map((property) => ({
+                    square: property.square,
+                    amount: deedOf(property.square).mortgage?.[stateOf(property)],
+                })),
+            )
+            : [],
+        redeem: can("Redeem")
+            ? priced(
+                mine.filter((property) => property.mortgaged).map((property) => ({
+                    square: property.square,
+                    amount: deedOf(property.square).redemption?.[stateOf(property)],
+                })),
+            )
+            : [],
+        sellBackProperty: can("SellBackProperty")
+            ? priced(
+                mine.filter((property) => !property.mortgaged).map((property) => ({
+                    square: property.square,
+                    amount: deedOf(property.square).buyBack?.[stateOf(property)],
+                })),
+            )
+            : [],
+        sellBackShare: can("SellBackShare")
+            ? game.state.shares.filter((share) => share.owner === user.playerId).map((share) => ({
+                share: share.id,
+                amount: board.shares.find((item) => item.id === share.id)?.buyBack ?? 0,
+            }))
+            : [],
+        build: can("Build")
+            ? mine.filter((property) => !property.built && !property.mortgaged && deedOf(property.square).building).map((property) => ({
+                square: property.square,
+                amount: deedOf(property.square).building?.price ?? 0,
+            }))
+            : [],
+        // Finanssiyhtymä is split between Maija and Liisa with nothing left in the bank (see above); a takeover of €125,000 plus a fee fits her cash
+        shareholdersMeeting: can("CallShareholdersMeeting")
+            ? [{ group: "FINANSSIYHTYMA", brokerageFees: [20000, 30000].filter((fee) => 125_000 + fee <= user.cash) }]
+            : [],
+        buyBond: can("BuyBond") ? game.state.bonds.filter((bond) => bond.owner === null).map((bond) => bond.number) : [],
+        bondPrice: 500,
+    }
 }
 
 const turn = (playerId: string, dice: number[], from: number) => {
@@ -219,7 +300,12 @@ const events = [
             // ?tip=<id> shows another Stock Tip, e.g. ?afterRoll&tip=PV-31 for the longest text (not one she keeps)
             ...fixture && fixture.pending.type !== "StockTipChoice" ? [] : [
                 params.has("tip") || fixture?.pending.type === "StockTipChoice"
-                    ? { type: "StockTipDrawn", player: user.playerId, card: fixture?.pending.card ?? params.get("tip"), held: false }
+                    ? {
+                        type: "StockTipDrawn",
+                        player: user.playerId,
+                        card: (fixture?.pending && "card" in fixture.pending ? fixture.pending.card : undefined) ?? params.get("tip"),
+                        held: false,
+                    }
                     : { type: "StockTipDrawn", player: user.playerId, card: "PV-01", held: true },
             ],
         ]
@@ -227,7 +313,6 @@ const events = [
 ].map((event, index) => ({ id: `preview-game:${index + 1}`, seq: index + 1, time: 0, type: event.type, event }))
 
 const PreviewRoom = () => {
-    const { setUser } = useCurrentUser()
     const [connected, setConnected] = useState(true)
     const [viewer, setViewer] = useState(false)
     const [lastCommand, setLastCommand] = useState("")
@@ -243,60 +328,52 @@ const PreviewRoom = () => {
             return () => chatSubscribers.delete(onMessage)
         },
     }), [connected])
-    useEffect(() => {
-        setUser(
-            {
-                playerId: viewer ? "viewer" : user.playerId,
-                displayName: viewer ? "Read Only Viewer" : user.name,
-                photoURL: null,
-                getIdToken: () => Promise.resolve("preview-token"),
-            } as unknown as FirebaseUser,
-        )
-    }, [setUser, viewer])
     const sendIncoming = () =>
         publishFakeGameMessage({
             id: String(nextChatId++).padStart(19, "0"),
-            userId: "olli",
-            name: "Olli Other",
+            userId: olliPerson.id,
             message: "Live message from another player",
             timestamp: Date.now(),
-            photoUrl: null,
         })
     return (
-        <StompContext.Provider value={previewConnection}>
-            <Stack spacing={1} sx={{ minHeight: 0, flex: 1 }}>
-                <Stack
-                    direction="row"
-                    spacing={1}
-                    sx={{
-                        flexWrap: "wrap",
-                        ...(appLayout &&
-                            {
-                                position: "fixed",
-                                top: 16,
-                                left: "50%",
-                                transform: "translateX(-50%)",
-                                zIndex: 1300,
-                                bgcolor: "background.paper",
-                                p: 1,
-                                borderRadius: 1,
-                                boxShadow: 2,
-                            }),
-                    }}
-                >
-                    <Button size="small" onClick={sendIncoming}>Simulate incoming chat</Button>
-                    <Button size="small" onClick={() => setConnected((current) => !current)}>{connected ? "Disconnect" : "Reconnect"}</Button>
-                    <Button size="small" onClick={() => setViewer((current) => !current)}>{viewer ? "Use seated account" : "View as spectator"}</Button>
+        <FakeCurrentUser person={viewer ? viewerPerson : tester} debugMode={debug}>
+            <StompContext.Provider value={previewConnection}>
+                <Stack spacing={1} sx={{ minHeight: 0, flex: 1 }}>
+                    <Stack
+                        direction="row"
+                        spacing={1}
+                        sx={{
+                            flexWrap: "wrap",
+                            ...(appLayout &&
+                                {
+                                    position: "fixed",
+                                    top: 16,
+                                    left: "50%",
+                                    transform: "translateX(-50%)",
+                                    zIndex: 1300,
+                                    bgcolor: "background.paper",
+                                    p: 1,
+                                    borderRadius: 1,
+                                    boxShadow: 2,
+                                }),
+                        }}
+                    >
+                        <Button size="small" onClick={sendIncoming}>Simulate incoming chat</Button>
+                        <Button size="small" onClick={() => setConnected((current) => !current)}>{connected ? "Disconnect" : "Reconnect"}</Button>
+                        <Button size="small" onClick={() => setViewer((current) => !current)}>{viewer ? "Use seated account" : "View as spectator"}</Button>
+                    </Stack>
+                    {fixture && (
+                        <Alert severity="info">Decision preview: {params.get("decision")}. Commands are recorded below; game rules do not run here.</Alert>
+                    )}
+                    {lastCommand && (
+                        <Alert severity="success">
+                            Submitted: <code>{lastCommand}</code>
+                        </Alert>
+                    )}
+                    <GameRoom />
                 </Stack>
-                {fixture && <Alert severity="info">Decision preview: {params.get("decision")}. Commands are recorded below; game rules do not run here.</Alert>}
-                {lastCommand && (
-                    <Alert severity="success">
-                        Submitted: <code>{lastCommand}</code>
-                    </Alert>
-                )}
-                <GameRoom />
-            </Stack>
-        </StompContext.Provider>
+            </StompContext.Provider>
+        </FakeCurrentUser>
     )
 }
 
@@ -305,11 +382,9 @@ const chatTopic = "/topic/games/preview-game/chat"
 const chatSubscribers = new Set<(body: string) => void>()
 const gameChatHistory = Array.from({ length: 27 }, (_, index) => ({
     id: String(nextChatId++).padStart(19, "0"),
-    userId: index % 2 ? "olli" : "tester",
-    name: index % 2 ? "Olli Other" : "Maija Meikäläinen",
+    userId: index % 2 ? olliPerson.id : tester.id,
     message: index % 6 === 4 ? "A longer game-room message that wraps across lines while the chat list scrolls independently." : `Game message ${index + 1}`,
     timestamp: Date.now() - (27 - index) * 60_000,
-    photoUrl: null,
 }))
 
 const publishFakeGameMessage = (message: (typeof gameChatHistory)[number]) => {
@@ -324,11 +399,9 @@ globalThis.fetch = (input, init) => {
             const body = JSON.parse(String(init.body)) as { message: string }
             const saved = {
                 id: String(nextChatId++).padStart(19, "0"),
-                userId: "tester",
-                name: "Maija Meikäläinen",
+                userId: tester.id,
                 message: body.message,
                 timestamp: Date.now(),
-                photoUrl: null,
             }
             publishFakeGameMessage(saved)
             return Promise.resolve(Response.json(saved))
@@ -341,39 +414,42 @@ globalThis.fetch = (input, init) => {
     }
     if (path.startsWith("/api/games/preview-game/events")) return Promise.resolve(Response.json(events))
     if (path === "/api/games/preview-game") {
+        const allowedCommands = finished
+            ? []
+            : fixture
+            ? fixture.commands
+            : !debug && game.state.currentPlayer !== user.playerId
+            ? []
+            : debug && game.state.currentPlayer !== user.playerId
+            ? [afterRoll ? "EndTurn" : "Roll", "RepayLoan", "Mortgage", "Redeem", "SellBackProperty", "SellBackShare", "Resign"]
+            : afterRoll
+            ? ["EndTurn", "RepayLoan", "Mortgage", "SellBackProperty", "SellBackShare", "UseHeldStockTip", "Resign"]
+            : [
+                "Roll",
+                "BuyCar",
+                "RepayLoan",
+                "BuyProperty",
+                "BuyShare",
+                "Build",
+                "Mortgage",
+                "Redeem",
+                "SellBackProperty",
+                "SellBackShare",
+                "UseHeldStockTip",
+                "CallShareholdersMeeting",
+                "Resign",
+            ]
         return Promise.resolve(Response.json({
             game,
             actingPlayer: game.state.pendingDecisions[0]?.player ?? game.state.currentPlayer,
             // What the backend allows Maija: building and buying (on 40) only before the roll, ending the turn only after it.
             // FL-01 is active, so the bank grants no new loans.
-            allowedCommands: finished
-                ? []
-                : fixture
-                ? fixture.commands
-                : !debug && game.state.currentPlayer !== user.playerId
-                ? []
-                : debug && game.state.currentPlayer !== user.playerId
-                ? [afterRoll ? "EndTurn" : "Roll", "RepayLoan", "Mortgage", "Redeem", "SellBackProperty", "SellBackShare", "Resign"]
-                : afterRoll
-                ? ["EndTurn", "RepayLoan", "Mortgage", "SellBackProperty", "SellBackShare", "UseHeldStockTip", "Resign"]
-                : [
-                    "Roll",
-                    "BuyCar",
-                    "RepayLoan",
-                    "BuyProperty",
-                    "BuyShare",
-                    "Build",
-                    "Mortgage",
-                    "Redeem",
-                    "SellBackProperty",
-                    "SellBackShare",
-                    "UseHeldStockTip",
-                    "CallShareholdersMeeting",
-                    "Resign",
-                ],
+            allowedCommands,
+            options: fakeOptions(allowedCommands),
         }))
     }
-    if (path === "/api/me/capabilities") return Promise.resolve(Response.json({ debugMode: debug }))
+    if (path === "/api/me") return Promise.resolve(Response.json(profileOf(tester, debug)))
+    if (path === "/api/users") return Promise.resolve(Response.json(publicProfiles(new URL(String(input).replace(/^undefined/, ""), location.origin))))
     if (path === "/api/game-data") return Promise.resolve(Response.json(board))
     if (init?.method === "POST") {
         console.info("[mock game] command", init.body)
@@ -383,9 +459,9 @@ globalThis.fetch = (input, init) => {
     return Promise.resolve(Response.json({ detail: `No mock for ${path}` }, { status: 404 }))
 }
 
-ReactDOM.createRoot(document.getElementById("app")!).render(
-    <MemoryRouter initialEntries={["/games/preview-game"]}>
-        <CurrentUserProvider>
+ReactDOM.createRoot(appRoot()).render(
+    <StrictMode>
+        <MemoryRouter initialEntries={["/games/preview-game"]}>
             {appLayout
                 ? (
                     <Container
@@ -396,9 +472,7 @@ ReactDOM.createRoot(document.getElementById("app")!).render(
                             display: "flex",
                             flexDirection: "column",
                             pb: 2,
-                            "@media (min-width: 2200px) and (min-height: 1100px)": { maxWidth: GAME_ROOM_MAX_WIDTH },
-                            "@media (min-width: 1536px) and (max-width: 2199.95px)": { maxWidth: GAME_BOARD_MAX_WIDTH },
-                            "@media (min-width: 2200px) and (max-height: 1099.95px)": { maxWidth: GAME_BOARD_MAX_WIDTH },
+                            ...gameRoomWidthStyles,
                         }}
                     >
                         <Stack direction="column" sx={{ flex: 1, minHeight: 0 }}>
@@ -416,6 +490,6 @@ ReactDOM.createRoot(document.getElementById("app")!).render(
                     </Routes>
                 )}
             <ToastContainer autoClose={1500} position="top-center" />
-        </CurrentUserProvider>
-    </MemoryRouter>,
+        </MemoryRouter>
+    </StrictMode>,
 )

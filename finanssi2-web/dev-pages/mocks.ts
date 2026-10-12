@@ -1,28 +1,17 @@
 // Shared setup for the test pages: a fake logged-in user and a fake backend, so pages work without a Firebase login or a running backend
-import { z } from "zod/mini"
-import { en } from "zod/locales"
+import type { StompConnection } from "../src/realtime/StompContext.tsx"
+import { matti, profileOf, publicProfiles, stranger, tester } from "./people.ts"
 
-import { auth } from "../src/components/firebase.ts"
-import type { StompConnection } from "../src/components/StompContext.tsx"
-
-// Same as src/index.tsx
-z.config(en())
-
+/** A chat row as the backend sends it: the sender is a user id, resolved to a name and avatar through /api/users */
 export type FakeChatMessage = {
     id: string
     userId: string
-    name?: string | null
     message: string
     timestamp: number
-    photoUrl: string
 }
 
-// Includes a sender without a name, like messages saved before the backend stored names
-const fakeSenders = [
-    { userId: "maija", name: "Maija Meikäläinen" },
-    { userId: "matti", name: "Matti Meikäläinen" },
-    { userId: "tester", name: null },
-]
+// Includes a sender the fake backend has no profile for, like a deleted account
+const fakeSenders = [{ userId: tester.id }, { userId: matti.id }, { userId: stranger.id }]
 
 // Fixed-width decimal ids sort in database insertion order.
 let lastFakeId = 0
@@ -39,26 +28,7 @@ export const fakeChatMessages = (count: number): FakeChatMessage[] =>
             }, a longer one that wraps onto a second line to show how the name prefix, the avatar and the timestamp tooltip behave when a message does not fit on one line`
             : `Message number ${i + 1}`,
         timestamp: Date.now() - (count - i) * 60_000,
-        photoUrl: "",
     }))
-
-/** Makes the app see a logged-in user; only getIdToken() is used by the app */
-export const fakeLogin = () => {
-    const fakeUser = {
-        uid: "tester",
-        email: "tester",
-        displayName: "Maija Meikäläinen",
-        photoURL: null,
-        getIdToken: () => Promise.resolve("fake-token"),
-    }
-    // deno-lint-ignore no-explicit-any
-    const fakeAuth = auth as any
-    fakeAuth.onAuthStateChanged = (callback: (user: unknown) => void) => {
-        callback(fakeUser)
-        return () => {}
-    }
-    fakeAuth.signOut = () => Promise.resolve()
-}
 
 // Messages the fake backend has "saved", oldest first
 let fakeChatHistory: FakeChatMessage[] = []
@@ -71,12 +41,15 @@ export const fakeBackend = (chatHistory: FakeChatMessage[], delayMs = 300) => {
     fakeChatHistory = chatHistory
     const sentMessages: unknown[] = []
     globalThis.fetch = (input, init) => {
+        const url = new URL(String(input).replace(/^undefined/, ""), location.origin)
+        if (url.pathname === "/api/me") return Promise.resolve(Response.json(profileOf(tester, false)))
+        if (url.pathname === "/api/users") return Promise.resolve(Response.json(publicProfiles(url)))
         if (init?.method === "POST") {
             sentMessages.push(JSON.parse(String(init.body)))
             console.info("[fake backend] POST /api/chat", init.body)
             return Promise.resolve(new Response(null, { status: 200 }))
         }
-        const params = new URL(String(input)).searchParams
+        const params = url.searchParams
         const before = params.get("before")
         const size = Number(params.get("size") ?? 20)
         const page = fakeChatHistory
@@ -97,8 +70,9 @@ export const fakeStompConnection = (connected: boolean): StompConnection => ({
     connected,
     subscribe: (destination, onMessage) => {
         if (!connected) return () => {}
-        if (!fakeSubscriptions.has(destination)) fakeSubscriptions.set(destination, new Set())
-        fakeSubscriptions.get(destination)!.add(onMessage)
+        const subscribers = fakeSubscriptions.get(destination) ?? new Set<(body: string) => void>()
+        fakeSubscriptions.set(destination, subscribers)
+        subscribers.add(onMessage)
         return () => fakeSubscriptions.get(destination)?.delete(onMessage)
     },
 })
