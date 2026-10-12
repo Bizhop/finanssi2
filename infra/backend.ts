@@ -429,7 +429,7 @@ export function createBackend(
         networkInterface: networkInterface.id,
         associateWithPrivateIp: networkInterface.privateIp,
         tags: { Name: `${prefix}-backend-ip`, Application: "finanssi2" },
-    }, { provider })
+    }, { provider, protect: true }) // referenced by a manually maintained DNS record
 
     const instance = new aws.ec2.Instance(`${prefix}-backend`, {
         ami,

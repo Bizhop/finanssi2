@@ -46,7 +46,7 @@ export function createFrontend(
         domainName: settings.hostname,
         validationMethod: "DNS",
         tags: { Application: "finanssi2" },
-    }, { provider: certificateProvider })
+    }, { provider: certificateProvider, protect: true }) // referenced by manually maintained DNS records
 
     let distribution: aws.cloudfront.Distribution | undefined
     if (settings.createDistribution) {
