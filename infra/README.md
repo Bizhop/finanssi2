@@ -55,10 +55,39 @@ image reference and restarts the previous release. Set `DEPLOY_BACKEND=false` to
 ./infra/scripts/publish-backend-image.sh
 ```
 
-## Current gaps
+## Frontend releases
 
-- Account-specific budget amount/email still require operator values; service restart monitoring relies on host syslog forwarding.
-- The backend image is deployed and the service reports that the app started; verify the public API, TLS hostname and Aurora
-  pause/resume behavior when application access is available.
-- The CloudFront frontend distribution is disabled, so `frontendDistributionHostname` is `null`. Validate the ACM certificate through
-  Domainhotelli DNS, enable `createFrontendDistribution`, then complete frontend upload/cache publication and DNS handoff manually.
+`publish-frontend.sh` builds the frontend (`deno task build`, which needs the untracked `finanssi2-web/.env.production`), uploads hashed
+assets to the S3 bucket first, then `index.html` with `no-cache`, and invalidates `/index.html` on CloudFront when the distribution
+exists. It needs AWS credentials, Deno and Pulumi access to the stack.
+
+```bash
+./infra/scripts/publish-frontend.sh
+```
+
+## DNS handoff (Domainhotelli)
+
+Records are added manually; Domainhotelli's form strips the trailing `.bizhop.fi` from names. Values come from stack outputs:
+
+| Name | Type | Target |
+| --- | --- | --- |
+| ACM validation name (`pulumi stack output frontendCertificateDnsRecords`) | CNAME | ACM validation target; keep permanently for certificate renewal |
+| `api.finanssi` | A | `pulumi stack output backendElasticIp` |
+| `finanssi` | CNAME | `pulumi stack output frontendDistributionHostname` (after enabling `createFrontendDistribution`) |
+
+## Troubleshooting
+
+- **`curl https://api.finanssi.bizhop.fi` fails with a TLS "internal error" while port 80 redirects:** Caddy has no certificate yet.
+  This happens when the instance bootstrapped before the API A record existed, so the first ACME attempt failed. Once the name
+  resolves, `sudo systemctl restart caddy` on the host (via SSM) forces a new attempt; check `journalctl -u caddy`.
+- **First request after idle is slow:** Aurora auto-pause resumes the database on demand (about 15 seconds or more).
+
+## Current state and gaps
+
+The production stack is live (2026-10-12): `https://finanssi.bizhop.fi` serves the frontend through CloudFront, and
+`https://api.finanssi.bizhop.fi` answers `/api/health/live` through Caddy. Sign-in works; the first request after an idle period is
+slow while Aurora resumes.
+
+- Service restart monitoring relies on host syslog forwarding.
+- Not yet measured: Aurora pause/resume timing and backend memory under real gameplay on the 2 GiB host, EC2 reboot behavior.
+- Live multiplayer acceptance with friends is in progress; see the backend and frontend STATUS files.

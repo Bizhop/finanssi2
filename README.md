@@ -62,6 +62,8 @@ to publish without deploying:
 ./infra/scripts/publish-backend-image.sh
 ```
 
+Publish the frontend (build, upload to S3, CloudFront invalidation) with `./infra/scripts/publish-frontend.sh`.
+
 ## Running locally
 
 ### 1. Database
