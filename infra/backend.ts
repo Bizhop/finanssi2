@@ -452,6 +452,8 @@ export function createBackend(
         provider,
         dependsOn: [instanceProfile, ssmPolicy, backendAccessPolicy, elasticIp],
         deleteBeforeReplace: true,
+        // Take AL2023 releases deliberately (pulumi up --replace) instead of replacing the host on a routine update.
+        ignoreChanges: ["ami"],
     })
 
     return { instance, elasticIp, repository, hostLogGroup, applicationLogGroup }
