@@ -9,6 +9,7 @@ import fi.bizhop.finanssi2.game.db.GameStatus;
 import fi.bizhop.finanssi2.game.engine.GameEvent;
 import fi.bizhop.finanssi2.game.engine.GameSetup;
 import fi.bizhop.finanssi2.game.engine.LoanLimit;
+import fi.bizhop.finanssi2.game.engine.PendingDecision;
 import fi.bizhop.finanssi2.game.engine.PlayerState;
 import fi.bizhop.finanssi2.game.engine.ScriptedDice;
 import fi.bizhop.finanssi2.game.data.GameData;
@@ -132,6 +133,22 @@ class GameControllerTest {
         assertEquals(2, game.get("state").get("turnOrder").size());
         assertEquals(75_000, game.get("state").get("players").get(0).get("cash").asInt());
         assertFalse(game.get("state").has("financeNewsDeck"));
+    }
+
+    @Test
+    void testGameViewCarriesNeitherDeckOrderNorSealedBids() {
+        var game = running();
+        game.getState().getPendingDecisions().add(new PendingDecision.BondAuction("a", List.of("a", "b"), 0,
+                List.of(new PendingDecision.Bid("b", 2_000))));
+        game.getState().getPendingDecisions().add(new PendingDecision.AssetAuction("a", "P:3", 1_000, List.of("a", "b"), 0,
+                List.of(new PendingDecision.Bid("b", 3_000))));
+        assertFalse(game.getState().getFinanceNewsDeck().isEmpty());
+
+        var view = get("/" + GAME_ID, "a").getBody().toString();
+
+        assertTrue(view.contains("BondAuction") && view.contains("AssetAuction"), view);
+        assertFalse(view.contains("financeNewsDeck") || view.contains("stockTipDeck"), view);
+        assertFalse(view.contains("bids"), view);
     }
 
     @Test

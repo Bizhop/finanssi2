@@ -30,6 +30,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.springframework.boot:spring-boot-starter-websocket'
+	// JSONB persistence uses Jackson 2 (the web layer uses Jackson 3); declared here rather than relying on firebase-admin to bring it in
+	implementation 'com.fasterxml.jackson.core:jackson-databind'
 	implementation 'com.google.firebase:firebase-admin:9.11.0'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'

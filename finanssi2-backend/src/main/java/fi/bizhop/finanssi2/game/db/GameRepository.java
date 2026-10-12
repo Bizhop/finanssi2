@@ -18,7 +18,8 @@ import java.util.UUID;
 @Repository
 @RequiredArgsConstructor
 public class GameRepository {
-    final JsonMapper persistenceJsonMapper;
+    // Private on purpose: this mapper writes the persisted state, including deck order and sealed bids that API views must never carry.
+    private final JsonMapper persistenceJsonMapper = JsonMapper.builder().build();
     @Qualifier("persistenceEventMapper") final ObjectMapper persistenceEventMapper;
     @PersistenceContext EntityManager entityManager;
 
