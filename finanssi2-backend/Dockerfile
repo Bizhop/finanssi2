@@ -18,6 +18,6 @@ COPY --from=build /workspace/certs/rds-global-bundle.pem /etc/ssl/certs/aws-rds-
 COPY --from=build --chown=10001:10001 /workspace/app.jar /app/app.jar
 USER 10001:10001
 
-ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=50.0"
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=40.0 -XX:+ExitOnOutOfMemoryError"
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

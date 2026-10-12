@@ -12,6 +12,7 @@ aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS 
 docker pull "$IMAGE_REF"
 exec docker run --rm --name finanssi2 \
     --memory=1280m --pids-limit=512 \
+    --cap-drop=ALL --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,noexec,nosuid,size=128m \
     --log-driver=awslogs \
     --log-opt awslogs-region="$AWS_REGION" \
     --log-opt awslogs-group=__APPLICATION_LOG_GROUP__ \
@@ -19,7 +20,6 @@ exec docker run --rm --name finanssi2 \
     --log-opt awslogs-stream="$(cat /var/lib/cloud/data/instance-id)/finanssi2-backend" \
     --publish 127.0.0.1:8080:8080 \
     --env SPRING_PROFILES_ACTIVE=prod \
-    --env JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=40.0 \
     --env FINANSSI_ALLOWED_ORIGIN="$ALLOWED_ORIGIN" \
     --env FINANSSI_DEBUG_ALLOWED_EMAILS="$DEBUG_ALLOWED_EMAILS" \
     --env GOOGLE_APPLICATION_CREDENTIALS=/run/finanssi2/config/firebase-admin.json \
