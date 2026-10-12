@@ -1,6 +1,6 @@
 import { assertEquals } from "@std/assert"
 import type { GameBoardData } from "./gameApi.ts"
-import { describeEvent, GameLogEntry } from "./gameEvents.ts"
+import { describeEvent, type GameLogEntry } from "./gameEvents.ts"
 
 const board = {
     squares: [{ square: 5, name: "Maalaamo", type: "PROPERTY", group: "KASITEOLLISUUS", price: 20000, text: null }],

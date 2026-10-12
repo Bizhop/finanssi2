@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from "react"
 import { Alert, Avatar, Box, Button, Divider, IconButton, List, ListItem, ListItemAvatar, ListItemText, Paper, Stack, Tooltip, Typography } from "@mui/material"
-import { User } from "firebase/auth"
+import type { User } from "firebase/auth"
 import { z } from "zod/mini"
-import { SubmitHandler, useForm } from "react-hook-form"
+import { type SubmitHandler, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import SendIcon from "@mui/icons-material/Send"
 
 import { InputField } from "./FormInput.tsx"
 import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
 import { avatarSrc, gameApi, GameApiError } from "./gameApi.ts"
-import { PublicProfile, usePublicProfiles } from "./CurrentUserContext.tsx"
+import { type PublicProfile, usePublicProfiles } from "./CurrentUserContext.tsx"
 
 const ChatMessageSchema = z.object({
     id: z.string(),

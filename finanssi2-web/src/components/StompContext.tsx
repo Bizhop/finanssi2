@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react"
+import { createContext, type ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { Client } from "@stomp/stompjs"
 
 /** The current STOMP connection; a new value (and new subscriptions) for every connect */
@@ -19,7 +19,7 @@ type StompProviderProps = {
     enabled: boolean
     /** Called before every (re)connect, sent as the Authorization: Bearer header of the CONNECT frame */
     getAccessToken: () => Promise<string>
-    children: React.ReactNode
+    children: ReactNode
 }
 
 export const StompProvider = ({ url, enabled, getAccessToken, children }: StompProviderProps) => {

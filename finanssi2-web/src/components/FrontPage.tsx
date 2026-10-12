@@ -13,7 +13,7 @@ import {
     updateProfile,
     validatePassword,
 } from "firebase/auth"
-import { AuthCredential } from "firebase/auth"
+import type { AuthCredential } from "firebase/auth"
 import Chat from "./Chat.tsx"
 import { auth } from "./firebase.ts"
 import { useCurrentUser } from "./CurrentUserContext.tsx"

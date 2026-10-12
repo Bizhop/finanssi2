@@ -62,7 +62,8 @@ try {
     await waitForServer()
     const browser = await chromium.launch({ executablePath: await browserPath() })
     const context = await browser.newContext({ viewport: { width: 1400, height: 900 } })
-    for (const page of pages) {
+    // Vite may re-optimize dependencies while the first pages load, which breaks a page once; a second attempt is a fair check
+    const check = async (page: string) => {
         const problems: string[] = []
         const tab = await context.newPage()
         tab.on("pageerror", (error) => problems.push(`script error: ${error.message}`))
@@ -79,6 +80,11 @@ try {
         if (/Sign in to/i.test(text)) problems.push("the page rendered signed out")
         if (/No mock for/.test(text)) problems.push("a request had no mock")
         await tab.close()
+        return problems
+    }
+    for (const page of pages) {
+        let problems = await check(page)
+        if (problems.length) problems = await check(page)
         console.log(`${problems.length ? "FAIL" : "ok  "} ${page}`)
         problems.forEach((problem) => {
             console.log(`       ${problem}`)

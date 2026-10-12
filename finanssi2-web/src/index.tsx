@@ -1,4 +1,4 @@
-import React from "react"
+import type { ReactNode } from "react"
 import ReactDOM from "react-dom/client"
 import { BrowserRouter } from "react-router"
 
@@ -17,7 +17,7 @@ z.config(en())
 const stompUrl = `${import.meta.env.VITE_FINANSSI_API_URL.replace(/^http/, "ws")}/ws`
 
 // The websocket is open only while a user is logged in, authenticated with their Firebase ID token
-const StompConnection = ({ children }: { children: React.ReactNode }) => {
+const StompConnection = ({ children }: { children: ReactNode }) => {
     const { user, profile, status } = useCurrentUser()
     return (
         <StompProvider

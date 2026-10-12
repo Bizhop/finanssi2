@@ -1,4 +1,4 @@
-import React from "react"
+import type { JSX } from "react"
 import { Box, Grid, IconButton, Tooltip } from "@mui/material"
 import { NavLink } from "react-router"
 import HomeIcon from "@mui/icons-material/Home"
@@ -12,7 +12,7 @@ import { useCurrentUser } from "./CurrentUserContext.tsx"
 type TMyNavLinkProps = {
     to: string
     label: string
-    icon: React.JSX.Element
+    icon: JSX.Element
 }
 
 const MyNavLink = ({ to, label, icon }: TMyNavLinkProps) => (

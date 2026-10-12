@@ -25,7 +25,7 @@ import AddIcon from "@mui/icons-material/Add"
 import { useCurrentUser, usePublicProfiles } from "./CurrentUserContext.tsx"
 import { useStompConnected, useStompSubscription } from "./StompContext.tsx"
 import { errorToast } from "./toasts.ts"
-import { avatarSrc, Game, gameApi, GameApiError } from "./gameApi.ts"
+import { avatarSrc, type Game, gameApi, GameApiError } from "./gameApi.ts"
 
 const Games = () => {
     const { user, profile, debugMode, refreshCapabilities, clearDebugAccess } = useCurrentUser()

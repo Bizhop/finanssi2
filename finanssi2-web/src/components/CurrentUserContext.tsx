@@ -1,5 +1,5 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react"
-import { onIdTokenChanged, reload, User } from "firebase/auth"
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react"
+import { onIdTokenChanged, reload, type User } from "firebase/auth"
 import { auth } from "./firebase.ts"
 import { gameApi } from "./gameApi.ts"
 
@@ -16,7 +16,7 @@ export type AuthStatus = "initializing" | "signedOut" | "verificationRequired" |
 export type PublicProfile = { id: string; displayName: string; avatar: string | null }
 
 export const CurrentUserContext = createContext<UserState | null>(null)
-type CurrentUserProviderProps = { children: React.ReactNode }
+type CurrentUserProviderProps = { children: ReactNode }
 export type UserState = {
     user: User | null
     profile: UserProfile | null

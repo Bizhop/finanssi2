@@ -1,5 +1,5 @@
 import { Alert, Stack, TextField } from "@mui/material"
-import { Control, FieldError, FieldPath, FieldValues, useController } from "react-hook-form"
+import { type Control, type FieldError, type FieldPath, type FieldValues, useController } from "react-hook-form"
 
 type InputFieldProps<T extends FieldValues> = {
     control: Control<T>
