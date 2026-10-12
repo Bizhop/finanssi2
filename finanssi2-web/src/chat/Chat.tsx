@@ -1,33 +1,16 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 import { Alert, Avatar, Box, Button, Divider, IconButton, List, ListItem, ListItemAvatar, ListItemText, Paper, Stack, Tooltip, Typography } from "@mui/material"
 import type { User } from "firebase/auth"
-import { z } from "zod/mini"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import SendIcon from "@mui/icons-material/Send"
 
 import { InputField } from "../ui/InputField.tsx"
-import { useStompConnected, useStompSubscription } from "../realtime/StompContext.tsx"
-import { avatarSrc, gameApi, GameApiError } from "../api/gameApi.ts"
+import { avatarSrc } from "../api/gameApi.ts"
 import { type PublicProfile, usePublicProfiles } from "../auth/PublicProfiles.tsx"
 import { formatDateTime } from "../ui/format.ts"
-
-const ChatMessageSchema = z.object({
-    id: z.string(),
-    userId: z.string(),
-    message: z.string(),
-    timestamp: z.number(),
-})
-
-const ChatMessageSchemaArray = z.array(ChatMessageSchema)
-
-type ChatMessage = z.infer<typeof ChatMessageSchema>
-
-const NewChatMessageSchema = z.object({
-    message: z.string().check(z.minLength(1), z.maxLength(100)),
-})
-
-type NewChatMessage = z.infer<typeof NewChatMessageSchema>
+import { type ChatMessage, type NewChatMessage, NewChatMessageSchema } from "./chatHistory.ts"
+import { useChatHistory } from "./useChatHistory.ts"
 
 type ChatProps = {
     user: User
@@ -38,126 +21,17 @@ type ChatProps = {
     expanded?: boolean
 }
 
-const PAGE_SIZE = 20
-
-// Union by id, newest first. Chat ids are fixed-width decimal strings, so lexical order matches database identity order.
-const mergeMessages = (messages: ChatMessage[], moreMessages: ChatMessage[]) =>
-    [...new Map([...messages, ...moreMessages].map((message) => [message.id, message])).values()]
-        .sort((a, b) => a.id < b.id ? 1 : a.id > b.id ? -1 : 0)
-
 export const Chat = ({ user, gameId, embedded = false, compact = false, canSend = true, expanded = true }: ChatProps) => {
-    const path = gameId ? `/api/games/${gameId}/chat` : "/api/chat"
-    const topic = gameId ? `/topic/games/${gameId}/chat` : "/topic/chat"
-    // Newest first, like the backend returns them. The list is rendered with column-reverse, which shows them oldest at the top
-    // and keeps the view anchored to the bottom (newest message) without any scrolling code.
-    const [messages, setMessages] = useState<ChatMessage[]>([])
+    const { messages, hasOlderMessages, loadingOlder, error, connected, loadOlderMessages, sendMessage } = useChatHistory(user, gameId)
     const profiles = usePublicProfiles(messages.map((message) => message.userId))
-    const [hasOlderMessages, setHasOlderMessages] = useState(true)
-    const [loadingOlder, setLoadingOlder] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-    const loadingOlderMessages = useRef(false)
-    // For async callbacks that need the messages at the time they complete
-    const messagesRef = useRef(messages)
-    useEffect(() => {
-        messagesRef.current = messages
-    }, [messages])
     const { control, handleSubmit, formState: { errors, isDirty, isSubmitting, isValid }, reset } = useForm<NewChatMessage>({
         resolver: zodResolver(NewChatMessageSchema),
         mode: "all",
         defaultValues: { message: "" },
     })
-
-    // The newest messages, or with a message id, the ones before it
-    const fetchPage = (before?: string) => {
-        const params = new URLSearchParams({ size: String(PAGE_SIZE) })
-        if (before) params.set("before", before)
-        return gameApi<ChatMessage[]>(user, `${path}?${params}`).then((response) => ChatMessageSchemaArray.parse(response))
-    }
-
-    // Loads the page before the oldest loaded message; with nothing loaded yet, the newest page
-    const loadOlderMessages = () => {
-        if (loadingOlderMessages.current || !hasOlderMessages) return
-        loadingOlderMessages.current = true
-        setLoadingOlder(true)
-
-        fetchPage(messages.at(-1)?.id)
-            .then((page) => {
-                // Cleared before the state updates, so the re-render can already trigger the next load
-                loadingOlderMessages.current = false
-                setLoadingOlder(false)
-                // Merged, as the same messages can also come from the websocket or from refreshNewestMessages
-                setMessages((prevMessages) => mergeMessages(prevMessages, page))
-                setHasOlderMessages(page.length === PAGE_SIZE)
-            })
-            .catch((error) => {
-                // No automatic retry: the next attempt comes when the user scrolls or a message arrives
-                loadingOlderMessages.current = false
-                setLoadingOlder(false)
-                if (error instanceof GameApiError && (error.status === 403 || error.status === 404)) setMessages([])
-                setError(error instanceof Error ? error.message : "Could not load chat history.")
-                console.error(error)
-            })
-    }
-
     const sendChatMessage: SubmitHandler<NewChatMessage> = async (data) => {
-        setError(null)
-        try {
-            const saved = await gameApi<ChatMessage | undefined>(user, path, { method: "POST", body: JSON.stringify(data) })
-            if (saved) setMessages((current) => mergeMessages(current, [ChatMessageSchema.parse(saved)]))
-            reset()
-        } catch (reason) {
-            setError(
-                reason instanceof GameApiError && (reason.status === 403 || reason.status === 404)
-                    ? "Chat access changed. Return to the games list and reopen this game."
-                    : reason instanceof Error
-                    ? reason.message
-                    : "Message could not be sent. Your draft is still here.",
-            )
-        }
+        if (await sendMessage(data)) reset()
     }
-
-    const receiveMessage = (jsonString: string) => {
-        let parsedObject: unknown
-        try {
-            parsedObject = JSON.parse(jsonString)
-        } catch {
-            return // not a message this client understands; the next page load picks up whatever was missed
-        }
-        const safeParsed = ChatMessageSchema.safeParse(parsedObject)
-
-        if (safeParsed.success) {
-            // A message posted while a page was loading can arrive both in the page and over the websocket
-            setMessages((prevMessages) => mergeMessages(prevMessages, [safeParsed.data]))
-        }
-    }
-
-    useStompSubscription(topic, receiveMessage)
-
-    // Messages sent while the websocket was down (or before it first connected) never arrive over it, so fetch the newest page after every connect
-    const refreshNewestMessages = () =>
-        fetchPage()
-            .then((page) => {
-                const newestKnown = messagesRef.current[0]
-                // Nothing in common with the loaded messages: more were missed than fit a page, so continue loading older ones from this page instead
-                const missedMoreThanPage = newestKnown !== undefined && page.length === PAGE_SIZE && page.at(-1)!.id > newestKnown.id
-                if (missedMoreThanPage) {
-                    const oldestInPage = page.at(-1)!.id
-                    setMessages((prevMessages) => mergeMessages(page, prevMessages.filter((message) => message.id > oldestInPage)))
-                    setHasOlderMessages(true)
-                } else {
-                    setMessages((prevMessages) => mergeMessages(prevMessages, page))
-                }
-            })
-            .catch((reason) => {
-                if (reason instanceof GameApiError && (reason.status === 403 || reason.status === 404)) setMessages([])
-                setError(reason instanceof Error ? reason.message : "Could not load chat history.")
-                console.error(reason)
-            })
-
-    const connected = useStompConnected()
-    useEffect(() => {
-        if (connected) refreshNewestMessages()
-    }, [connected])
 
     // Load history as the top sentinel enters the scroll area. The compact list only loads while it overflows,
     // so a tall panel does not fetch the entire history just because the sentinel is initially visible.

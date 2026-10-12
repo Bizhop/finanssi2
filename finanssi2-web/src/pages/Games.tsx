@@ -1,13 +1,8 @@
-import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react"
-import { useNavigate } from "react-router"
+import { useState } from "react"
 import {
     Alert,
-    Avatar,
     Box,
     Button,
-    Card,
-    CardActions,
-    CardContent,
     CircularProgress,
     Dialog,
     DialogActions,
@@ -24,149 +19,62 @@ import AddIcon from "@mui/icons-material/Add"
 
 import { useCurrentUser } from "../auth/CurrentUserContext.tsx"
 import { usePublicProfiles } from "../auth/PublicProfiles.tsx"
-import { useStompConnected, useStompSubscription } from "../realtime/StompContext.tsx"
-import { errorToast } from "../ui/toasts.ts"
-import { avatarSrc, type Game, gameApi, GameApiError } from "../api/gameApi.ts"
+import type { Game } from "../api/gameApi.ts"
+import { CloseGameDialog } from "./games/CloseGameDialog.tsx"
+import { GameCard } from "./games/GameCard.tsx"
+import { RuleSettings } from "./games/RuleSettings.tsx"
+import { useGames } from "./games/useGames.ts"
+
+const DEFAULT_RULES = { loanLimit: "UNLIMITED", compulsorySaleMinimumBid: "HALF_NOMINAL_PRICE", shareholdersMeeting: "ALL_ASSETS_BOUGHT" }
 
 export const Games = () => {
-    const { user, profile, debugMode, refreshProfile, clearDebugAccess } = useCurrentUser()
-    const userRef = useRef(user)
-    // For async callbacks that must ignore results once the user has changed
-    useEffect(() => {
-        userRef.current = user
-    }, [user])
-    const requestRef = useRef(0)
-    const busyRef = useRef(false)
-    const connected = useStompConnected()
-    const navigate = useNavigate()
-    const [games, setGames] = useState<Game[]>([])
-    const profiles = usePublicProfiles(games.flatMap((game) => game.state.players.map((player) => player.playerId)))
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
-    const [settingsGame, setSettingsGame] = useState<Game | null>(null)
-    const [loanLimit, setLoanLimit] = useState("UNLIMITED")
-    const [minimumBid, setMinimumBid] = useState("HALF_NOMINAL_PRICE")
-    const [meetingRule, setMeetingRule] = useState("ALL_ASSETS_BOUGHT")
+    const { user, profile, debugMode } = useCurrentUser()
     const [debugCreateOpen, setDebugCreateOpen] = useState(false)
+    const games = useGames(() => setDebugCreateOpen(false))
+    const profiles = usePublicProfiles(games.games.flatMap((game) => game.state.players.map((player) => player.playerId)))
+    const { busy } = games
+    const [settingsGame, setSettingsGame] = useState<Game | null>(null)
+    const [loanLimit, setLoanLimit] = useState(DEFAULT_RULES.loanLimit)
+    const [minimumBid, setMinimumBid] = useState(DEFAULT_RULES.compulsorySaleMinimumBid)
+    const [meetingRule, setMeetingRule] = useState(DEFAULT_RULES.shareholdersMeeting)
     const [playerCount, setPlayerCount] = useState(2)
-    const [busyGame, setBusyGame] = useState<string | null>(null)
     // Creator controls that remove a game from play: ending a running game, or deleting a debug game
     const [closing, setClosing] = useState<{ game: Game; action: "end" | "delete" } | null>(null)
 
-    const refresh = useCallback(() => {
-        if (!user) return Promise.resolve()
-        const request = ++requestRef.current
-        return gameApi<Game[]>(user, "/api/games")
-            .then((items) => {
-                if (userRef.current !== user || request !== requestRef.current) return
-                setGames(items)
-                setError(null)
-            })
-            .catch((reason: unknown) => {
-                if (userRef.current === user && request === requestRef.current) setError(reason instanceof Error ? reason.message : "Unable to load games")
-            })
-            .finally(() => {
-                if (userRef.current === user && request === requestRef.current) setLoading(false)
-            })
-    }, [user])
+    const rules = () => ({ loanLimit, compulsorySaleMinimumBid: minimumBid, shareholdersMeeting: meetingRule })
 
-    // Load on mount, and again on every (re)connect: list changes sent while the websocket was down never arrive over it. The app remounts
-    // this per account, so no state needs resetting when the user changes.
-    const load = useEffectEvent(() => {
-        void refresh()
-        if (connected) void refreshProfile()
-    })
-    useEffect(() => {
-        load()
-    }, [connected, user])
-
-    useStompSubscription("/topic/games", () => void refresh())
-
-    /** Runs an action and reloads the list; resolves to whether the action succeeded, so dialogs only close on success */
-    const run = async (id: string | null, action: () => Promise<unknown>, then?: (value: unknown) => void): Promise<boolean> => {
-        if (busyRef.current) return false
-        busyRef.current = true
-        setBusyGame(id ?? "new")
-        try {
-            const result = await action()
-            if (userRef.current !== user) return false
-            then?.(result)
-            await refresh()
-            return true
-        } catch (reason) {
-            if (reason instanceof GameApiError && reason.status === 403) {
-                clearDebugAccess()
-                setDebugCreateOpen(false)
-            }
-            errorToast(reason instanceof Error ? reason.message : "The request failed")
-            return false
-        } finally {
-            busyRef.current = false
-            setBusyGame(null)
-        }
-    }
-
-    const createGame = () => {
-        if (!user) return
-        void run(null, () => gameApi<Game>(user, "/api/games", { method: "POST" }))
+    const openDebugCreate = () => {
+        setLoanLimit(DEFAULT_RULES.loanLimit)
+        setMinimumBid(DEFAULT_RULES.compulsorySaleMinimumBid)
+        setMeetingRule(DEFAULT_RULES.shareholdersMeeting)
+        setDebugCreateOpen(true)
     }
 
     const createDebug = () => {
-        if (!user) return
-        void run(null, () =>
-            gameApi<Game>(user, "/api/debug/games", {
-                method: "POST",
-                body: JSON.stringify({ playerCount, settings: { loanLimit, compulsorySaleMinimumBid: minimumBid, shareholdersMeeting: meetingRule } }),
-            })).then((ok) => {
-                if (ok) setDebugCreateOpen(false)
-            })
-    }
-
-    const joinGame = (game: Game) => {
-        if (!user) return
-        void run(game.id, () => gameApi(user, `/api/games/${game.id}/join`, { method: "POST" }), () => navigate(`/games/${game.id}`))
-    }
-
-    const leaveGame = (game: Game) => {
-        if (!user) return
-        void run(game.id, () => gameApi(user, `/api/games/${game.id}/leave`, { method: "POST" }))
-    }
-
-    const startGame = (game: Game) => {
-        if (!user) return
-        void run(game.id, () => gameApi(user, `/api/games/${game.id}/start`, { method: "POST" }), () => navigate(`/games/${game.id}`))
-    }
-
-    const closeGame = () => {
-        if (!user || !closing) return
-        const { game, action } = closing
-        setClosing(null)
-        void run(
-            game.id,
-            () =>
-                action === "delete"
-                    ? gameApi<void>(user, `/api/debug/games/${game.id}`, { method: "DELETE" })
-                    : gameApi(user, `/api/games/${game.id}/commands`, { method: "POST", body: JSON.stringify({ type: "EndGame" }) }),
-        )
+        void games.createDebugGame(playerCount, rules()).then((ok) => {
+            if (ok) setDebugCreateOpen(false)
+        })
     }
 
     const openSettings = (game: Game) => {
         setLoanLimit(game.state.settings.loanLimit)
         setMinimumBid(game.state.settings.compulsorySaleMinimumBid)
-        setMeetingRule(game.state.settings.shareholdersMeeting ?? "ALL_ASSETS_BOUGHT")
+        setMeetingRule(game.state.settings.shareholdersMeeting ?? DEFAULT_RULES.shareholdersMeeting)
         setSettingsGame(game)
     }
 
     const saveSettings = () => {
-        if (!user || !settingsGame) return
-        const game = settingsGame
-        void run(game.id, () =>
-            gameApi(user, `/api/games/${game.id}/settings`, {
-                method: "PUT",
-                body: JSON.stringify({ loanLimit, compulsorySaleMinimumBid: minimumBid, shareholdersMeeting: meetingRule }),
-            })).then((ok) => {
-                if (ok) setSettingsGame(null)
-            })
+        if (!settingsGame) return
+        void games.saveSettings(settingsGame, rules()).then((ok) => {
+            if (ok) setSettingsGame(null)
+        })
+    }
+
+    const closeGame = () => {
+        if (!closing) return
+        const { game, action } = closing
+        setClosing(null)
+        void games.closeGame(game, action)
     }
 
     if (!user) return <Alert severity="info" sx={{ mt: 2 }}>Sign in to create or join a game.</Alert>
@@ -176,123 +84,38 @@ export const Games = () => {
             <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
                 <Typography variant="h5">Games</Typography>
                 <Stack direction="row" spacing={1}>
-                    {debugMode && (
-                        <Button
-                            disabled={busyGame !== null}
-                            onClick={() => {
-                                setLoanLimit("UNLIMITED")
-                                setMinimumBid("HALF_NOMINAL_PRICE")
-                                setMeetingRule("ALL_ASSETS_BOUGHT")
-                                setDebugCreateOpen(true)
-                            }}
-                        >
-                            Create debug game
-                        </Button>
-                    )}
-                    <Button variant="contained" startIcon={<AddIcon />} disabled={busyGame !== null} onClick={createGame}>
+                    {debugMode && <Button disabled={busy} onClick={openDebugCreate}>Create debug game</Button>}
+                    <Button variant="contained" startIcon={<AddIcon />} disabled={busy} onClick={() => void games.createGame()}>
                         Create game
                     </Button>
                 </Stack>
             </Stack>
-            {error && <Alert severity="error" action={<Button color="inherit" onClick={() => void refresh()}>Retry</Button>}>{error}</Alert>}
-            {loading
+            {games.error && <Alert severity="error" action={<Button color="inherit" onClick={() => void games.refresh()}>Retry</Button>}>{games.error}</Alert>}
+            {games.loading
                 ? (
                     <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
                         <CircularProgress />
                     </Box>
                 )
-                : games.length === 0
+                : games.games.length === 0
                 ? <Alert severity="info">No games yet. Create one to start playing.</Alert>
                 : (
                     <Stack spacing={1.5}>
-                        {games.filter((game) => game.mode !== "DEBUG" || debugMode).map((game) => {
-                            const member = game.state.players.some((player) => player.playerId === profile?.id)
-                            const creator = game.creator === profile?.id
-                            return (
-                                <Card key={game.id} variant="outlined">
-                                    <CardContent>
-                                        <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ justifyContent: "space-between" }}>
-                                            <Box>
-                                                <Typography variant="h6">{game.mode === "DEBUG" ? "Debug game" : "Game"} {game.id.slice(-6)}</Typography>
-                                                <Typography variant="body2" color="text.secondary">
-                                                    {game.status === "LOBBY" ? "Waiting for players" : game.status === "RUNNING" ? "In progress" : "Finished"}
-                                                    {creator
-                                                        ? " · You are the creator"
-                                                        : ` · Created by ${profiles[game.creator]?.displayName ?? "another player"}`}
-                                                </Typography>
-                                            </Box>
-                                            <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
-                                                {game.state.players.map((player) => (
-                                                    <Avatar
-                                                        key={player.playerId}
-                                                        src={avatarSrc(profiles[player.playerId]?.avatar)}
-                                                        alt={profiles[player.playerId]?.displayName ?? "Player"}
-                                                        sx={{ width: 32, height: 32 }}
-                                                    >
-                                                        {(profiles[player.playerId]?.displayName ?? "?").slice(0, 1)}
-                                                    </Avatar>
-                                                ))}
-                                                <Typography variant="caption">
-                                                    {game.state.players.length} player{game.state.players.length === 1 ? "" : "s"}
-                                                </Typography>
-                                            </Stack>
-                                        </Stack>
-                                    </CardContent>
-                                    <CardActions>
-                                        {game.mode !== "DEBUG" && game.status === "LOBBY" && !member && (
-                                            <Button
-                                                disabled={busyGame !== null}
-                                                onClick={() => joinGame(game)}
-                                            >
-                                                Join
-                                            </Button>
-                                        )}
-                                        {game.status === "LOBBY" && member && creator && (
-                                            <>
-                                                <Button disabled={busyGame !== null} onClick={() => openSettings(game)}>Settings</Button>
-                                                <Button disabled={busyGame !== null || game.state.players.length < 2} onClick={() => startGame(game)}>
-                                                    Start
-                                                </Button>
-                                                {game.mode !== "DEBUG" && <Button disabled={busyGame !== null} onClick={() => leaveGame(game)}>Leave</Button>}
-                                            </>
-                                        )}
-                                        {game.mode !== "DEBUG" && game.status === "LOBBY" && member && !creator && (
-                                            <Button
-                                                disabled={busyGame !== null}
-                                                onClick={() => leaveGame(game)}
-                                            >
-                                                Leave
-                                            </Button>
-                                        )}
-                                        {member && (game.status !== "LOBBY" || game.mode === "DEBUG") && (
-                                            <Button onClick={() => navigate(`/games/${game.id}`)}>
-                                                {game.status === "FINISHED" ? "Results" : "Open game"}
-                                            </Button>
-                                        )}
-                                        {/* Creator controls that close the game sit apart on the right */}
-                                        <Box sx={{ flex: 1 }} />
-                                        {creator && game.mode !== "DEBUG" && game.status === "RUNNING" && (
-                                            <Button
-                                                color="error"
-                                                disabled={busyGame !== null}
-                                                onClick={() => setClosing({ game, action: "end" })}
-                                            >
-                                                End game
-                                            </Button>
-                                        )}
-                                        {creator && game.mode === "DEBUG" && (
-                                            <Button
-                                                color="error"
-                                                disabled={busyGame !== null}
-                                                onClick={() => setClosing({ game, action: "delete" })}
-                                            >
-                                                Delete
-                                            </Button>
-                                        )}
-                                    </CardActions>
-                                </Card>
-                            )
-                        })}
+                        {games.games.filter((game) => game.mode !== "DEBUG" || debugMode).map((game) => (
+                            <GameCard
+                                key={game.id}
+                                game={game}
+                                viewerId={profile?.id}
+                                profiles={profiles}
+                                busy={busy}
+                                onJoin={() => void games.joinGame(game)}
+                                onLeave={() => void games.leaveGame(game)}
+                                onStart={() => void games.startGame(game)}
+                                onSettings={() => openSettings(game)}
+                                onOpen={games.open(game)}
+                                onClose={(action) => setClosing({ game, action })}
+                            />
+                        ))}
                     </Stack>
                 )}
             <Dialog open={debugMode && debugCreateOpen} onClose={() => setDebugCreateOpen(false)} fullWidth maxWidth="sm">
@@ -322,21 +145,10 @@ export const Games = () => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setDebugCreateOpen(false)}>Cancel</Button>
-                    <Button disabled={busyGame !== null} onClick={createDebug}>Create</Button>
+                    <Button disabled={busy} onClick={createDebug}>Create</Button>
                 </DialogActions>
             </Dialog>
-            <Dialog open={closing !== null} onClose={() => setClosing(null)}>
-                <DialogTitle>{closing?.action === "delete" ? "Delete this debug game?" : "End this game?"}</DialogTitle>
-                <DialogContent>
-                    {closing?.action === "delete" ? "This removes the game and all its history." : "The game will be closed without a winner."}
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setClosing(null)}>Cancel</Button>
-                    <Button variant="contained" color="error" disabled={busyGame !== null} onClick={closeGame}>
-                        {closing?.action === "delete" ? "Delete" : "End game"}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            <CloseGameDialog action={closing?.action ?? null} busy={busy} onCancel={() => setClosing(null)} onConfirm={closeGame} />
             <Dialog open={settingsGame !== null} onClose={() => setSettingsGame(null)} fullWidth maxWidth="sm">
                 <DialogTitle>Game settings</DialogTitle>
                 <DialogContent>
@@ -353,49 +165,9 @@ export const Games = () => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setSettingsGame(null)}>Cancel</Button>
-                    <Button variant="contained" disabled={busyGame !== null} onClick={saveSettings}>Save</Button>
+                    <Button variant="contained" disabled={busy} onClick={saveSettings}>Save</Button>
                 </DialogActions>
             </Dialog>
         </Stack>
     )
 }
-
-const RECOMMENDED = "(recommended)"
-const ORIGINAL = "(original)"
-
-/** The game's rule options: the recommended ones are the defaults, the original printed rules stay available for legacy play */
-const RuleSettings = ({ loanLimit, setLoanLimit, minimumBid, setMinimumBid, meetingRule, setMeetingRule }: {
-    loanLimit: string
-    setLoanLimit: (value: string) => void
-    minimumBid: string
-    setMinimumBid: (value: string) => void
-    meetingRule: string
-    setMeetingRule: (value: string) => void
-}) => (
-    <>
-        <FormControl fullWidth>
-            <InputLabel id="loan-limit-label">Bank loans</InputLabel>
-            <Select labelId="loan-limit-label" label="Bank loans" value={loanLimit} onChange={(event) => setLoanLimit(event.target.value)}>
-                <MenuItem value="UNLIMITED">Unlimited {RECOMMENDED}</MenuItem>
-                <MenuItem value="OFFICIAL">6 in total {ORIGINAL}</MenuItem>
-            </Select>
-        </FormControl>
-        <FormControl fullWidth>
-            <InputLabel id="sale-minimum-label">Forced sale minimum bid</InputLabel>
-            <Select labelId="sale-minimum-label" label="Forced sale minimum bid" value={minimumBid} onChange={(event) => setMinimumBid(event.target.value)}>
-                <MenuItem value="HALF_NOMINAL_PRICE">Half the nominal price {RECOMMENDED}</MenuItem>
-                <MenuItem value="NONE">No minimum {ORIGINAL}</MenuItem>
-            </Select>
-        </FormControl>
-        <FormControl fullWidth>
-            <InputLabel id="meeting-rule-label">Shareholders' meetings</InputLabel>
-            <Select labelId="meeting-rule-label" label="Shareholders' meetings" value={meetingRule} onChange={(event) => setMeetingRule(event.target.value)}>
-                <MenuItem value="ALL_ASSETS_BOUGHT">Whole group bought from the bank {RECOMMENDED}</MenuItem>
-                <MenuItem value="ANY_OTHER_OWNER">Any group with another owner {ORIGINAL}</MenuItem>
-            </Select>
-        </FormControl>
-        <Typography variant="caption" color="text.secondary">
-            Recommended rules are the defaults. Original rules follow the printed game and are kept for legacy play, though some of them play poorly.
-        </Typography>
-    </>
-)

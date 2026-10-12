@@ -1,5 +1,6 @@
 import type { Game, GameBoardData } from "../../api/gameApi.ts"
 import { formatEuro } from "../../ui/format.ts"
+import { STOCK_TIP } from "../rules/stockTipCards.ts"
 
 export const validAuctionBid = (input: string, cash: number, minimum: number) => {
     const amount = Number(input)
@@ -19,27 +20,27 @@ export const decisionLabels = (game: Game, board: GameBoardData | null) => {
     const option = (card: string, value: string) => {
         const parts = value.split(":")
         switch (card) {
-            case "PV-10":
+            case STOCK_TIP.FIRE:
                 return `Burn buildings: ${value.split(",").map(property).join(" and ")}`
-            case "PV-17":
+            case STOCK_TIP.MOVE_TO_PROPERTY:
                 return `Move to ${property(value)}`
-            case "PV-24":
+            case STOCK_TIP.FREE_BOND:
                 return parts[0] === "B" ? `Take bond ${parts[1]} from the bank — free` : `Take bond ${parts[2]} from ${player(parts[1])} — free`
-            case "PV-26":
+            case STOCK_TIP.TRAVEL:
                 return value === "PAY" ? "Pay €25,000 to move to the bank entrance" : "Stay here"
-            case "PV-30":
+            case STOCK_TIP.JAIL_OR_BAIL:
                 return value === "JAIL" ? "Go to jail" : "Pay €30,000 bail"
-            case "PV-31": {
+            case STOCK_TIP.SELL_AT_NOMINAL: {
                 const deed = board?.titleDeeds.find((item) => item.square === Number(value))
                 const owned = game.state.properties.find((item) => item.square === Number(value))
                 const price = deed ? deed.price + (owned?.built ? deed.building?.price ?? 0 : 0) : null
                 return `Sell ${property(value)}${price === null ? "" : ` for ${formatEuro(price)}`}`
             }
-            case "PV-35":
+            case STOCK_TIP.TRANSFER_ASSET:
                 return `Transfer ${asset(value)} to your left neighbour for €10,000`
-            case "PV-36":
+            case STOCK_TIP.COMPULSORY_SALE:
                 return `Auction ${asset(value)}`
-            case "PV-38": {
+            case STOCK_TIP.SHARE_SWAP: {
                 if (value === "PASS") return "Keep your shares"
                 const [mine, other, theirs] = value.split("|")
                 return `Swap your ${share(mine)} for ${player(other)}'s ${share(theirs)}`
