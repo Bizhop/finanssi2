@@ -1,0 +1,21 @@
+#!/bin/bash
+set -euo pipefail
+source /etc/finanssi2/host.env
+IMAGE_REF=$(cat /etc/finanssi2/image-ref)
+aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REPOSITORY_URL"
+docker pull "$IMAGE_REF"
+exec docker run --rm --name finanssi2 \
+    --memory=1280m --pids-limit=512 \
+    --log-driver=awslogs \
+    --log-opt awslogs-region="$AWS_REGION" \
+    --log-opt awslogs-group=__APPLICATION_LOG_GROUP__ \
+    --log-opt awslogs-create-group=false \
+    --log-opt awslogs-stream="$(cat /var/lib/cloud/data/instance-id)/finanssi2-backend" \
+    --publish 127.0.0.1:8080:8080 \
+    --env SPRING_PROFILES_ACTIVE=prod \
+    --env JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=40.0 \
+    --env FINANSSI_ALLOWED_ORIGIN="$ALLOWED_ORIGIN" \
+    --env FINANSSI_DEBUG_ALLOWED_EMAILS="$DEBUG_ALLOWED_EMAILS" \
+    --env GOOGLE_APPLICATION_CREDENTIALS=/run/finanssi2/config/firebase-admin.json \
+    --mount type=bind,source=/run/finanssi2/config,target=/run/finanssi2/config,readonly \
+    "$IMAGE_REF"
