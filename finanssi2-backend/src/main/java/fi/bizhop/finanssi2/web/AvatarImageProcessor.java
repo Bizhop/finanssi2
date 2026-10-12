@@ -27,10 +27,10 @@ public class AvatarImageProcessor {
 
     public String process(MultipartFile file) {
         if (file == null || file.isEmpty()) throw invalid("Choose a JPEG or PNG image");
-        if (file.getSize() > MAX_INPUT_BYTES) throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Avatar input must be at most 2 MiB");
+        if (file.getSize() > MAX_INPUT_BYTES) throw new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE, "Avatar input must be at most 2 MiB");
         try {
             var bytes = file.getBytes();
-            if (bytes.length > MAX_INPUT_BYTES) throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Avatar input must be at most 2 MiB");
+            if (bytes.length > MAX_INPUT_BYTES) throw new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE, "Avatar input must be at most 2 MiB");
             var image = decode(bytes);
             var jpeg = encodeJpeg(centerCrop(image));
             if (jpeg.length > MAX_JPEG_BYTES) throw invalid("Image could not be compressed below 64 KiB");

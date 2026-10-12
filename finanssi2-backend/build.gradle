@@ -46,6 +46,10 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+tasks.withType(JavaCompile).configureEach {
+	options.compilerArgs += ['-Xlint:deprecation', '-Xlint:removal']
+}
+
 tasks.named('test') {
 	useJUnitPlatform {
 		excludeTags 'container', 'database'
