@@ -66,6 +66,20 @@ class ApiErrorsTest extends ApiTest {
     }
 
     @Test
+    void everyErrorCarriesAStableCodeAndTheValuesOfItsWording() {
+        var tooMany = send(HttpMethod.GET, "/api/chat?size=0", "a", null);
+        assertEquals("INVALID_PAGE_SIZE", tooMany.get("code").asString());
+        assertEquals(100, tooMany.get("params").get("max").asInt());
+
+        when(gameRepository.findById("missing")).thenReturn(Optional.empty());
+        assertEquals("GAME_NOT_FOUND", send(HttpMethod.GET, "/api/games/missing", "a", null).get("code").asString());
+        assertEquals("INVALID_BODY", send(HttpMethod.PUT, "/api/games/missing/settings", "a", "{").get("code").asString());
+        assertEquals("INVALID_USER_ID", send(HttpMethod.GET, "/api/users?ids=not-a-uuid", "a", null).get("code").asString());
+        assertEquals("NOT_FOUND", send(HttpMethod.GET, "/api/no-such-route", "a", null).get("code").asString());
+        assertEquals("INVALID_REQUEST", send(HttpMethod.DELETE, "/api/games/x/start", "a", null).get("code").asString());
+    }
+
+    @Test
     void springsOwnFailuresUseTheSameFormat() {
         assertEquals(404, send(HttpMethod.GET, "/api/no-such-route", "a", null).get("status").asInt());
         assertEquals(405, send(HttpMethod.DELETE, "/api/games/x/start", "a", null).get("status").asInt());

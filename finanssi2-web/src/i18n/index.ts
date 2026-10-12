@@ -58,3 +58,7 @@ export const setLanguage = (language: Language) => i18next.changeLanguage(langua
 
 /** For code outside React components; components use useTranslation, which re-renders when the language changes */
 export const t = i18next.t.bind(i18next)
+
+/** The wording of a backend error code in the current language, or undefined when this version of the app has none (then the backend's English detail is shown) */
+export const apiErrorMessage = (code: string | undefined, params?: Record<string, unknown>): string | undefined =>
+    code && i18next.exists(`apiError.${code}`) ? i18next.t(`apiError.${code}` as never, params ?? {}) as string : undefined

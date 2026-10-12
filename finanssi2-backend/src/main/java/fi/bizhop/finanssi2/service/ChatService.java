@@ -1,5 +1,6 @@
 package fi.bizhop.finanssi2.service;
 
+import fi.bizhop.finanssi2.error.ErrorCode;
 import fi.bizhop.finanssi2.db.ChatRepository;
 import fi.bizhop.finanssi2.db.ChatMessage;
 import fi.bizhop.finanssi2.security.User;
@@ -63,7 +64,7 @@ public class ChatService {
         debugAccess.requireRead(game, author);
         if (game.getMode() == GameMode.NORMAL
                 && game.getState().player(author.userId()).isEmpty()) {
-            throw new NotAllowedException("Join the game before sending messages");
+            throw new NotAllowedException(ErrorCode.JOIN_BEFORE_CHAT, "Join the game before sending messages");
         }
         var saved = chatRepository.save(new ChatMessage(null, author.userId(), message,
                 System.currentTimeMillis()), UUID.fromString(gameId), UUID.fromString(author.userId()));

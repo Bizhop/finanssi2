@@ -1,5 +1,6 @@
 package fi.bizhop.finanssi2.security;
 
+import fi.bizhop.finanssi2.error.ErrorCode;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
@@ -55,11 +56,11 @@ public class FirebaseTokenFilter extends AbstractPreAuthenticatedProcessingFilte
                     chain.doFilter(request, response);
                     return;
                 }
-                writeError((HttpServletResponse) response, 403, "EMAIL_VERIFICATION_REQUIRED",
+                writeError((HttpServletResponse) response, 403, ErrorCode.EMAIL_VERIFICATION_REQUIRED,
                         "A verified email address is required");
                 return;
             } catch (AuthenticatedUserService.AccountLinkConflictException e) {
-                writeError((HttpServletResponse) response, 409, "ACCOUNT_LINKING_CONFLICT",
+                writeError((HttpServletResponse) response, 409, ErrorCode.ACCOUNT_LINKING_CONFLICT,
                         "This email address belongs to an account that uses a different sign-in method");
                 return;
             }
@@ -68,11 +69,11 @@ public class FirebaseTokenFilter extends AbstractPreAuthenticatedProcessingFilte
     }
 
     /** A ProblemDetail body like the rest of the API, plus a machine-readable {@code code} */
-    private static void writeError(HttpServletResponse response, int status, String code, String detail) throws IOException {
+    private static void writeError(HttpServletResponse response, int status, ErrorCode code, String detail) throws IOException {
         response.setStatus(status);
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
         response.getWriter().write(JsonMapper.shared().writeValueAsString(Map.of(
-                "type", "about:blank", "title", HttpStatus.valueOf(status).getReasonPhrase(), "status", status, "detail", detail, "code", code)));
+                "type", "about:blank", "title", HttpStatus.valueOf(status).getReasonPhrase(), "status", status, "detail", detail, "code", code.name())));
     }
 }

@@ -1,5 +1,6 @@
 package fi.bizhop.finanssi2.game.engine;
 
+import fi.bizhop.finanssi2.error.ErrorCode;
 import fi.bizhop.finanssi2.game.data.GameData;
 import fi.bizhop.finanssi2.game.data.Square;
 import fi.bizhop.finanssi2.game.data.SquareType;
@@ -229,7 +230,7 @@ public class GameEngine {
             case GameCommand.BidAsset bid -> stockTips.bidAsset(state, player, bid.amount());
             case GameCommand.CallShareholdersMeeting meeting -> shareholdersMeetings.callShareholdersMeeting(state, player, meeting.group(), meeting.brokerageFee(), dice);
             case GameCommand.Resign ignored -> bankruptcy.resign(state, player, dice);
-            case GameCommand.EndGame ignored -> throw new RuleViolation("Only the game service can end a game");
+            case GameCommand.EndGame ignored -> throw new RuleViolation(ErrorCode.END_GAME_FORBIDDEN, "Only the game service can end a game");
         });
         if (!state.isFinished() && state.getPendingDecisions().isEmpty()) events.addAll(checkGameEnd(state));
         return List.copyOf(events);
@@ -304,18 +305,18 @@ public class GameEngine {
     }
 
     TitleDeed deed(int square) {
-        require(square >= 1 && square <= SQUARE_COUNT && gameData.square(square).type() == SquareType.PROPERTY, "No property on square " + square);
+        require(square >= 1 && square <= SQUARE_COUNT && gameData.square(square).type() == SquareType.PROPERTY, ErrorCode.NO_PROPERTY_ON_SQUARE, "No property on square " + square, Map.of("square", square));
         return gameData.titleDeed(square);
     }
 
     Share share(String id) {
-        require(gameData.shares().stream().anyMatch(share -> share.id().equals(id)), "No share " + id);
+        require(gameData.shares().stream().anyMatch(share -> share.id().equals(id)), ErrorCode.NO_SUCH_SHARE, "No share " + id, Map.of("share", id));
         return gameData.share(id);
     }
 
     static PropertyState ownProperty(GameState state, PlayerState player, int square) {
         var property = state.getProperties().stream().filter(p -> p.getSquare() == square).findFirst();
-        require(property.isPresent() && player.getPlayerId().equals(property.get().getOwner()), "Not your property");
+        require(property.isPresent() && player.getPlayerId().equals(property.get().getOwner()), ErrorCode.NOT_YOUR_PROPERTY, "Not your property");
         return property.get();
     }
 
@@ -323,13 +324,18 @@ public class GameEngine {
     static void requirePurchase(GameState state, PlayerState player) {
         var position = player.getPosition();
         require(position == BRANCH_OFFICE_SQUARE || position >= HEAD_OFFICE_FIRST_SQUARE,
-                "Properties and shares are sold only on square 11 and squares 35–46");
-        require(!state.isBoughtThisTurn(), "Only one purchase per turn");
+                ErrorCode.PURCHASE_LOCATION, "Properties and shares are sold only on square 11 and squares 35–46");
+        require(!state.isBoughtThisTurn(), ErrorCode.ONE_PURCHASE_PER_TURN, "Only one purchase per turn");
     }
 
-    static void require(boolean condition, String reason) {
+    static void require(boolean condition, ErrorCode code, String reason) {
+        require(condition, code, reason, Map.of());
+    }
+
+    /** {@code params} are the values the frontend puts into its wording of the code */
+    static void require(boolean condition, ErrorCode code, String reason, Map<String, Object> params) {
         if (!condition) {
-            throw new RuleViolation(reason);
+            throw new RuleViolation(code, reason, params);
         }
     }
 
@@ -397,7 +403,7 @@ public class GameEngine {
     }
 
     public List<GameEvent> endWithoutWinner(GameState state) {
-        require(!state.isFinished(), "The game is finished");
+        require(!state.isFinished(), ErrorCode.GAME_FINISHED, "The game is finished");
         return finish(state, null);
     }
 

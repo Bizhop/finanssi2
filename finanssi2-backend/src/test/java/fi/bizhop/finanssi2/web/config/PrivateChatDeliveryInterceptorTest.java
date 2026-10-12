@@ -1,5 +1,6 @@
 package fi.bizhop.finanssi2.web.config;
 
+import fi.bizhop.finanssi2.error.ErrorCode;
 import com.google.firebase.auth.FirebaseToken;
 import fi.bizhop.finanssi2.game.db.Game;
 import fi.bizhop.finanssi2.game.db.GameMode;
@@ -41,7 +42,7 @@ class PrivateChatDeliveryInterceptorTest {
         var game = new Game(GameMode.DEBUG);
         game.setCreator("owner");
         when(gameRepository.findAccess(id)).thenReturn(Optional.of(new GameRepository.Access(game.getMode(), game.getCreator())));
-        doThrow(new NotAllowedException("Debug access is not enabled for this account"))
+        doThrow(new NotAllowedException(ErrorCode.DEBUG_ACCESS_DISABLED, "Debug access is not enabled for this account"))
                 .when(debugAccess).requireOwner(GameMode.DEBUG, "owner", user);
 
         var accessor = SimpMessageHeaderAccessor.create(SimpMessageType.MESSAGE);

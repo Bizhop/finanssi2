@@ -1,5 +1,8 @@
 package fi.bizhop.finanssi2.web;
 
+import fi.bizhop.finanssi2.error.ErrorCode;
+import fi.bizhop.finanssi2.error.ApiException;
+import java.util.Map;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
@@ -11,7 +14,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Arrays;
 
@@ -24,11 +26,11 @@ public class LinkedGoogleEmailController {
     @PostMapping("/api/me/verify-linked-google-email")
     public void verifyLinkedGoogleEmail(@RequestAttribute("firebaseToken") FirebaseToken token) {
         var email = Emails.normalize(token.getEmail());
-        if (email == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "A verified Google email is required");
+        if (email == null) throw new ApiException(HttpStatus.FORBIDDEN, ErrorCode.GOOGLE_EMAIL_REQUIRED, "A verified Google email is required");
         var profile = users.findByFirebaseUid(token.getUid())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Account profile not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, ErrorCode.PROFILE_NOT_FOUND, "Account profile not found"));
         if (!email.equals(Emails.normalize(profile.getEmail())))
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account email does not match");
+            throw new ApiException(HttpStatus.FORBIDDEN, ErrorCode.EMAIL_MISMATCH, "Account email does not match");
 
         try {
             var firebase = firebaseAuth.getObject();
@@ -39,10 +41,10 @@ public class LinkedGoogleEmailController {
                     .filter(value -> value != null && value.equals(email))
                     .findFirst();
             if (googleEmail.isEmpty())
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "A matching Google sign-in must be linked first");
+                throw new ApiException(HttpStatus.FORBIDDEN, ErrorCode.GOOGLE_LINK_REQUIRED, "A matching Google sign-in must be linked first");
             if (!account.isEmailVerified()) firebase.updateUser(account.updateRequest().setEmailVerified(true));
         } catch (FirebaseAuthException failure) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Unable to verify the linked Google email", failure);
+            throw new ApiException(HttpStatus.BAD_GATEWAY, ErrorCode.GOOGLE_VERIFICATION_FAILED, "Unable to verify the linked Google email", Map.of(), failure);
         }
     }
 }

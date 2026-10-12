@@ -12,7 +12,7 @@
         "lint:hooks": "deno run -A npm:eslint src dev-pages",
         // Opens every test page in headless Chromium; needs a Chromium (see dev-pages/smoke.ts)
         "smoke": "deno run -A dev-pages/smoke.ts",
-        "test": "deno test --allow-env=NODE_ENV src/"
+        "test": "deno test --allow-env=NODE_ENV --allow-read=../finanssi2-backend/src/main/java/fi/bizhop/finanssi2/error src/"
     },
     "imports": {
         "@babel/core": "npm:@babel/core@^8.0.7",
