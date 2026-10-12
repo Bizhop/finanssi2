@@ -319,17 +319,14 @@ export function createBackend(
         forceDelete: true,
         imageScanningConfiguration: { scanOnPush: true },
         encryptionConfigurations: [{ encryptionType: "AES256" }],
-        tags: { Application: "finanssi2" },
     }, { provider })
     const hostLogGroup = new aws.cloudwatch.LogGroup(`${prefix}-host-logs`, {
         name: "/finanssi2/prod/host",
         retentionInDays: 30,
-        tags: { Application: "finanssi2" },
     }, { provider })
     const applicationLogGroup = new aws.cloudwatch.LogGroup(`${prefix}-application-logs`, {
         name: "/finanssi2/prod/backend",
         retentionInDays: 30,
-        tags: { Application: "finanssi2" },
     }, { provider })
     new aws.ecr.LifecyclePolicy(`${prefix}-backend-image-retention`, {
         repository: repository.name,
@@ -346,7 +343,6 @@ export function createBackend(
     const instanceRole = new aws.iam.Role(`${prefix}-backend-role`, {
         name: `${prefix}-backend-role`,
         assumeRolePolicy: aws.iam.assumeRolePolicyForPrincipal({ Service: "ec2.amazonaws.com" }),
-        tags: { Application: "finanssi2" },
     }, { provider })
     const ssmPolicy = new aws.iam.RolePolicyAttachment(`${prefix}-ssm-managed-policy`, {
         role: instanceRole.name,
@@ -397,7 +393,6 @@ export function createBackend(
     }, { provider })
     const instanceProfile = new aws.iam.InstanceProfile(`${prefix}-backend-profile`, {
         role: instanceRole.name,
-        tags: { Application: "finanssi2" },
     }, { provider })
 
     const amiParameter = settings.architecture === "arm64"
@@ -428,13 +423,13 @@ export function createBackend(
     const networkInterface = new aws.ec2.NetworkInterface(`${prefix}-backend-eni`, {
         subnetId: settings.networking.publicSubnetIds[0],
         securityGroups: [settings.networking.backendSecurityGroup.id],
-        tags: { Name: `${prefix}-backend-eni`, Application: "finanssi2" },
+        tags: { Name: `${prefix}-backend-eni` },
     }, { provider })
     const elasticIp = new aws.ec2.Eip(`${prefix}-backend-ip`, {
         domain: "vpc",
         networkInterface: networkInterface.id,
         associateWithPrivateIp: networkInterface.privateIp,
-        tags: { Name: `${prefix}-backend-ip`, Application: "finanssi2" },
+        tags: { Name: `${prefix}-backend-ip` },
     }, { provider, protect: true }) // referenced by a manually maintained DNS record
 
     const instance = new aws.ec2.Instance(`${prefix}-backend`, {
@@ -453,7 +448,7 @@ export function createBackend(
             encrypted: true,
             deleteOnTermination: true,
         },
-        tags: { Name: `${prefix}-backend`, Application: "finanssi2" },
+        tags: { Name: `${prefix}-backend` },
     }, {
         provider,
         dependsOn: [instanceProfile, ssmPolicy, backendAccessPolicy, elasticIp],

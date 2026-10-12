@@ -99,7 +99,8 @@ if (autoPauseSeconds < 300 || autoPauseSeconds > 86400) {
     throw new Error("auroraAutoPauseSeconds must be between 300 and 86400 seconds")
 }
 
-const provider = new aws.Provider("finanssi-aws", { region })
+const defaultTags = { tags: { Application: "finanssi2", Stack: pulumi.getStack(), ManagedBy: "pulumi" } }
+const provider = new aws.Provider("finanssi-aws", { region, defaultTags })
 
 const networking = createNetworking(prefix, provider)
 const database = createDatabase(prefix, networking, provider, {
@@ -120,7 +121,7 @@ const backend = createBackend(prefix, provider, {
     database,
     networking,
 })
-const certificateProvider = new aws.Provider("finanssi-certificate-aws", { region: "us-east-1" })
+const certificateProvider = new aws.Provider("finanssi-certificate-aws", { region: "us-east-1", defaultTags })
 const frontend = createFrontend(prefix, provider, certificateProvider, {
     hostname: frontendHostname,
     createDistribution: createFrontendDistribution,

@@ -16,7 +16,6 @@ export function createFrontend(
     const bucket = new aws.s3.Bucket(`${prefix}-frontend`, {
         bucket: `${prefix}-frontend`,
         forceDestroy: true,
-        tags: { Application: "finanssi2" },
     }, { provider })
     new aws.s3.BucketPublicAccessBlock(`${prefix}-frontend-public-access-block`, {
         bucket: bucket.id,
@@ -45,7 +44,6 @@ export function createFrontend(
     const certificate = new aws.acm.Certificate(`${prefix}-frontend-certificate`, {
         domainName: settings.hostname,
         validationMethod: "DNS",
-        tags: { Application: "finanssi2" },
     }, { provider: certificateProvider, protect: true }) // referenced by manually maintained DNS records
 
     let distribution: aws.cloudfront.Distribution | undefined
@@ -109,7 +107,6 @@ export function createFrontend(
                 minimumProtocolVersion: "TLSv1.2_2021",
             },
             priceClass: "PriceClass_100",
-            tags: { Application: "finanssi2" },
         }, { provider, dependsOn: [validation] })
 
         const bucketPolicy = new aws.s3.BucketPolicy(`${prefix}-frontend-cdn-policy`, {

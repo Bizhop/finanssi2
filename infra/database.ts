@@ -54,7 +54,7 @@ export function createDatabase(
         skipFinalSnapshot: true,
         deletionProtection: false,
         applyImmediately: true,
-        tags: { Name: `${prefix}-database`, Application: "finanssi2" },
+        tags: { Name: `${prefix}-database` },
     }, {
         provider,
         // Aurora applies minor upgrades itself; do not try to downgrade to the version pinned at creation.
@@ -75,7 +75,6 @@ export function createDatabase(
         name: `${prefix}-database-admin`,
         description: "Aurora master credentials; used only for database administration and bootstrap",
         recoveryWindowInDays: 0,
-        tags: { Application: "finanssi2" },
     }, { provider })
     new aws.secretsmanager.SecretVersion(`${prefix}-database-admin-version`, {
         secretId: adminSecret.id,
@@ -97,7 +96,6 @@ export function createDatabase(
         name: `${prefix}-database-application`,
         description: "Finanssi application database credentials",
         recoveryWindowInDays: 0,
-        tags: { Application: "finanssi2" },
     }, { provider })
     new aws.secretsmanager.SecretVersion(`${prefix}-database-application-version`, {
         secretId: applicationSecret.id,

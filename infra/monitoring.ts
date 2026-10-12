@@ -13,7 +13,6 @@ export function createMonitoring(
 ): void {
     const alarmTopic = new aws.sns.Topic(`${prefix}-alarm-notifications`, {
         name: `${prefix}-alarms`,
-        tags: { Application: "finanssi2" },
     }, { provider })
     new aws.sns.TopicSubscription(`${prefix}-alarm-email-subscription`, {
         topic: alarmTopic.arn,
