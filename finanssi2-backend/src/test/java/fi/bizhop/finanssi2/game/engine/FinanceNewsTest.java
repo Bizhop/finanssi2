@@ -19,7 +19,7 @@ class FinanceNewsTest {
         state.setActiveFinanceNews("FL-05");
         state.getFinanceNewsDeck().addAll(List.of("FL-07", "FL-08"));
 
-        var events = ENGINE.financeNews(state, state.current(), GAME_DATA.square(5), new ScriptedDice());
+        var events = ENGINE.financeNews.financeNews(state, state.current(), GAME_DATA.square(5), new ScriptedDice());
 
         assertEquals("FL-07", ((GameEvent.FinanceNewsDrawn) events.getFirst()).card());
         assertEquals("FL-05", ((GameEvent.FinanceNewsDrawn) events.getFirst()).replaced());
@@ -33,7 +33,7 @@ class FinanceNewsTest {
     void changingMarketsWaitsForTheDrawersDirectionAndSkipsFurtherNewsDraws() {
         var state = TestGame.players("a", "b").at("b", 10).state();
         state.getFinanceNewsDeck().add("FL-04");
-        ENGINE.financeNews(state, state.current(), GAME_DATA.square(5), new ScriptedDice());
+        ENGINE.financeNews.financeNews(state, state.current(), GAME_DATA.square(5), new ScriptedDice());
         assertInstanceOf(PendingDecision.NewsDirection.class, state.getPendingDecisions().getFirst());
 
         var events = ENGINE.handle(state, "a", new GameCommand.ChooseNewsDirection(true), new ScriptedDice());
@@ -77,7 +77,7 @@ class FinanceNewsTest {
         var state = TestGame.players("a", "b").at("a", 10).owns("a", 3).built(3).state();
         state.getFinanceNewsDeck().add("FL-19");
 
-        var events = ENGINE.financeNews(state, state.current(), GAME_DATA.square(5), new ScriptedDice(2, 3));
+        var events = ENGINE.financeNews.financeNews(state, state.current(), GAME_DATA.square(5), new ScriptedDice(2, 3));
 
         assertEquals(1, state.player("a").orElseThrow().getPosition());
         assertTrue(events.stream().anyMatch(event -> event.equals(new GameEvent.PieceMoved("a", 10, 1))));
