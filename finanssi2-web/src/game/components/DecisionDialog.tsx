@@ -3,10 +3,11 @@ import { useTranslation } from "react-i18next"
 import { Box, Chip, Dialog, DialogContent, DialogTitle, Stack, Tooltip, Typography } from "@mui/material"
 import PaymentsOutlined from "@mui/icons-material/PaymentsOutlined"
 import GavelOutlined from "@mui/icons-material/GavelOutlined"
-import type { CommandOptions, Game, GameBoardData } from "../../api/gameApi.ts"
+import type { Card, CommandOptions, Game, GameBoardData } from "../../api/gameApi.ts"
 import { decisionLabels } from "../labels/gameDecisions.ts"
 import { STOCK_TIP } from "../rules/stockTipCards.ts"
 import { formatEuro } from "../../ui/format.ts"
+import type { MessageKey } from "../../i18n/fi.ts"
 import { AuctionBody } from "./decision/AuctionBody.tsx"
 import { BondOfferBody } from "./decision/BondOfferBody.tsx"
 import { NewsDirectionBody } from "./decision/NewsDirectionBody.tsx"
@@ -54,11 +55,15 @@ export const DecisionDialog = ({ pending, allowed, options, send, game, board, b
     const actor = game.state.players.find((player) => player.playerId === pending.player)
     const cash = actor?.cash ?? 0
     const charges = pending.type === "RaiseFunds" ? pending.charges : []
+    const stockTipContext = pending.type === "RaiseFunds" && sourceStockTip
+        ? board?.stockTips.find((item) => item.id === sourceStockTip)
+        : undefined
+    const financeNewsContext = pending.type === "RaiseFunds" && charges.some((charge) => charge.reason === "FINANCE_NEWS")
+        ? board?.financeNews.find((item) => item.id === game.state.activeFinanceNews)
+        : undefined
     const source = pickCard ??
         (pending.type === "AssetAuction"
             ? STOCK_TIP.COMPULSORY_SALE
-            : pending.type === "RaiseFunds"
-            ? charges.some((charge) => charge.reason === "FINANCE_NEWS") ? game.state.activeFinanceNews : sourceStockTip
             : null)
     const card = [...board?.stockTips ?? [], ...board?.financeNews ?? []].find((card) => card.id === source)
     const headings: Partial<Record<Pending["type"], string>> = {
@@ -86,6 +91,11 @@ export const DecisionDialog = ({ pending, allowed, options, send, game, board, b
         : pickCard === STOCK_TIP.MOVE_TO_PROPERTY
         ? t("decision.summary.moveToProperty")
         : null
+    const paymentCauses = [...new Set(charges.map((charge) => t(`event.reason.${charge.reason}` as MessageKey)))].join(", ")
+    const contextCards = [
+        stockTipContext && { label: t("decision.stockTipContext"), card: stockTipContext },
+        financeNewsContext && { label: t("decision.financeNewsContext"), card: financeNewsContext },
+    ].filter((context): context is { label: string; card: Card } => context != null)
     return (
         <Dialog
             open
@@ -129,7 +139,33 @@ export const DecisionDialog = ({ pending, allowed, options, send, game, board, b
                             </Typography>
                         ))}
                         {summary && <Typography variant="body2" color="text.secondary">{summary}</Typography>}
+                        {paymentCauses && (
+                            <Typography variant="body2" color="text.secondary">
+                                {t("decision.summary.paymentCause", { reason: paymentCauses })}
+                            </Typography>
+                        )}
                     </Box>
+                    {contextCards.map(({ label, card: contextCard }) => (
+                        <Box
+                            key={label}
+                            component="section"
+                            aria-label={label}
+                            sx={{ p: 1, border: 1, borderColor: "divider", borderRadius: 1, bgcolor: "action.hover" }}
+                        >
+                            <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+                                {label}
+                            </Typography>
+                            {contextCard.chapters.map((chapter, index) => (
+                                <Typography
+                                    key={index}
+                                    variant="body2"
+                                    sx={{ mt: index === 0 ? 0.25 : 0.5, fontStyle: chapter["font-style"], fontWeight: chapter.type === "header" ? 600 : undefined }}
+                                >
+                                    {chapter.text}
+                                </Typography>
+                            ))}
+                        </Box>
+                    ))}
                     <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
                         <Tooltip title={t("decision.chip.cash")}>
                             <Chip size="small" icon={<PaymentsOutlined />} label={formatEuro(cash)} />

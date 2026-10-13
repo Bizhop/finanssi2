@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useParams } from "react-router"
 import { Alert, Box, Button, CircularProgress, Grid, Stack } from "@mui/material"
 import { useTranslation } from "react-i18next"
@@ -22,10 +22,12 @@ import { formatEuro } from "../ui/format.ts"
 import { BuyShareDialog } from "./room/BuyShareDialog.tsx"
 import { DebugPanel } from "./room/DebugPanel.tsx"
 import { EventLog } from "./room/EventLog.tsx"
-import { turnStockTip as findTurnStockTip } from "./room/eventLog.ts"
+import { turnFinanceNews as findTurnFinanceNews, turnStockTip as findTurnStockTip } from "./room/eventLog.ts"
 import { FinalStandings } from "./room/FinalStandings.tsx"
 import { MeetingDialog } from "./room/MeetingDialog.tsx"
 import { useGameRoom } from "./room/useGameRoom.ts"
+import { describeEvent } from "../game/labels/gameEvents.ts"
+import { toast } from "react-toastify"
 
 const GameRoomContent = () => {
     const { t } = useTranslation()
@@ -33,6 +35,7 @@ const GameRoomContent = () => {
     const { profile, debugMode } = useCurrentUser()
     const { user, view, board, events, error, commandBusy, diceInput, setDiceInput, sendCommand, selectCard } = useGameRoom(id)
     const boardAnchor = useRef<HTMLDivElement>(null)
+    const lastToastedSequence = useRef<number | null>(null)
     const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null)
     const [buyShareOpen, setBuyShareOpen] = useState(false)
     // The group of the shareholders' meeting being called; null when the dialog is closed
@@ -41,6 +44,23 @@ const GameRoomContent = () => {
         ...(view?.game.state.players.map((player) => player.playerId) ?? []),
         ...events.flatMap((entry) => Object.values(entry.event).filter((value): value is string => typeof value === "string")),
     ])
+    const playerName = useCallback((playerId: string) =>
+        profiles[playerId]?.displayName ??
+            view?.game.state.players.find((player) => player.playerId === playerId)?.name ??
+            (playerId.startsWith("debug:") ? t("room.debugPlayerShort") : t("room.formerPlayer")), [profiles, view?.game.state.players, t])
+    useEffect(() => {
+        if (lastToastedSequence.current == null) {
+            if (events.length) lastToastedSequence.current = events.at(-1)!.seq
+            return
+        }
+        const fresh = events.filter((entry) => entry.seq > lastToastedSequence.current!)
+        for (const entry of fresh) {
+            if (entry.type === "DiceRolled" || entry.type === "BankEntranceRoll" || entry.type === "JailRoll" || entry.type === "GoToJailRoll" || entry.type === "BailRoll") {
+                toast.info(describeEvent(entry, { playerName, board }))
+            }
+        }
+        if (fresh.length) lastToastedSequence.current = Math.max(...fresh.map((entry) => entry.seq))
+    }, [events, board, profiles, view?.game.state.players, playerName])
 
     if (!user) return <Alert severity="info" sx={{ mt: 2 }}>{t("room.signInRequired")}</Alert>
     if (!view && !error) {
@@ -74,12 +94,9 @@ const GameRoomContent = () => {
     const decisionActor = pending?.player === actingUid
     // Whoever the game is waiting for: the player of a pending decision, otherwise the player in turn
     const expectedUid = pending?.player ?? game.state.currentPlayer
-    const playerName = (playerId: string) =>
-        profiles[playerId]?.displayName ??
-            game.state.players.find((player) => player.playerId === playerId)?.name ??
-            (playerId.startsWith("debug:") ? t("room.debugPlayerShort") : t("room.formerPlayer"))
     // Only a Stock Tip drawn during the current turn stays face up on the board
     const turnStockTip = findTurnStockTip(events)
+    const turnNews = findTurnFinanceNews(events)
     const deedOf = (square: number) => board?.titleDeeds.find((deed) => deed.square === square)
     // What can be done right now, with current prices, comes from the backend's options
     const buildable = options.build.map((offer) => offer.square)
@@ -205,6 +222,7 @@ const GameRoomContent = () => {
                             meetings={meetings}
                             onMeeting={setMeetingGroup}
                             turnStockTip={turnStockTip ? String(turnStockTip.event.card) : null}
+                            turnFinanceNews={turnNews ? String(turnNews.event.card) : null}
                         />
                         {pending && !decisionActor && (
                             <Alert

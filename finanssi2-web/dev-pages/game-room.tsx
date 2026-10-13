@@ -148,7 +148,7 @@ const game: Game = {
         })),
         shares: shareFile.shares.map((share) => ({ id: share.id, owner: shareOwners[share.id] ?? null })),
         bonds: Array.from({ length: 12 }, (_, i) => ({ number: i + 1, owner: bondOwners[i + 1] ?? null })),
-        pendingDecisions: fixture && !finished ? [fixture.pending] : [],
+        pendingDecisions: fixture && !finished ? [fixture.pending, ...(fixture.nextPending ? [fixture.nextPending] : [])] : [],
     },
 }
 
@@ -298,7 +298,11 @@ const events = [
             ...turn(user.playerId, [3], (user.position + 42) % 46 + 1).slice(1),
             // Stays face up on the board until the turn ends
             // ?tip=<id> shows another Stock Tip, e.g. ?afterRoll&tip=PV-31 for the longest text (not one she keeps)
-            ...fixture && fixture.pending.type !== "StockTipChoice" ? [] : [
+            ...fixture?.stockTipCard
+                ? [{ type: "StockTipDrawn", player: user.playerId, card: fixture.stockTipCard, held: false }]
+                : fixture && fixture.pending.type !== "StockTipChoice"
+                ? []
+                : [
                 params.has("tip") || fixture?.pending.type === "StockTipChoice"
                     ? {
                         type: "StockTipDrawn",

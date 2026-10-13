@@ -1,7 +1,7 @@
 import type { PendingDecision } from "../src/api/gameApi.ts"
 import { liisa, olli, pekka, tester } from "./people.ts"
 
-type Fixture = { pending: PendingDecision; commands: string[]; cash?: number }
+type Fixture = { pending: PendingDecision; nextPending?: PendingDecision; stockTipCard?: string; commands: string[]; cash?: number }
 const player = tester.id
 const stockTip = (card: string, options: string[]): Fixture => ({
     pending: { type: "StockTipChoice" as const, player, card, options },
@@ -16,6 +16,13 @@ export const decisionFixtures: Record<string, Fixture> = {
         pending: { ...raiseFunds, amount: 120000, charges: [{ amount: 120000, reason: "RENT" }] },
         cash: 1000,
         commands: ["TakeLoan", "SellCar", "Mortgage", "SellBackProperty", "SellBackShare"],
+    },
+    "raise-funds-stock-tip": {
+        pending: { ...raiseFunds, creditor: null, amount: 5000, charges: [{ amount: 5000, reason: "LOAN_INTEREST" }] },
+        nextPending: { type: "StockTipChoice", player, card: "PV-26", options: ["PAY", "PASS"] },
+        stockTipCard: "PV-26",
+        cash: 1000,
+        commands: ["TakeLoan", "Mortgage", "SellBackProperty", "SellBackShare"],
     },
     "news-payment": {
         pending: { ...raiseFunds, creditor: null, amount: 20000, charges: [{ amount: 20000, reason: "FINANCE_NEWS" }] },

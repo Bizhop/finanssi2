@@ -109,12 +109,14 @@ const Deck = ({ rect, image, name }: { rect: SquareRect; image: string; name: st
 )
 
 export const GameBoard = (
-    { game, board, turnStockTip, buildable = [], onBuild, purchasable = [], onBuy, meetings = [], onMeeting, selectable = [], onSelectSquare, selectedSquare }:
+    { game, board, turnStockTip, turnFinanceNews, buildable = [], onBuild, purchasable = [], onBuy, meetings = [], onMeeting, selectable = [], onSelectSquare, selectedSquare }:
         {
             game: Game
             board: GameBoardData | null
             /** The Stock Tip drawn this turn, if any */
             turnStockTip: string | null
+            /** Finance News drawn this turn, including non-permanent cards */
+            turnFinanceNews?: string | null
             /** Squares you can build on right now; each gets a build button */
             buildable?: number[]
             onBuild?: (square: number) => void
@@ -132,7 +134,7 @@ export const GameBoard = (
 ) => {
     const { t } = useTranslation()
     const propertyBySquare = new Map(game.state.properties.map((property) => [property.square, property]))
-    const activeNews = game.state.activeFinanceNews
+    const activeNews = turnFinanceNews ?? game.state.activeFinanceNews
     return (
         <Box
             sx={{

@@ -10,3 +10,7 @@ export const hasEventGap = (lastKnownSeq: number, incoming: GameLogEntry[]) => i
 /** Only a Stock Tip drawn during the current turn stays face up on the board */
 export const turnStockTip = (events: GameLogEntry[]) =>
     events.slice(events.findLastIndex((entry) => entry.type === "TurnStarted") + 1).findLast((entry) => entry.type === "StockTipDrawn")
+
+/** The latest Finance News drawn this turn stays visible in its board slot. */
+export const turnFinanceNews = (events: GameLogEntry[]) =>
+    events.slice(events.findLastIndex((entry) => entry.type === "TurnStarted") + 1).findLast((entry) => entry.type === "FinanceNewsDrawn")

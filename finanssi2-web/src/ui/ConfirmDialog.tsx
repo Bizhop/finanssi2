@@ -11,6 +11,7 @@ export type ConfirmRequest = {
     danger?: boolean
     /** Shows the dialog for information but can't be confirmed, e.g. a purchase the player can't afford yet */
     disabled?: boolean
+    choices?: { label: string; command: Command }[]
 }
 
 export const ConfirmDialog = ({ request, busy, onClose, onConfirm }: {
@@ -30,7 +31,12 @@ export const ConfirmDialog = ({ request, busy, onClose, onConfirm }: {
             )}
             <DialogActions>
                 <Button onClick={onClose}>{t("common.cancel")}</Button>
-                <Button
+                {request?.choices?.map((choice) => (
+                    <Button key={choice.label} variant="contained" disabled={busy} onClick={() => { onClose(); onConfirm(choice.command) }}>
+                        {choice.label}
+                    </Button>
+                ))}
+                {!request?.choices && <Button
                     variant="contained"
                     color={request?.danger ? "error" : "primary"}
                     disabled={busy || request?.disabled}
@@ -41,7 +47,7 @@ export const ConfirmDialog = ({ request, busy, onClose, onConfirm }: {
                     }}
                 >
                     {request?.confirmLabel}
-                </Button>
+                </Button>}
             </DialogActions>
         </Dialog>
     )

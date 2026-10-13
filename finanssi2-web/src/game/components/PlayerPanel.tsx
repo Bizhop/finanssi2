@@ -1,5 +1,5 @@
-import { type ReactNode, useState } from "react"
-import { Avatar, Box, Button, ButtonBase, Card, CardContent, Chip, IconButton, Menu, MenuItem, Stack, Tooltip, Typography } from "@mui/material"
+import { type ReactNode } from "react"
+import { Avatar, Box, Button, ButtonBase, Card, CardContent, Chip, IconButton, Stack, Tooltip, Typography } from "@mui/material"
 import { keyframes } from "@emotion/react"
 import { useTranslation } from "react-i18next"
 import AccountBalanceOutlined from "@mui/icons-material/AccountBalanceOutlined"
@@ -150,7 +150,6 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected, contro
     controls?: PlayerControls
 }) => {
     const { t } = useTranslation()
-    const [loanMenu, setLoanMenu] = useState<HTMLElement | null>(null)
     const color = playerColor(player.piece)
     const allowed = controls?.allowed ?? []
     const options = controls?.options ?? NO_OPTIONS
@@ -197,7 +196,13 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected, contro
                                     faded={player.loans === 0}
                                     title={player.loans === 0 ? t("board.panel.noLoans") : t("board.panel.loans", { count: player.loans })}
                                     cards={player.loans > 0 ? Array.from({ length: player.loans }, (_, index) => <LoanCard key={index} />) : undefined}
-                                    onClick={loans.length > 0 ? setLoanMenu : undefined}
+                                    onClick={loans.length > 0 && controls ? () => controls.confirm({
+                                        title: t("board.panel.loans", { count: player.loans }),
+                                        body: undefined,
+                                        confirmLabel: "",
+                                        command: {},
+                                        choices: loans.map((action) => ({ label: action.label, command: action.request.command })),
+                                    }) : undefined}
                                 />
                             )}
                             {(player.car || controls) && (
@@ -340,19 +345,6 @@ export const PlayerPanel = ({ player, game, board, you, inTurn, expected, contro
                     </Stack>
                 )}
             </CardContent>
-            <Menu anchorEl={loanMenu} open={loanMenu != null} onClose={() => setLoanMenu(null)}>
-                {loans.map((action) => (
-                    <MenuItem
-                        key={action.label}
-                        onClick={() => {
-                            setLoanMenu(null)
-                            controls?.confirm(action.request)
-                        }}
-                    >
-                        {action.label}
-                    </MenuItem>
-                ))}
-            </Menu>
         </Card>
     )
 }
