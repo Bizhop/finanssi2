@@ -24,11 +24,15 @@ echo 'org.gradle.projectcachedir=/home/agent/.cache/gradle-project-cache/finanss
 
 ## Running the backend and PostgreSQL
 
-PostgreSQL persistence integration tests are tagged for manual runs. `databaseTest` uses a PostgreSQL instance at
-`host.docker.internal:5432` (override with `DATABASE_URL`, `DATABASE_USERNAME` and `DATABASE_PASSWORD`); `containerTest` starts an
-isolated Testcontainer. For local development, start PostgreSQL with `docker compose up -d`, then run the backend with
-`./gradlew bootRun`. Hibernate updates the schema from the JPA entities; use `docker compose down -v` to wipe the local database
-when an incompatible update requires a clean start.
+PostgreSQL persistence integration tests are tagged for manual runs. `databaseTest` uses the configured PostgreSQL server (defaults
+to `host.docker.internal:5432`; override with `DATABASE_URL`, `DATABASE_USERNAME` and `DATABASE_PASSWORD`), recreates the
+`finanssi_test` database on that server, and drops it only after a successful run. A failed run leaves the database for inspection.
+The task requires permission to create and drop databases on the server. `containerTest` starts an isolated Testcontainer. For local
+development, `./run-local.sh` builds the backend image and starts it with PostgreSQL through
+Compose. The backend is available on port 8080. To debug a second backend from IntelliJ alongside it, configure `SERVER_PORT=8081`;
+both instances can use the same PostgreSQL database. To run only PostgreSQL, use `docker compose up -d postgres`, then run
+`./gradlew bootRun` (or set `SERVER_PORT=8081` if the container backend is also running). Hibernate updates the schema
+from the JPA entities; use `docker compose down -v` to wipe the local database when an incompatible update requires a clean start.
 
 ## Java conventions
 

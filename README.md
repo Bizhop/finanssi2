@@ -66,28 +66,44 @@ Publish the frontend (build, upload to S3, CloudFront invalidation) with `./infr
 
 ## Running locally
 
-### 1. Database
+### Local container stack
 
 ```bash
-cd finanssi2-backend
-docker compose up -d
+./finanssi2-backend/run-local.sh
 ```
 
-Starts PostgreSQL on port 5432. The database uses a local Docker volume and survives application restarts. Game state and game events
-use JSONB payloads; Hibernate creates and updates the schema from the Java persistence entities. For an empty database reset, run
-`docker compose down -v` before starting it again. Existing databases should be reset after the profile-reference change to remove
+Builds the backend image, then starts the backend container and PostgreSQL. The frontend API is at http://localhost:8080. PostgreSQL
+is available on port 5432 for tools and IntelliJ. The database uses a local Docker volume and survives application restarts. Game
+state and game events use JSONB payloads; Hibernate creates and updates the schema from the Java persistence entities. The backend
+container reads `finanssi2-backend/finanssi2-firebase-adminsdk.json` as a read-only mount; add the local service account key before
+starting. To stop the services, run `docker compose down` from `finanssi2-backend`. For an empty database reset, run
+`docker compose down -v` before starting again. Existing databases should be reset after the profile-reference change to remove
 legacy name/avatar snapshots in chat rows and JSON game state; the schema updater does not drop those old fields automatically.
 
-### 2. Backend
+### Run from IntelliJ IDEA
 
-Place the Firebase service account key at `finanssi2-backend/finanssi2-firebase-adminsdk.json` (not in git), then run from the `finanssi2-backend` directory:
+The Compose backend uses port 8080. To run or debug another backend alongside it, set `SERVER_PORT=8081` in the IntelliJ run
+configuration. It connects to the same local PostgreSQL instance. To use only the host backend, start just PostgreSQL with
+`docker compose up -d postgres` from `finanssi2-backend`, then use `SERVER_PORT=8080` instead.
 
 ```bash
-cd finanssi2-backend
-./gradlew bootRun
+SERVER_PORT=8081 ./gradlew bootRun
 ```
 
-The API runs at http://localhost:8080.
+The IntelliJ instance is then at http://localhost:8081. To have the frontend use it, set `VITE_FINANSSI_API_URL=http://localhost:8081`
+in the frontend environment.
+
+### Manual PostgreSQL persistence tests
+
+With PostgreSQL running, run from `finanssi2-backend`:
+
+```bash
+DATABASE_URL=jdbc:postgresql://localhost:5432/finanssi ./gradlew databaseTest
+```
+
+The task drops and recreates a `finanssi_test` database on that same PostgreSQL server, then drops it after a successful run. It
+leaves the database in place if the tests fail so you can inspect it. The configured PostgreSQL user must be allowed to create and
+drop databases. Override `DATABASE_URL`, `DATABASE_USERNAME` and `DATABASE_PASSWORD` to use another server or credentials.
 
 Firebase Authentication must have Google and email/password providers enabled. Email/password users must verify their address before
 the backend provisions a profile or allows game/chat access. Google and password sign-in share an application profile only when Firebase

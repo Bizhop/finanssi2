@@ -86,13 +86,84 @@ tasks.register('containerTest', Test) {
 	}
 }
 
-// Persistence checks against a running PostgreSQL at host.docker.internal (or DATABASE_URL)
-tasks.register('databaseTest', Test) {
-	description = 'Runs PostgreSQL persistence tests against the configured database.'
+def databaseTestName = 'finanssi_test'
+def databaseTestUrl = {
+	def baseUrl = providers.environmentVariable('DATABASE_URL')
+		.getOrElse('jdbc:postgresql://host.docker.internal:5432/finanssi')
+	def queryIndex = baseUrl.indexOf('?')
+	def pathEnd = queryIndex < 0 ? baseUrl.length() : queryIndex
+	def databaseSeparator = baseUrl.lastIndexOf('/', pathEnd)
+	if (!baseUrl.startsWith('jdbc:postgresql://') || databaseSeparator <= 'jdbc:postgresql://'.length()
+			|| databaseSeparator == pathEnd) {
+		throw new GradleException('DATABASE_URL must be a PostgreSQL JDBC URL with a database name')
+	}
+	def prefix = baseUrl.substring(0, databaseSeparator + 1)
+	def suffix = queryIndex < 0 ? '' : baseUrl.substring(queryIndex)
+	[admin: "${prefix}postgres${suffix}", test: "${prefix}${databaseTestName}${suffix}"]
+}
+def withPostgresAdmin = { action ->
+	def urls = databaseTestUrl()
+	def jdbcUrls = configurations.testRuntimeClasspath.files.collect { it.toURI().toURL() } as URL[]
+	def driverLoader = new URLClassLoader(jdbcUrls, this.class.classLoader)
+	try {
+		def driver = Class.forName('org.postgresql.Driver', true, driverLoader).getDeclaredConstructor().newInstance()
+		def properties = new Properties()
+		properties.setProperty('user', providers.environmentVariable('DATABASE_USERNAME').getOrElse('finanssi'))
+		properties.setProperty('password', providers.environmentVariable('DATABASE_PASSWORD').getOrElse('finanssi'))
+		action(driver.connect(urls.admin, properties))
+	} finally {
+		driverLoader.close()
+	}
+}
+
+def prepareDatabaseTest = tasks.register('prepareDatabaseTest') {
+	description = 'Recreates the disposable PostgreSQL database used by databaseTest.'
+	group = 'verification'
+	doLast {
+		withPostgresAdmin { connection ->
+			try {
+				connection.createStatement().withCloseable { statement ->
+					statement.execute("DROP DATABASE IF EXISTS ${databaseTestName} WITH (FORCE)")
+					statement.execute("CREATE DATABASE ${databaseTestName}")
+				}
+			} finally {
+				connection.close()
+			}
+		}
+	}
+}
+
+def databaseTestTask = tasks.register('databaseTest', Test) {
+	description = 'Runs PostgreSQL persistence tests against a disposable database.'
 	group = 'verification'
 	testClassesDirs = sourceSets.test.output.classesDirs
 	classpath = sourceSets.test.runtimeClasspath
+	dependsOn(prepareDatabaseTest)
+	environment 'FINANSSI_DATABASE_TEST_URL', databaseTestUrl().test
+	environment 'DATABASE_USERNAME', providers.environmentVariable('DATABASE_USERNAME').getOrElse('finanssi')
+	environment 'DATABASE_PASSWORD', providers.environmentVariable('DATABASE_PASSWORD').getOrElse('finanssi')
 	useJUnitPlatform {
 		includeTags 'database'
 	}
+}
+
+def cleanupDatabaseTest = tasks.register('cleanupDatabaseTest') {
+	description = 'Drops the databaseTest database after a successful run.'
+	group = 'verification'
+	// Keep the database intact after failures so its schema and data can be inspected.
+	onlyIf { databaseTestTask.get().state.failure == null && databaseTestTask.get().state.didWork }
+	doLast {
+		withPostgresAdmin { connection ->
+			try {
+				connection.createStatement().withCloseable { statement ->
+					statement.execute("DROP DATABASE IF EXISTS ${databaseTestName} WITH (FORCE)")
+				}
+			} finally {
+				connection.close()
+			}
+		}
+	}
+}
+databaseTestTask.configure {
+	finalizedBy(cleanupDatabaseTest)
 }
