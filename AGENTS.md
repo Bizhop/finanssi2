@@ -7,6 +7,13 @@
 - Single-player debug mode is implemented. Remaining developer-run acceptance checks and configuration are recorded in the
   backend/frontend status notes; use those as the session handoff.
 
+## Frontend tooling in the sandbox
+
+- Deno is installed at `/home/agent/.deno/bin/deno`, but that directory may be missing from the command environment's `PATH`.
+  Before running frontend tasks, use `export PATH="$HOME/.deno/bin:$PATH"` or invoke the binary by its full path.
+- If the local binary is missing, install Deno for the sandbox user with `curl -fsSL https://deno.land/install.sh | sh`, then add
+  `$HOME/.deno/bin` to `PATH`. Frontend tasks are defined in `finanssi2-web/deno.json`.
+
 ## Deployment model
 
 - One frontend, one backend instance and one PostgreSQL database. There is no horizontal scaling and none is planned.

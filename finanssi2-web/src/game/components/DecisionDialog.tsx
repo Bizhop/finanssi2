@@ -1,6 +1,6 @@
 import { type RefObject, useLayoutEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Box, Chip, Dialog, DialogContent, DialogTitle, Stack, Tooltip, Typography } from "@mui/material"
+import { Box, Chip, Dialog, DialogContent, DialogTitle, Paper, Stack, Tooltip, Typography } from "@mui/material"
 import PaymentsOutlined from "@mui/icons-material/PaymentsOutlined"
 import GavelOutlined from "@mui/icons-material/GavelOutlined"
 import type { Card, CommandOptions, Game, GameBoardData } from "../../api/gameApi.ts"
@@ -15,8 +15,8 @@ import { RaiseFundsBody } from "./decision/RaiseFundsBody.tsx"
 import type { DecisionEnv, Pending } from "./decision/shared.tsx"
 import { StockTipChoiceBody } from "./decision/StockTipChoiceBody.tsx"
 
-/** A modal anchored to the board's open area. Its portal and backdrop leave the game layout unchanged. */
-export const DecisionDialog = ({ pending, allowed, options, send, game, board, busy, anchor, sourceStockTip }: {
+/** Decision UI: most choices use a modal; board movement choices render inline beside the board. */
+export const DecisionDialog = ({ pending, allowed, options, send, game, board, busy, anchor, sourceStockTip, selectedDestination }: {
     pending: Pending
     allowed: string[]
     options: CommandOptions
@@ -26,6 +26,7 @@ export const DecisionDialog = ({ pending, allowed, options, send, game, board, b
     busy: boolean
     anchor: RefObject<HTMLDivElement | null>
     sourceStockTip?: string | null
+    selectedDestination?: number | null
 }) => {
     const { t } = useTranslation()
     const [position, setPosition] = useState({ top: 80, left: globalThis.innerWidth / 2 })
@@ -72,7 +73,10 @@ export const DecisionDialog = ({ pending, allowed, options, send, game, board, b
         BondAuction: t("decision.heading.bondAuction"),
         AssetAuction: t("decision.heading.assetAuction"),
     }
-    const heading = card?.chapters.find((chapter) => chapter.type === "header")?.text ?? headings[pending.type] ?? t("decision.title")
+    const moveToProperty = pending.type === "StockTipChoice" && pending.card === STOCK_TIP.MOVE_TO_PROPERTY
+    const heading = moveToProperty
+        ? t("decision.heading.moveToProperty")
+        : card?.chapters.find((chapter) => chapter.type === "header")?.text ?? headings[pending.type] ?? t("decision.title")
     const minimum = pending.type === "AssetAuction" ? pending.minimumBid : options.bondPrice
     const singleFire = pending.type === "StockTipChoice" && pending.card === STOCK_TIP.FIRE && pending.options.length === 1
     const env: DecisionEnv = { game, board, allowed, options, send, busy, labels, cash, position: actor?.position ?? 1 }
@@ -96,29 +100,8 @@ export const DecisionDialog = ({ pending, allowed, options, send, game, board, b
         stockTipContext && { label: t("decision.stockTipContext"), card: stockTipContext },
         financeNewsContext && { label: t("decision.financeNewsContext"), card: financeNewsContext },
     ].filter((context): context is { label: string; card: Card } => context != null)
-    return (
-        <Dialog
-            open
-            aria-labelledby="decision-title"
-            aria-describedby="decision-description"
-            maxWidth={false}
-            slotProps={{
-                backdrop: { sx: { bgcolor: "rgba(70, 76, 82, 0.32)" } },
-                paper: {
-                    sx: {
-                        position: "fixed",
-                        top: position.top,
-                        left: position.left,
-                        transform: "translateX(-50%)",
-                        m: 0,
-                        width: "calc(100vw - 24px)",
-                        maxWidth: pickCard === STOCK_TIP.MOVE_TO_PROPERTY ? 580 : 500,
-                        maxHeight: `calc(100dvh - ${position.top + 12}px)`,
-                        borderRadius: 2,
-                    },
-                },
-            }}
-        >
+    const panelContents = (
+        <>
             <DialogTitle id="decision-title" sx={{ px: 2, pt: 1.5, pb: 0.75 }}>
                 <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.4 }}>{t("decision.title")}</Typography>
                 <Typography component="span" sx={{ display: "block", fontSize: 18, fontWeight: 600, lineHeight: 1.3 }}>{heading}</Typography>
@@ -138,7 +121,7 @@ export const DecisionDialog = ({ pending, allowed, options, send, game, board, b
                                 {chapter.text}
                             </Typography>
                         ))}
-                        {summary && <Typography variant="body2" color="text.secondary">{summary}</Typography>}
+                        {summary && <Typography variant="body2" color={moveToProperty ? "primary.main" : "text.secondary"}>{summary}</Typography>}
                         {paymentCauses && (
                             <Typography variant="body2" color="text.secondary">
                                 {t("decision.summary.paymentCause", { reason: paymentCauses })}
@@ -183,7 +166,9 @@ export const DecisionDialog = ({ pending, allowed, options, send, game, board, b
                     </Stack>
                     <Box component="fieldset" disabled={busy} sx={{ border: 0, p: 0, m: 0, minWidth: 0, "&:disabled": { opacity: 0.6 } }}>
                         <Stack spacing={1.25}>
-                            {pending.type === "StockTipChoice" && <StockTipChoiceBody pending={pending} env={env} />}
+                            {pending.type === "StockTipChoice" && (
+                                <StockTipChoiceBody pending={pending} env={env} selectedDestination={selectedDestination} />
+                            )}
                             {pending.type === "BondOffer" && <BondOfferBody env={env} />}
                             {pending.type === "NewsDirection" && <NewsDirectionBody env={env} />}
                             {(pending.type === "BondAuction" || pending.type === "AssetAuction") && (
@@ -194,6 +179,58 @@ export const DecisionDialog = ({ pending, allowed, options, send, game, board, b
                     </Box>
                 </Stack>
             </DialogContent>
+        </>
+    )
+    if (moveToProperty) {
+        return (
+            <Paper
+                component="section"
+                aria-labelledby="decision-title"
+                aria-describedby="decision-description"
+                aria-live="polite"
+                elevation={2}
+                sx={{
+                    position: "absolute",
+                    zIndex: 2,
+                    top: "14%",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    border: 1,
+                    borderColor: "primary.main",
+                    borderRadius: 2,
+                    width: "min(64%, 500px)",
+                    maxHeight: "30%",
+                    overflowY: "auto",
+                }}
+            >
+                {panelContents}
+            </Paper>
+        )
+    }
+    return (
+        <Dialog
+            open
+            aria-labelledby="decision-title"
+            aria-describedby="decision-description"
+            maxWidth={false}
+            slotProps={{
+                backdrop: { sx: { bgcolor: "rgba(70, 76, 82, 0.32)" } },
+                paper: {
+                    sx: {
+                        position: "fixed",
+                        top: position.top,
+                        left: position.left,
+                        transform: "translateX(-50%)",
+                        m: 0,
+                        width: "calc(100vw - 24px)",
+                        maxWidth: pickCard === STOCK_TIP.MOVE_TO_PROPERTY ? 580 : 500,
+                        maxHeight: `calc(100dvh - ${position.top + 12}px)`,
+                        borderRadius: 2,
+                    },
+                },
+            }}
+        >
+            {panelContents}
         </Dialog>
     )
 }

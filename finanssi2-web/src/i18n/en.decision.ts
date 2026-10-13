@@ -2,6 +2,7 @@ import type { fiDecision } from "./fi.decision.ts"
 
 export const enDecision: Record<keyof typeof fiDecision, string> = {
     "decision.title": "Your decision",
+    "decision.heading.moveToProperty": "Choose a destination",
     "decision.heading.raiseFunds": "Settle payment",
     "decision.stockTipContext": "Stock Tip drawn this turn",
     "decision.financeNewsContext": "Finance News drawn this turn",

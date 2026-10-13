@@ -1,6 +1,7 @@
 // Finnish messages of the decision area (see fi.ts)
 export const fiDecision = {
     "decision.title": "Päätöksesi",
+    "decision.heading.moveToProperty": "Valitse määränpää",
     "decision.heading.raiseFunds": "Maksun suorittaminen",
     "decision.stockTipContext": "Pörssivihje nostettu tällä vuorolla",
     "decision.financeNewsContext": "Finanssilehti nostettu tällä vuorolla",

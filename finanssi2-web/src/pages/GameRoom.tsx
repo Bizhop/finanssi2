@@ -28,6 +28,7 @@ import { MeetingDialog } from "./room/MeetingDialog.tsx"
 import { useGameRoom } from "./room/useGameRoom.ts"
 import { describeEvent } from "../game/labels/gameEvents.ts"
 import { toast } from "react-toastify"
+import { STOCK_TIP } from "../game/rules/stockTipCards.ts"
 
 const GameRoomContent = () => {
     const { t } = useTranslation()
@@ -40,6 +41,7 @@ const GameRoomContent = () => {
     const [buyShareOpen, setBuyShareOpen] = useState(false)
     // The group of the shareholders' meeting being called; null when the dialog is closed
     const [meetingGroup, setMeetingGroup] = useState<string | null>(null)
+    const [moveSelection, setMoveSelection] = useState<{ key: string; square: number } | null>(null)
     const profiles = usePublicProfiles([
         ...(view?.game.state.players.map((player) => player.playerId) ?? []),
         ...events.flatMap((entry) => Object.values(entry.event).filter((value): value is string => typeof value === "string")),
@@ -90,13 +92,20 @@ const GameRoomContent = () => {
     const identityId = profile?.id ?? ""
     const actingUid = game.mode === "DEBUG" ? view.actingPlayer : identityId
     const actingPlayer = game.state.players.find((player) => player.playerId === actingUid)
-    const pending = game.state.pendingDecisions[0]
-    const decisionActor = pending?.player === actingUid
-    // Whoever the game is waiting for: the player of a pending decision, otherwise the player in turn
-    const expectedUid = pending?.player ?? game.state.currentPlayer
     // Only a Stock Tip drawn during the current turn stays face up on the board
     const turnStockTip = findTurnStockTip(events)
     const turnNews = findTurnFinanceNews(events)
+    const pending = game.state.pendingDecisions[0]
+    const decisionActor = pending?.player === actingUid
+    const moveToPropertyPending = pending?.type === "StockTipChoice" && pending.card === STOCK_TIP.MOVE_TO_PROPERTY
+    const moveSelectionKey = moveToPropertyPending ? `${turnStockTip?.seq ?? ""}:${pending.player}:${pending.card}:${pending.options.join(",")}` : null
+    const moveDestinations = moveToPropertyPending ? pending.options.map(Number) : []
+    const selectedMoveSquare = moveSelectionKey && moveSelection?.key === moveSelectionKey ? moveSelection.square : null
+    const chooseMoveSquare = (square: number) => {
+        if (moveSelectionKey) setMoveSelection({ key: moveSelectionKey, square })
+    }
+    // Whoever the game is waiting for: the player of a pending decision, otherwise the player in turn
+    const expectedUid = pending?.player ?? game.state.currentPlayer
     const deedOf = (square: number) => board?.titleDeeds.find((deed) => deed.square === square)
     // What can be done right now, with current prices, comes from the backend's options
     const buildable = options.build.map((offer) => offer.square)
@@ -215,15 +224,33 @@ const GameRoomContent = () => {
                         <GameBoard
                             game={game}
                             board={board}
-                            buildable={buildable}
-                            onBuild={requestBuild}
-                            purchasable={purchasable}
-                            onBuy={requestBuy}
-                            meetings={meetings}
-                            onMeeting={setMeetingGroup}
+                            buildable={pending ? [] : buildable}
+                            onBuild={pending ? undefined : requestBuild}
+                            purchasable={pending ? [] : purchasable}
+                            onBuy={pending ? undefined : requestBuy}
+                            meetings={pending ? [] : meetings}
+                            onMeeting={pending ? undefined : setMeetingGroup}
                             turnStockTip={turnStockTip ? String(turnStockTip.event.card) : null}
                             turnFinanceNews={turnNews ? String(turnNews.event.card) : null}
+                            selectable={decisionActor && !commandBusy ? moveDestinations : []}
+                            onSelectSquare={decisionActor && moveToPropertyPending ? chooseMoveSquare : undefined}
+                            selectedSquare={selectedMoveSquare}
                         />
+                        {decisionActor && pending && moveToPropertyPending && (
+                            <DecisionDialog
+                                key={JSON.stringify(pending)}
+                                pending={pending}
+                                allowed={allowedCommands}
+                                options={options}
+                                send={sendCommand}
+                                game={game}
+                                board={board}
+                                busy={commandBusy}
+                                sourceStockTip={turnStockTip ? String(turnStockTip.event.card) : null}
+                                anchor={boardAnchor}
+                                selectedDestination={selectedMoveSquare}
+                            />
+                        )}
                         {pending && !decisionActor && (
                             <Alert
                                 severity="info"
@@ -279,7 +306,7 @@ const GameRoomContent = () => {
                                     : player.playerId === actingUid
                                     ? t("room.expected.yourMove")
                                     : t("room.expected.toMove")}
-                                controls={game.status === "RUNNING" && player.playerId === actingUid ? controls : undefined}
+                                controls={game.status === "RUNNING" && player.playerId === actingUid && !pending ? controls : undefined}
                             />
                         ))}
                         {game.state.finished && (
@@ -297,7 +324,7 @@ const GameRoomContent = () => {
                 </Grid>
             </Grid>
             {game.state.finished && game.state.finalStandings.length > 0 && <FinalStandings game={game} />}
-            {decisionActor && pending && (
+            {decisionActor && pending && !moveToPropertyPending && (
                 <DecisionDialog
                     key={JSON.stringify(pending)}
                     pending={pending}
