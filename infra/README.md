@@ -29,7 +29,7 @@ the stack and store the Firebase Admin service-account JSON with Pulumi's `--sec
 
 The stack uses `aws:region` with a default of `eu-north-1`. Set `monthlyBudgetLimitUsd` to the alert amount you choose and
 `budgetAlertEmail` to the recipient address. Confirm the SNS subscription email after deployment. Check that the configured Aurora PostgreSQL engine version is currently
-available in that region and supports Serverless v2 auto-pause before previewing. `createFrontendDistribution` defaults to `false`:
+available in that region and supports Serverless v2 auto-pause before previewing. `createFrontendDistribution` defaults to `false`, as on a brand-new stack:
 the first stage requests the ACM certificate and exports its validation CNAME without waiting for Domainhotelli DNS. After that CNAME
 resolves publicly, enable the distribution in the local stack config and preview again.
 
@@ -42,16 +42,14 @@ Production moved from `t3.small`/x86-64 to `t4g.small`/ARM64 on 2026-10-14. For 
 `allowAmiChange: true` while replacing the instance so Pulumi can select the matching AL2023 AMI; after replacement and state refresh,
 set it back to `false` to restore routine AMI protection. It defaults to `false`.
 
-The `prod` stack is deployed. The backend image has been pushed to ECR and deployed through SSM; the backend service reported that
-the app started. `frontendDistributionHostname` currently returns `null` because the CloudFront distribution is still staged/disabled.
-The first stack stage creates billable AWS resources even while the frontend distribution is disabled. Review the resource and cost
-preview before future infrastructure changes.
+The `prod` stack is deployed and live (see [Current state](#current-state-and-gaps)). The first stack stage creates billable AWS
+resources even while the frontend distribution is disabled. Review the resource and cost preview before infrastructure changes.
 
 On a brand-new stack the EC2 image reference is absent at bootstrap: the host installs its services and waits for the release helpers
 below to deploy an immutable ECR digest. After that the deploy script records the digest in the SSM parameter
 `/finanssi2/<stack>/image-ref` (output `backendImageRefParameter`), and a replaced host reads it at bootstrap and starts the last
 deployed image by itself. The host exposes only 80/443; SSH and PostgreSQL are not public, and Aurora accepts traffic only from the
-backend security group. S3 is private and accepts reads only through CloudFront when the distribution stage is enabled.
+backend security group. S3 is private and accepts reads only through CloudFront.
 
 ## Host configuration
 
@@ -127,7 +125,7 @@ Records are added manually; Domainhotelli's form strips the trailing `.bizhop.fi
 | --- | --- | --- |
 | ACM validation name (`pulumi stack output frontendCertificateDnsRecords`) | CNAME | ACM validation target; keep permanently for certificate renewal |
 | `api.finanssi` | A | `pulumi stack output backendElasticIp` |
-| `finanssi` | CNAME | `pulumi stack output frontendDistributionHostname` (after enabling `createFrontendDistribution`) |
+| `finanssi` | CNAME | `pulumi stack output frontendDistributionHostname` (once `createFrontendDistribution` is enabled) |
 
 ## Troubleshooting
 

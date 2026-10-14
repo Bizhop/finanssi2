@@ -1,24 +1,16 @@
 # Frontend status
 
-Updated 2026-10-12: the production frontend is live at `https://finanssi.bizhop.fi` (CloudFront + S3) against
-`https://api.finanssi.bizhop.fi`. `./infra/scripts/publish-frontend.sh` builds and publishes it; see [infrastructure setup](../infra/README.md).
-`deno task build` works with Deno 2.9.7. With that version `deno task typecheck` fails on `vite.dev-pages.config.ts` and `deno lint` reports four
-`window.*` problems (e.g. `CurrentUserContext.tsx`); the build and tests are unaffected. The Deno version is not yet pinned for releases.
+Updated 2026-10-14. The production frontend is live at `https://finanssi.bizhop.fi` (CloudFront + S3) against
+`https://api.finanssi.bizhop.fi`. `./infra/scripts/publish-frontend.sh` builds (`deno task build`, which validates `.env.production`),
+uploads and invalidates it; see [infrastructure setup](../infra/README.md) and the [root README](../README.md) for configuration.
 
-Updated 2026-10-08 after centralized Firebase auth, verified email/password flows, application profile bootstrap/editing and custom avatar controls. Automated
-frontend checks passed during phase 4; backend phase 5 checks also pass. Real Firebase verification/linking, reset and browser upload acceptance still require a
-configured Firebase project, account credentials and mailbox access.
-
-Production build configuration started on branch `production/app-config` (2026-10-09): `deno task build` loads the untracked project-root
-`.env.production`, validates the Firebase web settings and HTTPS API URL, and writes to `dist/`. Deno is unavailable in the current
-environment, so the build has not been verified here.
-
-Updated 2026-10-06 after polishing pending decisions and adding linked decision previews. The functional gaps and deferred live reviews below remain. See
-[backend status](../finanssi2-backend/STATUS.md) for gameplay and rule decisions.
-
-Per-game chat UI implementation is in progress (2026-10-05): game rooms use their own chat endpoint/topic, viewers without a seat get a read-only composer, and
-chat plus event log share a compact tabbed window that fills the remaining desktop sidebar height. The game-room preview has room history, simulated incoming
-messages, reconnect controls, and spectator mode. Frontend checks pass; responsive review and automated chat lifecycle coverage remain.
+- Firebase Google and email/password flows, application profile bootstrap/editing and custom avatars are implemented. Real Firebase
+  verification/linking, password reset and browser upload acceptance still need a live account and mailbox.
+- Per-game chat shares a compact tabbed window with the event log; viewers without a seat get a read-only composer. Responsive review
+  and automated chat lifecycle coverage remain.
+- With Deno 2.9.7 `deno task typecheck` fails on `vite.dev-pages.config.ts` and `deno lint` reports four `window.*` problems (e.g.
+  `CurrentUserContext.tsx`); the build and tests are unaffected. The Deno version is not pinned for releases.
+- See [backend status](../finanssi2-backend/STATUS.md) for gameplay and rule decisions.
 
 ## Completed features
 
@@ -62,7 +54,7 @@ messages, reconnect controls, and spectator mode. Frontend checks pass; responsi
   zero; plus/minus buttons and arrow keys jump between passing and the minimum bid, then step by €500.
 - Finance News direction choices show actual landing squares, including mandatory stops. Kokous uses a highlighted board picker and confirms the chosen
   destination. Fire previews include three buildings to choose two from, plus a forced-pair confirmation case. Bond transfers show the donor's token and colour.
-- `deno task build` is enabled and requires the production Firebase web settings and HTTPS API URL in `.env.production`; this has not yet been run in an environment with Deno and the production values.
+- `deno task build` requires the production Firebase web settings and HTTPS API URL in `.env.production`; it is used by the production publish script.
 
 ## Language
 

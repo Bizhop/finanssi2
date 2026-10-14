@@ -1,46 +1,26 @@
 # Backend status
 
-Updated 2026-10-14: production runs on ARM64 `t4g.small` EC2 at `https://api.finanssi.bizhop.fi`; the frontend remains at
-`https://finanssi.bizhop.fi`. The multi-platform image started with Java 25 on `aarch64`; public liveness and an existing debug game
-were verified after the change. Startup took about 51 seconds, during which Caddy returned 502. The first request after idle is slow
-while Aurora resumes. Live multiplayer testing with friends is next; Aurora pause/resume timing, backend memory under gameplay,
-CPU-credit behavior and reboot recovery remain to be measured. See [infrastructure setup](../infra/README.md). Firebase tokens
-must carry a verified email before profile provisioning or REST/STOMP access. See the root README for local configuration. Phase 5
-automated checks pass; live Firebase account linking and browser acceptance remain outstanding.
+Updated 2026-10-14. Production is live: the backend runs as one Docker container on an ARM64 `t4g.small` EC2 host behind Caddy at
+`https://api.finanssi.bizhop.fi`, with Aurora PostgreSQL Serverless v2; the frontend is at `https://finanssi.bizhop.fi`. Setup,
+releases and operations are in [infrastructure setup](../infra/README.md); local configuration is in the root README.
 
-Backend image packaging is on branch `production/backend-image` (2026-10-09): a Java 25 multi-stage Dockerfile builds with the Gradle
-wrapper, pins JDK/JRE base images by digest, excludes local Firebase credentials from the build context and runs the JRE image as a
-nonroot user. A multi-platform release is now deployed; gameplay memory acceptance remains outstanding.
+- **Image.** A Java 25 multi-stage Dockerfile builds with the Gradle wrapper, pins JDK/JRE base images by digest, excludes local
+  Firebase credentials and runs as a nonroot user. JVM options (40% heap, `ExitOnOutOfMemoryError`) are set only there. Releases are
+  multi-platform and deployed by digest; the host runs the container hardened (read-only root, dropped capabilities).
+- **`prod` profile.** Imports injected DB config, verifies the TLS hostname against the pinned AWS RDS CA bundle, uses a small
+  idle-closing Hikari pool for Aurora auto-pause, trusts proxy-forwarded headers and exposes a database-independent `/api/health/live`.
+- **Configuration.** Firebase Admin credentials come from `GOOGLE_APPLICATION_CREDENTIALS` (default: the local filename); REST and
+  STOMP share a configurable allowed origin; the debug allowlist is empty by default. Firebase tokens must carry a verified email
+  before profile provisioning or REST/STOMP access.
+- **Observed.** Startup takes about 51 seconds, during which Caddy returns 502. The first request after idle is slow while Aurora
+  resumes. Public HTTPS, Google sign-in and an existing debug game work in production.
+- **Not yet verified.** Live multiplayer play with friends, Firebase account linking in a browser, two-account chat delivery and
+  reconnect, Aurora pause/resume timing, backend memory and CPU credits under gameplay, and the actual monthly cost.
+- **Per-game chat.** Chat rows have a nullable game association with database delete cascade; history is room-filtered, game chat has
+  its own REST routes and `/topic/games/{id}/chat` topic, and posting and debug-owner access are checked (also on outbound delivery).
+  Tests cover authorization, room isolation, sender identity, invalid messages and cascade deletion.
 
-Production runtime settings are on branch `production/backend-runtime` (2026-10-09): the `prod` profile imports injected DB config,
-uses TLS hostname verification and a small idle-closing Hikari pool for Aurora auto-pause, trusts proxy-forwarded headers, and exposes
-a database-independent public liveness route. The image includes the AWS RDS global CA bundle pinned by checksum; TLS handshake and
-deployed pause/resume behavior still need live validation.
-
-Infrastructure improvements (branch `improvements/infra`, 2026-10-12): the container JVM options (40% heap, `ExitOnOutOfMemoryError`) are
-now set only in the `Dockerfile`, and the host runs the container hardened (read-only root, dropped capabilities). All deploy checkpoints were applied on 2026-10-12: the backend
-is healthy on the replaced host, recovers unaided after a reboot, and the container logs show no read-only or `/tmp` errors. See [infra setup](../infra/README.md).
-
-Production Pulumi infrastructure was initially deployed on 2026-10-09 with x86-64 `t3.small` EC2, then migrated to ARM64 `t4g.small`
-on 2026-10-14. The stack includes VPC/Aurora PostgreSQL 17.11, ECR, scoped IAM/Secrets Manager, S3, CloudFront and cost/host alarms.
-The ARM replacement retained the network interface and Elastic IP; the multi-platform backend image was deployed by digest through
-SSM. Bootstrap installs Docker and pinned Caddy, and the EC2 role authenticates deployments to ECR. Public HTTPS and Google sign-in
-had been accepted before the architecture change; ARM public liveness and an existing debug game were accepted after it. Aurora
-pause/resume timing, gameplay resource use, reboot recovery and the actual budget remain to be measured. See
-[infra setup](../infra/README.md).
-
-Production application configuration started on branch `production/app-config` (2026-10-09): Firebase Admin credentials now use
-`GOOGLE_APPLICATION_CREDENTIALS` with the existing local filename as default, REST and STOMP share a configurable allowed origin,
-and the committed debug email is removed in favor of an empty environment-backed default. Build and live configuration acceptance
-remain outstanding.
-
-Updated 2026-10-02 after implementing single-player debug mode. Gameplay and private debug controls are implemented;
-live frontend integration review and the follow-ups below remain. See [frontend status](../finanssi2-web/STATUS.md) for UI gaps.
-
-Per-game chat implementation is in progress (2026-10-05): nullable game association with database delete cascade, room-filtered
-history, game chat REST routes, participant posting/debug-owner access checks, and `/topic/games/{id}/chat` subscriptions are
-implemented. Focused REST/STOMP tests and PostgreSQL checks cover authorization, room isolation, sender identity, invalid messages,
-outbound debug access rechecks, and database cascade deletion. Two-account websocket delivery/reconnect acceptance remains.
+See [frontend status](../finanssi2-web/STATUS.md) for UI gaps.
 
 ## Completed features
 
@@ -68,8 +48,8 @@ outbound debug access rechecks, and database cascade deletion. Two-account webso
 
 - Code lives under `fi.bizhop.finanssi2.game`: `data` loads immutable assets, `engine` applies rules without Spring or persistence,
   `service` loads/saves/broadcasts, and `web` exposes REST models. Card effects use stable ids in code; the JSON holds card text.
-- The canonical data is in `src/main/resources/gamedata/`. Transcriptions are in `../input/data/`; the rules, board photo and
-  card photos remain in `../input/`. The deeds and cards were transcribed from the physical set on 2026-09-30.
+- The canonical data is in `src/main/resources/gamedata/`; the app never reads the repository's `input` folder, which holds
+  reference material only. The deeds and cards were transcribed from the physical set on 2026-09-30.
 - JSON retains the transcription format, including chapter `type` and `font-style`. Unknown fields and inconsistent asset
   counts, groups, values or relationships fail startup. There are 19 group shares and two fund shares. The physical set lacks
   one of the 42 Stock Tips listed in the rules; use the 41 available cards.
@@ -99,7 +79,7 @@ outbound debug access rechecks, and database cascade deletion. Two-account webso
 
 ## Backend improvements (2026-10-12)
 
-Done on branch `improvements/backend` from [the improvement plan](../plan/backend-improvements.md):
+Completed (these were the backend improvement work items):
 
 - **Errors.** Every failure is a `ProblemDetail` through one `ApiErrors` advice (Spring's own exceptions, `ResponseStatusException`,
   rule violations, missing elements → 404, bad arguments → 400); every error carries a stable `code` (`ErrorCode`) and, where its wording needs values, `params`; thrown through
@@ -117,14 +97,13 @@ Done on branch `improvements/backend` from [the improvement plan](../plan/backen
 - **Removed.** `/api/hello`, `/api/secure-hello`, the actuator starter, the unused `/api` STOMP prefix and the Dev controller test.
   The whitelist property is now comma separated.
 - **API.** `GET /api/games/{id}` adds `options`: concrete legal choices with current prices (including Finance News modifiers),
-  additive to `allowedCommands`. The frontend plan consumes it when the decision dialog is split.
+  additive to `allowedCommands`. The frontend consumes it for the decision dialogs.
 - **Not done.** Persistence N+1/avatar-table changes (R4/R5) are not needed until list or request latency is measured on Aurora.
   Replacing the event-delete queries with `@OnDelete(CASCADE)` would not change existing foreign keys (`ddl-auto=update`).
 
 ## Private single-player debug mode
 
-- Six planned implementation steps were completed in separate commits on 2026-10-02. The implementation plan was retired;
-  these status files are the handoff. One verified account manually controls 2–6 seats (default two); no automatic opponents.
+- Implemented 2026-10-02; these status files are the handoff. One verified account manually controls 2–6 seats (default two); no automatic opponents.
 - Configure exact comma-separated addresses in `finanssi2.debug.allowed-emails`; the committed default is empty. Access requires
   Firebase's verified email claim, comparing trimmed addresses case-insensitively with `Locale.ROOT`. No addresses or patterns
   are embedded in code. `GET /api/me/capabilities` exposes only `debugMode`.
@@ -156,8 +135,8 @@ Outstanding developer-run acceptance:
 
 ## Rules and interpretations
 
-These retain the decisions from the former open-questions file. The physical rules are in
-[Finnish](../input/rules/rules-fi.md) and [English](../input/rules/rules-en.md).
+These retain the decisions from the former open-questions file. They interpret the physical rules, which are kept as
+reference material in the `input` folder.
 
 ### Movement, turns and jail
 

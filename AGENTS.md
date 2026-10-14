@@ -4,8 +4,10 @@
 
 - Current features, decisions and todos: [backend status](finanssi2-backend/STATUS.md) and
   [frontend status](finanssi2-web/STATUS.md).
-- Single-player debug mode is implemented. Remaining developer-run acceptance checks and configuration are recorded in the
+- Production is live (ARM64 EC2 + Aurora + CloudFront/S3, managed by Pulumi in `infra/`; see [infra README](infra/README.md)).
+  Single-player debug mode is implemented. Remaining live acceptance checks and measurements are recorded in the
   backend/frontend status notes; use those as the session handoff.
+- `input/` is reference material (rules, photos, transcriptions). Don't link to it from code or docs.
 
 ## Frontend tooling in the sandbox
 

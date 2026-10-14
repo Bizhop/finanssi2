@@ -1,6 +1,6 @@
 # AWS cost baseline before ARM64
 
-Recorded 2026-10-14 from `plan/costs-before-arm64-transfer.png`, before the EC2 move from `t3.small` to `t4g.small`.
+Recorded 2026-10-14 from an AWS billing screenshot, before the EC2 move from `t3.small` to `t4g.small`.
 The screenshot does not show the billing period. These are pre-tax charges for the displayed period, not monthly estimates.
 
 | Service | Usage details | Amount (USD) |

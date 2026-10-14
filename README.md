@@ -4,14 +4,17 @@ Monorepo for the Finanssi 2 game.
 
 - `finanssi2-backend/` – Spring Boot backend (Java 25, Gradle, PostgreSQL, Firebase auth)
 - `finanssi2-web/` – React frontend (Deno + Vite)
+- `infra/` – Pulumi TypeScript production infrastructure on AWS and release scripts
+- `input/` – reference material only (rules, board and card photos, transcriptions); not read by the apps
 
 Current implementation status, decisions and todos:
 
 - [Backend notes](finanssi2-backend/STATUS.md)
 - [Frontend notes](finanssi2-web/STATUS.md)
-- [Production infrastructure setup](infra/README.md)
+- [Production infrastructure](infra/README.md)
 
-Private single-player debug mode is implemented; remaining live acceptance checks are recorded in the status notes.
+The game is live at https://finanssi.bizhop.fi (API at https://api.finanssi.bizhop.fi). Private single-player debug mode is
+implemented; live multiplayer acceptance and measurements of the production host are recorded in the status notes.
 
 ## Prerequisites
 
