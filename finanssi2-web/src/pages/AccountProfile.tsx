@@ -1,5 +1,5 @@
 import { type SubmitEvent, useState } from "react"
-import { Alert, Avatar, Button, Stack, TextField, Typography } from "@mui/material"
+import { Alert, Avatar, Button, Paper, Stack, TextField, Typography } from "@mui/material"
 import { EmailAuthProvider, GoogleAuthProvider, linkWithCredential, reauthenticateWithPopup, reload, validatePassword } from "firebase/auth"
 import { toast } from "react-toastify"
 import { useTranslation } from "react-i18next"
@@ -100,73 +100,85 @@ export const AccountProfile = () => {
     }
     if (!user || !profile) return null
     return (
-        <Stack spacing={2} sx={{ p: 2, maxWidth: 520 }}>
+        <Stack spacing={2} sx={{ p: 2 }}>
             <Typography variant="h5">{t("account.title")}</Typography>
-            <Typography>{t("account.email", { email: profile.email })}</Typography>
-            <Typography variant="h6">{t("nav.language")}</Typography>
-            <LanguageSwitch />
-            <Typography variant="h6">{t("account.avatar")}</Typography>
-            <Avatar src={avatarSrc(profile.avatar)} alt={profile.displayName} sx={{ width: 96, height: 96, fontSize: 36 }}>
-                {profile.displayName.slice(0, 1).toUpperCase()}
-            </Avatar>
-            <Stack direction="row" spacing={1}>
-                <Button component="label" variant="outlined" disabled={busy}>
-                    {t("account.upload")}
-                    <input
-                        hidden
-                        type="file"
-                        accept="image/jpeg,image/png"
-                        onChange={(event) => {
-                            const file = event.currentTarget.files?.[0]
-                            event.currentTarget.value = ""
-                            if (file) void uploadAvatar(file)
-                        }}
-                    />
-                </Button>
-                {profile.avatarSource === "custom" && <Button onClick={() => void removeAvatar()} disabled={busy}>{t("account.removeCustom")}</Button>}
-            </Stack>
-            {avatarError && <Alert severity="error">{avatarError}</Alert>}
-            <Typography variant="caption">{t("account.avatarHelp")}</Typography>
-            <Stack component="form" onSubmit={submit} spacing={2}>
-                <TextField
-                    label={t("account.displayName")}
-                    required
-                    value={displayName}
-                    slotProps={{ htmlInput: { maxLength: 50 } }}
-                    onChange={(event) => setDisplayName(event.target.value)}
-                />
-                {error && <Alert severity="error">{error}</Alert>}
-                {saved && <Alert severity="success">{t("account.saved")}</Alert>}
-                <Button type="submit" variant="contained" disabled={busy || displayName.trim().length === 0 || displayName.trim() === profile.displayName}>
-                    {t("account.saveProfile")}
-                </Button>
-            </Stack>
-            {passwordMessage && user.providerData.some((provider) => provider.providerId === "password") && <Alert severity="success">{passwordMessage}</Alert>}
-            {passwordError && user.providerData.some((provider) => provider.providerId === "password") && <Alert severity="error">{passwordError}</Alert>}
-            {user.providerData.some((provider) => provider.providerId === "google.com") &&
-                !user.providerData.some((provider) => provider.providerId === "password") && (
-                <Stack component="form" onSubmit={addPassword} spacing={2}>
-                    <Typography variant="h6">{t("account.addPasswordTitle")}</Typography>
-                    <TextField
-                        label={t("account.newPassword")}
-                        type="password"
-                        required
-                        autoComplete="new-password"
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                    />
-                    <TextField
-                        label={t("account.confirmPassword")}
-                        type="password"
-                        required
-                        autoComplete="new-password"
-                        value={passwordConfirmation}
-                        onChange={(event) => setPasswordConfirmation(event.target.value)}
-                    />
-                    {passwordError && <Alert severity="error">{passwordError}</Alert>}
-                    <Button type="submit" disabled={busy}>{t("account.addPassword")}</Button>
+            <Paper variant="outlined" sx={{ p: 2, maxWidth: 520 }}>
+                <Stack spacing={2}>
+                    <Typography>{t("account.email", { email: profile.email })}</Typography>
+                    <Typography variant="h6">{t("nav.language")}</Typography>
+                    <LanguageSwitch />
+                    <Typography variant="h6">{t("account.avatar")}</Typography>
+                    <Avatar src={avatarSrc(profile.avatar)} alt={profile.displayName} sx={{ width: 96, height: 96, fontSize: 36 }}>
+                        {profile.displayName.slice(0, 1).toUpperCase()}
+                    </Avatar>
+                    <Stack direction="row" spacing={1}>
+                        <Button component="label" variant="outlined" disabled={busy}>
+                            {t("account.upload")}
+                            <input
+                                hidden
+                                type="file"
+                                accept="image/jpeg,image/png"
+                                onChange={(event) => {
+                                    const file = event.currentTarget.files?.[0]
+                                    event.currentTarget.value = ""
+                                    if (file) void uploadAvatar(file)
+                                }}
+                            />
+                        </Button>
+                        {profile.avatarSource === "custom" && <Button onClick={() => void removeAvatar()} disabled={busy}>{t("account.removeCustom")}</Button>}
+                    </Stack>
+                    {avatarError && <Alert severity="error">{avatarError}</Alert>}
+                    <Typography variant="caption">{t("account.avatarHelp")}</Typography>
+                    <Stack component="form" onSubmit={submit} spacing={2}>
+                        <TextField
+                            label={t("account.displayName")}
+                            required
+                            value={displayName}
+                            slotProps={{ htmlInput: { maxLength: 50 } }}
+                            onChange={(event) => setDisplayName(event.target.value)}
+                        />
+                        {error && <Alert severity="error">{error}</Alert>}
+                        {saved && <Alert severity="success">{t("account.saved")}</Alert>}
+                        <Button
+                            type="submit"
+                            variant="contained"
+                            disabled={busy || displayName.trim().length === 0 || displayName.trim() === profile.displayName}
+                        >
+                            {t("account.saveProfile")}
+                        </Button>
+                    </Stack>
+                    {passwordMessage && user.providerData.some((provider) => provider.providerId === "password") && (
+                        <Alert severity="success">{passwordMessage}</Alert>
+                    )}
+                    {passwordError && user.providerData.some((provider) => provider.providerId === "password") && (
+                        <Alert severity="error">{passwordError}</Alert>
+                    )}
+                    {user.providerData.some((provider) => provider.providerId === "google.com") &&
+                        !user.providerData.some((provider) => provider.providerId === "password") && (
+                        <Stack component="form" onSubmit={addPassword} spacing={2}>
+                            <Typography variant="h6">{t("account.addPasswordTitle")}</Typography>
+                            <TextField
+                                label={t("account.newPassword")}
+                                type="password"
+                                required
+                                autoComplete="new-password"
+                                value={password}
+                                onChange={(event) => setPassword(event.target.value)}
+                            />
+                            <TextField
+                                label={t("account.confirmPassword")}
+                                type="password"
+                                required
+                                autoComplete="new-password"
+                                value={passwordConfirmation}
+                                onChange={(event) => setPasswordConfirmation(event.target.value)}
+                            />
+                            {passwordError && <Alert severity="error">{passwordError}</Alert>}
+                            <Button type="submit" disabled={busy}>{t("account.addPassword")}</Button>
+                        </Stack>
+                    )}
                 </Stack>
-            )}
+            </Paper>
         </Stack>
     )
 }

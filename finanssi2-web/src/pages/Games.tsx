@@ -82,7 +82,7 @@ export const Games = () => {
     if (!user) return <Alert severity="info" sx={{ mt: 2 }}>{t("games.signInRequired")}</Alert>
 
     return (
-        <Stack spacing={2} sx={{ flex: 1, minHeight: 0, py: 2 }}>
+        <Stack spacing={2} sx={{ flex: 1, minHeight: 0, p: 2 }}>
             <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
                 <Typography variant="h5">{t("games.title")}</Typography>
                 <Stack direction="row" spacing={1}>

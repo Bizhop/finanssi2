@@ -56,9 +56,18 @@ export const Chat = ({ user, gameId, embedded = false, compact = false, canSend 
     }, [messages, hasOlderMessages, expanded, compact])
 
     return (
-        <Stack direction="column" sx={{ flex: 1, minHeight: 0 }}>
-            {!embedded && <Typography variant="h4" component="h1">{t("chat.title")}</Typography>}
-            <Box component={embedded ? "div" : Paper} sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        <Stack direction="column" spacing={2} sx={{ flex: 1, minHeight: 0, ...(!embedded && { p: 2 }) }}>
+            {!embedded && <Typography variant="h5" component="h1">{t("chat.title")}</Typography>}
+            <Box
+                component={embedded ? "div" : Paper}
+                sx={{
+                    flex: 1,
+                    minHeight: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    ...(!embedded && { border: 1, borderColor: "divider", borderRadius: 1, p: 2, boxShadow: "none" }),
+                }}
+            >
                 <List
                     ref={messageListRef}
                     dense={compact}
@@ -94,43 +103,43 @@ export const Chat = ({ user, gameId, embedded = false, compact = false, canSend 
                         </ListItem>
                     )}
                 </List>
-            </Box>
-            {!connected && (
-                <Typography variant="caption" color="warning" sx={{ mt: 1 }}>
-                    {t("chat.connecting")}
-                </Typography>
-            )}
-            {error && <Alert severity="error" sx={{ mt: 1 }}>{error}</Alert>}
-            {canSend
-                ? (
-                    <form onSubmit={handleSubmit(sendChatMessage)}>
-                        {/* useFlexGap: with margin-based spacing, Stack would reset the send button's top margin */}
-                        <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: "flex-start", mt: compact ? 1 : 2 }}>
-                            <Box sx={{ flexGrow: 1 }}>
-                                <InputField
-                                    control={control}
-                                    name="message"
-                                    label={t("chat.message")}
-                                    type="text"
+                {!connected && (
+                    <Typography variant="caption" color="warning" sx={{ mt: 1 }}>
+                        {t("chat.connecting")}
+                    </Typography>
+                )}
+                {error && <Alert severity="error" sx={{ mt: 1 }}>{error}</Alert>}
+                {canSend
+                    ? (
+                        <form onSubmit={handleSubmit(sendChatMessage)}>
+                            {/* useFlexGap: with margin-based spacing, Stack would reset the send button's top margin */}
+                            <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: "flex-start", mt: compact ? 1 : 2 }}>
+                                <Box sx={{ flexGrow: 1 }}>
+                                    <InputField
+                                        control={control}
+                                        name="message"
+                                        label={t("chat.message")}
+                                        type="text"
+                                        size={compact ? "small" : "medium"}
+                                        // An empty field only disables sending, it's not worth an error message
+                                        error={errors.message?.type === "too_small" ? undefined : errors.message}
+                                    />
+                                </Box>
+                                <IconButton
+                                    color="primary"
+                                    type="submit"
+                                    aria-label={t("chat.send")}
                                     size={compact ? "small" : "medium"}
-                                    // An empty field only disables sending, it's not worth an error message
-                                    error={errors.message?.type === "too_small" ? undefined : errors.message}
-                                />
-                            </Box>
-                            <IconButton
-                                color="primary"
-                                type="submit"
-                                aria-label={t("chat.send")}
-                                size={compact ? "small" : "medium"}
-                                sx={{ mt: compact ? 0.5 : 1 }}
-                                disabled={isSubmitting || !isDirty || !isValid}
-                            >
-                                <SendIcon />
-                            </IconButton>
-                        </Stack>
-                    </form>
-                )
-                : <Typography variant="caption" sx={{ mt: 1 }}>{t("chat.joinToSend")}</Typography>}
+                                    sx={{ mt: compact ? 0.5 : 1 }}
+                                    disabled={isSubmitting || !isDirty || !isValid}
+                                >
+                                    <SendIcon />
+                                </IconButton>
+                            </Stack>
+                        </form>
+                    )
+                    : <Typography variant="caption" sx={{ mt: 1 }}>{t("chat.joinToSend")}</Typography>}
+            </Box>
         </Stack>
     )
 }
