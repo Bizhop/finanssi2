@@ -1,8 +1,8 @@
 # Production infrastructure
 
 This TypeScript Pulumi project defines the production stack: a two-AZ VPC, private Aurora PostgreSQL, ECR, a
-single x86-64 EC2 backend, Secrets Manager inputs, a private S3 frontend bucket, and a staged CloudFront certificate/distribution.
-The current default host is `t3.small` (`x86_64`). The stack also defines bounded CloudWatch log retention, host CPU/memory/disk/credit
+single ARM64 EC2 backend, Secrets Manager inputs, a private S3 frontend bucket, and a staged CloudFront certificate/distribution.
+The production host and new-stack default are `t4g.small` (`arm64`). The stack also defines bounded CloudWatch log retention, host CPU/memory/disk/credit
 alarms, backend restart alarms and a monthly cost budget with email notifications. No AWS resources are created by the local TypeScript
 build.
 
@@ -32,6 +32,15 @@ The stack uses `aws:region` with a default of `eu-north-1`. Set `monthlyBudgetLi
 available in that region and supports Serverless v2 auto-pause before previewing. `createFrontendDistribution` defaults to `false`:
 the first stage requests the ACM certificate and exports its validation CNAME without waiting for Domainhotelli DNS. After that CNAME
 resolves publicly, enable the distribution in the local stack config and preview again.
+
+The backend release helper defaults to the platform in the applied stack output. Set `BACKEND_PLATFORMS=linux/amd64,linux/arm64`
+to publish one immutable multi-platform release index, or use `DEPLOY_BACKEND=false` to publish without deploying. The deploy helper
+checks the host architecture and pulls the digest for that platform before it changes the active image reference. Production uses a
+multi-platform release so the same digest can run on ARM64 EC2 and amd64 developer machines.
+
+Production moved from `t3.small`/x86-64 to `t4g.small`/ARM64 on 2026-10-14. For a future architecture change, set
+`allowAmiChange: true` while replacing the instance so Pulumi can select the matching AL2023 AMI; after replacement and state refresh,
+set it back to `false` to restore routine AMI protection. It defaults to `false`.
 
 The `prod` stack is deployed. The backend image has been pushed to ECR and deployed through SSM; the backend service reported that
 the app started. `frontendDistributionHostname` currently returns `null` because the CloudFront distribution is still staged/disabled.
@@ -129,9 +138,11 @@ Records are added manually; Domainhotelli's form strips the trailing `.bizhop.fi
 
 ## Current state and gaps
 
-The production stack is live (2026-10-12): `https://finanssi.bizhop.fi` serves the frontend through CloudFront, and
-`https://api.finanssi.bizhop.fi` answers `/api/health/live` through Caddy. Sign-in works; the first request after an idle period is
-slow while Aurora resumes.
+The production stack is live on ARM64 (2026-10-14): `https://finanssi.bizhop.fi` serves the frontend through CloudFront, and
+`https://api.finanssi.bizhop.fi` answers `/api/health/live` through Caddy. The t4g.small host runs Amazon Linux 2023 on `aarch64` and
+uses a multi-platform backend image. After replacement, backend startup took about 51 seconds; requests through Caddy returned 502
+until Spring finished starting, after which public liveness and a previously started debug game loaded successfully. The first request
+after an Aurora idle period can still be slow while the database resumes.
 
-- Not yet measured: Aurora pause/resume timing and backend memory under real gameplay on the 2 GiB host, EC2 reboot behavior.
+- Not yet measured: Aurora pause/resume timing, backend memory under real gameplay on the 2 GiB ARM64 host, CPU-credit behavior and reboot recovery.
 - Live multiplayer acceptance with friends is in progress; see the backend and frontend STATUS files.

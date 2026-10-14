@@ -20,6 +20,7 @@ export function createBackend(
         region: string
         instanceType: string
         architecture: "x86_64" | "arm64"
+        allowAmiChange: boolean
         apiHostname: string
         allowedOrigin: string
         debugEmails: string
@@ -177,8 +178,9 @@ export function createBackend(
         provider,
         dependsOn: [instanceProfile, ssmPolicy, backendAccessPolicy, elasticIp],
         deleteBeforeReplace: true,
-        // Take AL2023 releases deliberately (pulumi up --replace) instead of replacing the host on a routine update.
-        ignoreChanges: ["ami"],
+        // Temporarily disable this during an architecture migration so Pulumi can select the matching AL2023 AMI.
+        // Restore it after the replacement and state refresh to avoid routine AMI rollouts.
+        ignoreChanges: settings.allowAmiChange ? [] : ["ami"],
     })
 
     return { instance, elasticIp, repository, hostLogGroup, applicationLogGroup, imageRefParameterName }

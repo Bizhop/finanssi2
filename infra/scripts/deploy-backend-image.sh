@@ -17,9 +17,15 @@ load_stack_outputs "$infra_dir" "$stack"
 repository_url=$(stack_output backendRepositoryUrl)
 instance_id=$(stack_output backendInstanceId)
 image_ref_parameter=$(stack_output backendImageRefParameter)
+architecture=$(stack_output selectedArchitecture)
 region=$(stack_region "$infra_dir" "$stack")
 
 validate_repository_url "$repository_url"
+case "$architecture" in
+    x86_64) target_platform=linux/amd64; target_machine=x86_64 ;;
+    arm64) target_platform=linux/arm64; target_machine=aarch64 ;;
+    *) fail "unsupported backend architecture: $architecture" ;;
+esac
 [[ "$image_ref" == "$repository_url"@sha256:* ]] || fail "image must belong to the stack's backend repository"
 digest=${image_ref#*@}
 [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]] || fail "image must use a valid immutable SHA-256 digest"
@@ -37,15 +43,19 @@ ping_status=$(aws ssm describe-instance-information \
 parameters_file=$(mktemp "${TMPDIR:-/tmp}/finanssi2-ssm-parameters.XXXXXX")
 trap 'rm -f "$parameters_file"' EXIT
 chmod 0600 "$parameters_file"
-IMAGE_REF="$image_ref" python3 - "$parameters_file" <<'PY'
+IMAGE_REF="$image_ref" TARGET_PLATFORM="$target_platform" TARGET_MACHINE="$target_machine" python3 - "$parameters_file" <<'PY'
 import json
 import os
 import sys
 
 image_ref = os.environ["IMAGE_REF"]
+target_platform = os.environ["TARGET_PLATFORM"]
+target_machine = os.environ["TARGET_MACHINE"]
 remote_script = r'''#!/usr/bin/env bash
 set -euo pipefail
 IMAGE_REF='@@IMAGE_REF@@'
+TARGET_PLATFORM='@@TARGET_PLATFORM@@'
+TARGET_MACHINE='@@TARGET_MACHINE@@'
 REF_FILE=/etc/finanssi2/image-ref
 TEMP_FILE="${REF_FILE}.new"
 OLD_REF=$(cat "$REF_FILE" 2>/dev/null || true)
@@ -85,9 +95,15 @@ rollback() {
 }
 
 source /etc/finanssi2/host.env
+actual_machine=$(uname -m)
+if [ "$actual_machine" != "$TARGET_MACHINE" ]; then
+    echo "EC2 architecture mismatch: expected $TARGET_MACHINE, found $actual_machine" >&2
+    exit 1
+fi
 aws ecr get-login-password --region "$AWS_REGION" \
     | docker login --username AWS --password-stdin "$ECR_REPOSITORY_URL" >/dev/null
-docker pull "$IMAGE_REF"
+# Pulling for the host platform verifies the immutable digest before activating it.
+docker pull --platform "$TARGET_PLATFORM" "$IMAGE_REF"
 printf '%s\n' "$IMAGE_REF" > "$TEMP_FILE"
 chmod 0644 "$TEMP_FILE"
 mv -f "$TEMP_FILE" "$REF_FILE"
@@ -111,7 +127,7 @@ done
 echo 'Backend did not become healthy; restoring the previous image' >&2
 rollback
 exit 1
-'''.replace('@@IMAGE_REF@@', image_ref)
+'''.replace('@@IMAGE_REF@@', image_ref).replace('@@TARGET_PLATFORM@@', target_platform).replace('@@TARGET_MACHINE@@', target_machine)
 
 with open(sys.argv[1], "w", encoding="utf-8") as output:
     json.dump({"commands": [remote_script], "executionTimeout": ["1800"]}, output)

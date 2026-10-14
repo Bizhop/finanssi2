@@ -3,8 +3,9 @@ config:
   finanssi2:frontendHostname: finanssi.bizhop.fi
   finanssi2:apiHostname: api.finanssi.bizhop.fi
   finanssi2:allowedOrigin: https://finanssi.bizhop.fi
-  finanssi2:instanceType: t3.small
-  finanssi2:architecture: x86_64
+  finanssi2:instanceType: t4g.small
+  finanssi2:architecture: arm64
+  finanssi2:allowAmiChange: false
   finanssi2:createFrontendDistribution: false
   finanssi2:debugAllowedEmails: ""
   finanssi2:monthlyBudgetLimitUsd: 0

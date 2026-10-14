@@ -10,8 +10,9 @@ import { createFirebaseAdminSecret } from "./secrets"
 const config = new pulumi.Config()
 const region = new pulumi.Config("aws").get("region") ?? "eu-north-1"
 const prefix = `finanssi2-${pulumi.getStack()}`
-const instanceType = config.get("instanceType") ?? "t3.small"
-const architecture = config.get("architecture") ?? "x86_64"
+const instanceType = config.get("instanceType") ?? "t4g.small"
+const architecture = config.get("architecture") ?? "arm64"
+const allowAmiChange = config.getBoolean("allowAmiChange") ?? false
 const frontendHostname = config.get("frontendHostname") ?? "finanssi.bizhop.fi"
 const apiHostname = config.get("apiHostname") ?? "api.finanssi.bizhop.fi"
 const allowedOrigin = config.get("allowedOrigin") ?? `https://${frontendHostname}`
@@ -119,6 +120,7 @@ const backend = createBackend(prefix, provider, {
     region,
     instanceType,
     architecture,
+    allowAmiChange,
     apiHostname,
     allowedOrigin,
     debugEmails: debugEmails.join(","),

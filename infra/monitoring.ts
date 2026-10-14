@@ -51,7 +51,7 @@ export function createMonitoring(
     }, { provider })
     new aws.cloudwatch.MetricAlarm(`${prefix}-cpu-credit-alarm`, {
         name: `${prefix}-cpu-credit-low`,
-        alarmDescription: "T3 CPU credit balance is low",
+        alarmDescription: "EC2 CPU credit balance is low",
         namespace: "AWS/EC2",
         metricName: "CPUCreditBalance",
         dimensions: { InstanceId: settings.instance.id },

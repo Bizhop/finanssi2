@@ -38,11 +38,11 @@ that directory contains public frontend configuration and must not contain Fireb
 
 ### Backend container image
 
-Build a local Java 25 backend image from the backend directory for the current production host (`x86_64`):
+Build a native Java 25 backend image from the backend directory for local development:
 
 ```bash
 cd finanssi2-backend
-docker build --platform linux/amd64 -t finanssi2-backend:local .
+docker build -t finanssi2-backend:local .
 ```
 
 The image uses the Gradle wrapper version recorded by the project, excludes local credentials and build state, and runs as UID 10001.

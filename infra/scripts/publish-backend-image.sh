@@ -13,6 +13,7 @@ repo_root=$(cd -- "$script_dir/../.." && pwd)
 backend_dir="$repo_root/finanssi2-backend"
 stack=${PULUMI_STACK:-prod}
 deploy_backend=${DEPLOY_BACKEND:-true}
+requested_platforms=${BACKEND_PLATFORMS:-stack}
 
 case "$deploy_backend" in
     true|false) ;;
@@ -31,9 +32,14 @@ region=$(stack_region "$infra_dir" "$stack")
 validate_repository_url "$repository_url"
 
 case "$architecture" in
-    x86_64) platform=linux/amd64 ;;
-    arm64) platform=linux/arm64 ;;
+    x86_64) stack_platform=linux/amd64 ;;
+    arm64) stack_platform=linux/arm64 ;;
     *) fail "unsupported backend architecture: $architecture" ;;
+esac
+case "$requested_platforms" in
+    stack) platforms=$stack_platform ;;
+    linux/amd64|linux/arm64|linux/amd64,linux/arm64) platforms=$requested_platforms ;;
+    *) fail "BACKEND_PLATFORMS must be stack, linux/amd64, linux/arm64, or linux/amd64,linux/arm64" ;;
 esac
 
 aws sts get-caller-identity --output text >/dev/null
@@ -44,7 +50,7 @@ aws ecr get-login-password --region "$region" \
 revision=$(git -C "$repo_root" rev-parse --short=12 HEAD)
 release_tag="${revision}-$(date -u +%Y%m%dT%H%M%SZ)-$$-${RANDOM}"
 docker buildx build \
-    --platform "$platform" \
+    --platform "$platforms" \
     --tag "$repository_url:$release_tag" \
     --push \
     "$backend_dir" >&2

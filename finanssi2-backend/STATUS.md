@@ -1,15 +1,16 @@
 # Backend status
 
-Updated 2026-10-12: production is live at `https://finanssi.bizhop.fi` (frontend) and `https://api.finanssi.bizhop.fi` (backend); the
-liveness endpoint answers over HTTPS and Google sign-in works. The first request after idle is slow while Aurora resumes. Live
-multiplayer testing with friends is next; Aurora pause/resume timing, backend memory under gameplay and reboot behavior are still to be
-measured. See [infrastructure setup](../infra/README.md). Firebase tokens
+Updated 2026-10-14: production runs on ARM64 `t4g.small` EC2 at `https://api.finanssi.bizhop.fi`; the frontend remains at
+`https://finanssi.bizhop.fi`. The multi-platform image started with Java 25 on `aarch64`; public liveness and an existing debug game
+were verified after the change. Startup took about 51 seconds, during which Caddy returned 502. The first request after idle is slow
+while Aurora resumes. Live multiplayer testing with friends is next; Aurora pause/resume timing, backend memory under gameplay,
+CPU-credit behavior and reboot recovery remain to be measured. See [infrastructure setup](../infra/README.md). Firebase tokens
 must carry a verified email before profile provisioning or REST/STOMP access. See the root README for local configuration. Phase 5
 automated checks pass; live Firebase account linking and browser acceptance remain outstanding.
 
 Backend image packaging is on branch `production/backend-image` (2026-10-09): a Java 25 multi-stage Dockerfile builds with the Gradle
 wrapper, pins JDK/JRE base images by digest, excludes local Firebase credentials from the build context and runs the JRE image as a
-nonroot user. The ARM64 image built successfully here; deployed runtime and memory acceptance remain outstanding.
+nonroot user. A multi-platform release is now deployed; gameplay memory acceptance remains outstanding.
 
 Production runtime settings are on branch `production/backend-runtime` (2026-10-09): the `prod` profile imports injected DB config,
 uses TLS hostname verification and a small idle-closing Hikari pool for Aurora auto-pause, trusts proxy-forwarded headers, and exposes
@@ -20,13 +21,13 @@ Infrastructure improvements (branch `improvements/infra`, 2026-10-12): the conta
 now set only in the `Dockerfile`, and the host runs the container hardened (read-only root, dropped capabilities). All deploy checkpoints were applied on 2026-10-12: the backend
 is healthy on the replaced host, recovers unaided after a reboot, and the container logs show no read-only or `/tmp` errors. See [infra setup](../infra/README.md).
 
-Production Pulumi infrastructure was deployed on 2026-10-09: VPC/Aurora PostgreSQL 17.11, x86-64 `t3.small` EC2, ECR, scoped
-IAM/Secrets Manager, S3, staged CloudFront certificate/distribution, and cost/host alarms. S3 resource types and the EC2 primary
-network interface use current provider inputs. TypeScript compilation passed, and the deployment completed without warnings.
-The backend image was pushed to ECR and deployed by digest through SSM; the service status command succeeded and reported the app
-started. Bootstrap now installs Docker and pinned Caddy directly, and deployment authenticates to ECR with the EC2 role. Public API,
-TLS and database pause/resume behavior remain to be accepted. Actual budget amount/email and frontend DNS/distribution handoff remain
-operator tasks. See [infra setup](../infra/README.md).
+Production Pulumi infrastructure was initially deployed on 2026-10-09 with x86-64 `t3.small` EC2, then migrated to ARM64 `t4g.small`
+on 2026-10-14. The stack includes VPC/Aurora PostgreSQL 17.11, ECR, scoped IAM/Secrets Manager, S3, CloudFront and cost/host alarms.
+The ARM replacement retained the network interface and Elastic IP; the multi-platform backend image was deployed by digest through
+SSM. Bootstrap installs Docker and pinned Caddy, and the EC2 role authenticates deployments to ECR. Public HTTPS and Google sign-in
+had been accepted before the architecture change; ARM public liveness and an existing debug game were accepted after it. Aurora
+pause/resume timing, gameplay resource use, reboot recovery and the actual budget remain to be measured. See
+[infra setup](../infra/README.md).
 
 Production application configuration started on branch `production/app-config` (2026-10-09): Firebase Admin credentials now use
 `GOOGLE_APPLICATION_CREDENTIALS` with the existing local filename as default, REST and STOMP share a configurable allowed origin,
