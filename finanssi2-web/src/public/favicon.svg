@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+    <defs>
+        <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#fff19a" />
+            <stop offset="0.46" stop-color="#edc458" />
+            <stop offset="1" stop-color="#dc7626" />
+        </linearGradient>
+    </defs>
+    <rect width="64" height="64" rx="8" fill="#101116" />
+    <!-- The offset rear face and connecting polygons form the orange extruded sides. -->
+    <path d="M15 15h35l-4 10H29l-2 7h16l-4 10H23l-3 9H8l4-24z" transform="translate(5 6)" fill="#873914" />
+    <path d="M50 15l-4 10 5 6 4-10z" fill="#bd581f" />
+    <path d="M46 25H29l5 6h17z" fill="#e28331" />
+    <path d="M29 25l-2 7 5 6 2-7z" fill="#b9501b" />
+    <path d="M43 32l-4 10 5 6 4-10z" fill="#b9501b" />
+    <path d="M39 42H23l5 6h16z" fill="#df7829" />
+    <path d="M23 42l-3 9 5 6 3-9z" fill="#ad491a" />
+    <path d="M20 51H8l5 6h12z" fill="#d66a24" />
+    <path d="M15 15h35l-4 10H29l-2 7h16l-4 10H23l-3 9H8l4-24z" fill="url(#gold)" stroke="#ffdf79" stroke-width="1.2" stroke-linejoin="round" />
+    <path d="M16.5 16.5h29.7l-1.1 2.3H17.5z" fill="#fff8c7" opacity="0.72" />
+</svg>
