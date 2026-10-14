@@ -41,3 +41,20 @@ service totals. The grouped response did not include `Total.UnblendedCost`, so t
 Cost Explorer's pre-tax sum rounds to $3.42, close to the screenshot's $3.41; the small difference is consistent with estimate updates
 and displayed rounding. Use the pre-tax sum when comparing with the screenshot. The report currently spans pre-migration usage through
 October 13; query a period ending after the migration to measure ARM64 costs.
+
+## Estimated full-month x86-64 cost
+
+For a 730-hour month with the `t3.small` host and its public IPv4 address running continuously at the observed rates:
+
+| Cost component | Calculation | Monthly estimate (USD) |
+| --- | --- | ---: |
+| EC2 compute | 730 hours × $0.0216/hour | 15.77 |
+| 12 GiB gp3 root volume | 12 GiB × $0.0836/GiB-month | 1.00 |
+| In-use public IPv4 | 730 hours × $0.005/hour | 3.65 |
+| **Host, volume and address subtotal** |  | **20.42** |
+| Other observed services, scaled to 730 EC2 hours | ($0.172548 Secrets Manager + $0.0029999 ECR + $0.321567 RDS + $0.000355 S3) × 730 / 103.998 observed EC2 hours | 3.49 |
+| **Estimated account total before tax** |  | **23.91/month** |
+
+This is a rough steady-use estimate, not a bill forecast. It assumes the EC2 instance and address stay in use for 730 hours, current
+prices remain unchanged, and other service consumption scales with the observed 103.998 EC2 hours. Aurora charges in particular vary
+with database activity and pause time. Taxes, credits, discounts, data transfer, and unobserved future usage are excluded.
