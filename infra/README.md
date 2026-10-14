@@ -146,3 +146,4 @@ after an Aurora idle period can still be slow while the database resumes.
 
 - Not yet measured: Aurora pause/resume timing, backend memory under real gameplay on the 2 GiB ARM64 host, CPU-credit behavior and reboot recovery.
 - Live multiplayer acceptance with friends is in progress; see the backend and frontend STATUS files.
+- The recorded pre-migration cost window totaled USD 3.41 before tax; see [the cost baseline](cost-baseline-before-arm64.md) before making comparisons.
