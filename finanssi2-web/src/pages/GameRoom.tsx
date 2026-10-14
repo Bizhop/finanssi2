@@ -46,10 +46,12 @@ const GameRoomContent = () => {
         ...(view?.game.state.players.map((player) => player.playerId) ?? []),
         ...events.flatMap((entry) => Object.values(entry.event).filter((value): value is string => typeof value === "string")),
     ])
-    const playerName = useCallback((playerId: string) =>
-        profiles[playerId]?.displayName ??
-            view?.game.state.players.find((player) => player.playerId === playerId)?.name ??
-            (playerId.startsWith("debug:") ? t("room.debugPlayerShort") : t("room.formerPlayer")), [profiles, view?.game.state.players, t])
+    const playerName = useCallback((playerId: string) => {
+        const player = view?.game.state.players.find((item) => item.playerId === playerId)
+        if (profiles[playerId]?.displayName) return profiles[playerId].displayName
+        if (playerId.startsWith("debug:")) return t("room.debugPlayer", { number: player ? player.piece + 1 : 1 })
+        return player?.name ?? t("room.formerPlayer")
+    }, [profiles, view?.game.state.players, t])
     useEffect(() => {
         if (lastToastedSequence.current == null) {
             if (events.length) lastToastedSequence.current = events.at(-1)!.seq
@@ -57,8 +59,11 @@ const GameRoomContent = () => {
         }
         const fresh = events.filter((entry) => entry.seq > lastToastedSequence.current!)
         for (const entry of fresh) {
-            if (entry.type === "DiceRolled" || entry.type === "BankEntranceRoll" || entry.type === "JailRoll" || entry.type === "GoToJailRoll" || entry.type === "BailRoll") {
-                toast.info(describeEvent(entry, { playerName, board }))
+            if (
+                entry.type === "DiceRolled" || entry.type === "BankEntranceRoll" || entry.type === "JailRoll" || entry.type === "GoToJailRoll" ||
+                entry.type === "BailRoll"
+            ) {
+                toast.info(describeEvent(entry, { playerName, board }), { autoClose: 5000 })
             }
         }
         if (fresh.length) lastToastedSequence.current = Math.max(...fresh.map((entry) => entry.seq))
