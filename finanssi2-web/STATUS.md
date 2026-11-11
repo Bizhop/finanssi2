@@ -1,8 +1,8 @@
 # Frontend status
 
-Updated 2026-10-14. The production frontend is live at `https://finanssi.bizhop.fi` (CloudFront + S3) against
-`https://api.finanssi.bizhop.fi`. `./infra/scripts/publish-frontend.sh` builds (`deno task build`, which validates `.env.production`),
-uploads and invalidates it; see [infrastructure setup](../infra/README.md) and the [root README](../README.md) for configuration.
+Updated 2026-11-11. The production frontend is live at `https://finanssi.bizhop.fi` (CloudFront + S3) against
+`https://api.finanssi.bizhop.fi`. `aws/apps/finanssi2/scripts/publish-frontend.sh` (in the sibling `aws` repository) builds (`deno task build`, which validates `.env.production`),
+uploads and invalidates it; see [infrastructure setup](../../aws/apps/finanssi2/README.md) and the [root README](../README.md) for configuration.
 
 - Firebase Google and email/password flows, application profile bootstrap/editing and custom avatars are implemented. Real Firebase
   verification/linking, password reset and browser upload acceptance still need a live account and mailbox.

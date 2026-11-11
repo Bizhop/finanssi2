@@ -4,14 +4,14 @@ Monorepo for the Finanssi 2 game.
 
 - `finanssi2-backend/` – Spring Boot backend (Java 25, Gradle, PostgreSQL, Firebase auth)
 - `finanssi2-web/` – React frontend (Deno + Vite)
-- `infra/` – Pulumi TypeScript production infrastructure on AWS and release scripts
+- AWS infrastructure and release scripts live in the sibling repository `aws/` (`../aws`), not in this repository
 - `input/` – reference material only (rules, board and card photos, transcriptions); not read by the apps
 
 Current implementation status, decisions and todos:
 
 - [Backend notes](finanssi2-backend/STATUS.md)
 - [Frontend notes](finanssi2-web/STATUS.md)
-- [Production infrastructure](infra/README.md)
+- [Production infrastructure](../aws/apps/finanssi2/README.md) (separate repository)
 
 The game is live at https://finanssi.bizhop.fi (API at https://api.finanssi.bizhop.fi). Private single-player debug mode is
 implemented; live multiplayer acceptance and measurements of the production host are recorded in the status notes.
@@ -57,15 +57,16 @@ For production, activate Spring's `prod` profile. It requires Spring config-tree
 The profile enables hostname-verified TLS, a four-connection pool that closes idle sessions for Aurora auto-pause, and proxy-forwarded
 headers. `/api/health/live` is a public liveness response that does not query the database.
 
-For production, run the release helper from the repository root. It builds for the architecture configured in Pulumi, publishes an
+For production, run the release helper from the `aws` repository; it finds this repository at `../finanssi2` (override with
+`FINANSSI2_REPO`). It builds for the architecture configured in Pulumi, publishes an
 immutable ECR image, then rolls it out over Systems Manager and checks the backend liveness endpoint. Set `DEPLOY_BACKEND=false`
 to publish without deploying:
 
 ```bash
-./infra/scripts/publish-backend-image.sh
+../aws/apps/finanssi2/scripts/publish-backend-image.sh
 ```
 
-Publish the frontend (build, upload to S3, CloudFront invalidation) with `./infra/scripts/publish-frontend.sh`.
+Publish the frontend (build, upload to S3, CloudFront invalidation) with `../aws/apps/finanssi2/scripts/publish-frontend.sh`.
 
 ## Running locally
 

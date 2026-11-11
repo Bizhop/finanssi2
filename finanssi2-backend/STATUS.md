@@ -1,8 +1,8 @@
 # Backend status
 
-Updated 2026-10-14. Production is live: the backend runs as one Docker container on an ARM64 `t4g.small` EC2 host behind Caddy at
+Updated 2026-11-11. Production is live: the backend runs as one Docker container on an ARM64 `t4g.small` EC2 host behind Caddy at
 `https://api.finanssi.bizhop.fi`, with Aurora PostgreSQL Serverless v2; the frontend is at `https://finanssi.bizhop.fi`. Setup,
-releases and operations are in [infrastructure setup](../infra/README.md); local configuration is in the root README.
+releases and operations are in [infrastructure setup](../../aws/apps/finanssi2/README.md); local configuration is in the root README.
 
 - **Image.** A Java 25 multi-stage Dockerfile builds with the Gradle wrapper, pins JDK/JRE base images by digest, excludes local
   Firebase credentials and runs as a nonroot user. JVM options (40% heap, `ExitOnOutOfMemoryError`) are set only there. Releases are

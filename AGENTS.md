@@ -4,7 +4,8 @@
 
 - Current features, decisions and todos: [backend status](finanssi2-backend/STATUS.md) and
   [frontend status](finanssi2-web/STATUS.md).
-- Production is live (ARM64 EC2 + Aurora + CloudFront/S3, managed by Pulumi in `infra/`; see [infra README](infra/README.md)).
+- Production is live (ARM64 EC2 + Aurora + CloudFront/S3, managed by Pulumi in the separate `aws` repository, `../aws`; see its
+  [Finanssi README](../aws/apps/finanssi2/README.md)).
   Single-player debug mode is implemented. Remaining live acceptance checks and measurements are recorded in the
   backend/frontend status notes; use those as the session handoff.
 - `input/` is reference material (rules, photos, transcriptions). Don't link to it from code or docs.
@@ -28,5 +29,5 @@
 - Commit only when explicitly asked. Never push.
 - One-line message: what changed, not how. No body, no trailers (no `Co-Authored-By`), no implementation details, no notes on branch, push
   or test state.
-- Prefix `frontend:`, `backend:` or `infra:`; no prefix when a commit touches all.
+- Prefix `frontend:` or `backend:`; no prefix when a commit touches both. Infrastructure is committed in the `aws` repository.
 - Lowercase, imperative: `frontend: update node types dep`, `authenticate chat websocket, replace react-stomp-hooks`
